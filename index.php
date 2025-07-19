@@ -5,7 +5,30 @@
 
 require_once 'config.php';
 require_once 'auth.php';
+require_once 'database.php';
 require_once 'monitor.php';
+
+// 设置时区为中国标准时间
+date_default_timezone_set('Asia/Shanghai');
+
+/**
+ * 格式化时间显示，自动处理UTC到北京时间的转换
+ */
+function formatTime($timeString, $format = 'm-d H:i') {
+    if (!$timeString) {
+        return 'N/A';
+    }
+    
+    try {
+        // 尝试从 UTC 时间转换为北京时间
+        $dt = new DateTime($timeString, new DateTimeZone('UTC'));
+        $dt->setTimezone(new DateTimeZone('Asia/Shanghai'));
+        return $dt->format($format);
+    } catch (Exception $e) {
+        // 如果转换失败，使用原始方法
+        return date($format, strtotime($timeString));
+    }
+}
 
 // 检查登录状态
 Auth::requireLogin();
@@ -554,7 +577,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                 <div class="header-right">
                     <div class="user-info">
                         <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                        <div class="session-time">登录时间：<?php echo date('Y-m-d H:i:s', Auth::getLoginTime()); ?></div>
+                        <div class="session-time">登录时间：<?php echo formatTime(date('Y-m-d H:i:s', Auth::getLoginTime()), 'Y-m-d H:i:s'); ?></div>
                     </div>
                     <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出登录</a>
                 </div>
@@ -621,7 +644,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                             </td>
                             <td><?php echo number_format($proxy['response_time'], 2); ?>ms</td>
                             <td><?php echo $proxy['failure_count']; ?></td>
-                            <td><?php echo $proxy['last_check'] ? date('m-d H:i', strtotime($proxy['last_check'])) : 'N/A'; ?></td>
+                            <td><?php echo formatTime($proxy['last_check']); ?></td>
                             <td>
                                 <button class="btn btn-small" onclick="checkProxy(<?php echo $proxy['id']; ?>)">检查</button>
                             </td>
@@ -670,7 +693,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             <div id="logs-container">
                 <?php foreach ($recentLogs as $log): ?>
                 <div class="log-entry">
-                    <span class="log-time"><?php echo date('m-d H:i:s', strtotime($log['checked_at'])); ?></span>
+                    <span class="log-time"><?php echo formatTime($log['checked_at'], 'm-d H:i:s'); ?></span>
                     <span class="log-status log-<?php echo $log['status']; ?>"><?php echo strtoupper($log['status']); ?></span>
                     <span><?php echo htmlspecialchars($log['ip'] . ':' . $log['port']); ?></span>
                     <span>(<?php echo number_format($log['response_time'], 2); ?>ms)</span>
