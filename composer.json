@@ -1,0 +1,30 @@
+{
+    "name": "netwatch/monitor",
+    "description": "NetWatch - 网络代理监控系统",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "NetWatch Team",
+            "email": "admin@netwatch.local"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "NetWatch\\": "src/"
+        }
+    },
+    "scripts": {
+        "start": "php scheduler.php",
+        "import": "php -f import.php",
+        "test": "php -f test.php"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

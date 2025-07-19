@@ -1,0 +1,191 @@
+<?php
+/**
+ * 网络监控核心类
+ */
+
+require_once 'config.php';
+require_once 'database.php';
+require_once 'logger.php';
+
+class NetworkMonitor {
+    private $db;
+    private $logger;
+    
+    public function __construct() {
+        $this->db = new Database();
+        $this->logger = new Logger();
+    }
+    
+    /**
+     * 检查单个代理
+     */
+    public function checkProxy($proxy) {
+        $startTime = microtime(true);
+        $status = 'offline';
+        $errorMessage = null;
+        
+        try {
+            $ch = curl_init();
+            
+            // 基本curl设置
+            curl_setopt_array($ch, [
+                CURLOPT_URL => TEST_URL,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => TIMEOUT,
+                CURLOPT_CONNECTTIMEOUT => TIMEOUT,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => 'NetWatch Monitor/1.0'
+            ]);
+            
+            // 设置代理
+            if ($proxy['type'] === 'socks5') {
+                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
+            } else {
+                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+            }
+            
+            $proxyUrl = $proxy['ip'] . ':' . $proxy['port'];
+            curl_setopt($ch, CURLOPT_PROXY, $proxyUrl);
+            
+            // 如果有认证信息
+            if (!empty($proxy['username']) && !empty($proxy['password'])) {
+                curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxy['username'] . ':' . $proxy['password']);
+            }
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            
+            curl_close($ch);
+            
+            if ($response !== false && $httpCode === 200) {
+                $status = 'online';
+                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} 检查成功");
+            } else {
+                $errorMessage = $curlError ?: "HTTP Code: $httpCode";
+                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} 检查失败: $errorMessage");
+            }
+            
+        } catch (Exception $e) {
+            $errorMessage = $e->getMessage();
+            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} 检查异常: $errorMessage");
+        }
+        
+        $responseTime = (microtime(true) - $startTime) * 1000; // 转换为毫秒
+        
+        // 更新数据库
+        $this->db->updateProxyStatus($proxy['id'], $status, $responseTime, $errorMessage);
+        
+        return [
+            'status' => $status,
+            'response_time' => $responseTime,
+            'error_message' => $errorMessage
+        ];
+    }
+    
+    /**
+     * 检查所有代理
+     */
+    public function checkAllProxies() {
+        $proxies = $this->db->getAllProxies();
+        $results = [];
+        
+        $this->logger->info("开始检查 " . count($proxies) . " 个代理");
+        
+        foreach ($proxies as $proxy) {
+            $result = $this->checkProxy($proxy);
+            $results[] = array_merge($proxy, $result);
+            
+            // 避免过于频繁的请求
+            usleep(100000); // 0.1秒延迟
+        }
+        
+        $this->logger->info("代理检查完成");
+        return $results;
+    }
+    
+    /**
+     * 批量导入代理
+     */
+    public function importProxies($proxyList) {
+        $imported = 0;
+        $errors = [];
+        
+        foreach ($proxyList as $proxyData) {
+            try {
+                if ($this->db->addProxy(
+                    $proxyData['ip'],
+                    $proxyData['port'],
+                    $proxyData['type'],
+                    $proxyData['username'] ?? null,
+                    $proxyData['password'] ?? null
+                )) {
+                    $imported++;
+                } else {
+                    $errors[] = "导入失败: {$proxyData['ip']}:{$proxyData['port']}";
+                }
+            } catch (Exception $e) {
+                $errors[] = "导入异常: {$proxyData['ip']}:{$proxyData['port']} - " . $e->getMessage();
+            }
+        }
+        
+        $this->logger->info("导入完成: 成功 $imported 个，失败 " . count($errors) . " 个");
+        
+        return [
+            'imported' => $imported,
+            'errors' => $errors
+        ];
+    }
+    
+    /**
+     * 从文件导入代理
+     * 格式: ip:port:type:username:password (每行一个)
+     */
+    public function importFromFile($filename) {
+        if (!file_exists($filename)) {
+            throw new Exception("文件不存在: $filename");
+        }
+        
+        $lines = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $proxyList = [];
+        
+        foreach ($lines as $lineNum => $line) {
+            $line = trim($line);
+            if (empty($line) || $line[0] === '#') {
+                continue; // 跳过空行和注释
+            }
+            
+            $parts = explode(':', $line);
+            if (count($parts) < 3) {
+                $this->logger->warning("第 " . ($lineNum + 1) . " 行格式错误: $line");
+                continue;
+            }
+            
+            $proxyList[] = [
+                'ip' => $parts[0],
+                'port' => (int)$parts[1],
+                'type' => $parts[2],
+                'username' => $parts[3] ?? null,
+                'password' => $parts[4] ?? null
+            ];
+        }
+        
+        return $this->importProxies($proxyList);
+    }
+    
+    /**
+     * 获取统计信息
+     */
+    public function getStats() {
+        return $this->db->getProxyStats();
+    }
+    
+    /**
+     * 获取最近的日志
+     */
+    public function getRecentLogs($limit = 100) {
+        return $this->db->getRecentLogs($limit);
+    }
+}
