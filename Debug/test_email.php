@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             case 'check_failed_proxies':
                 // 检查实际的故障代理
                 $database = new Database();
-                $monitor = new Monitor($database);
+                $monitor = new NetworkMonitor();
                 
                 $failedProxies = $database->getFailedProxies();
                 
