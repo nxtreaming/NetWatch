@@ -73,7 +73,14 @@ class Database {
     public function addProxy($ip, $port, $type, $username = null, $password = null) {
         $sql = "INSERT INTO proxies (ip, port, type, username, password) VALUES (?, ?, ?, ?, ?)";
         $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$ip, $port, $type, $username, $password]);
+        $result = $stmt->execute([$ip, $port, $type, $username, $password]);
+        
+        // 清理缓存
+        if ($result) {
+            $this->clearProxyCountCache();
+        }
+        
+        return $result;
     }
     
     public function proxyExists($ip, $port) {
@@ -202,7 +209,9 @@ class Database {
     public function updateProxyAuth($id, $username, $password) {
         $sql = "UPDATE proxies SET username = ?, password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
         $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$username, $password, $id]);
+        $result = $stmt->execute([$username, $password, $id]);
+        $this->clearProxyCountCache();
+        return $result;
     }
     
     /**
@@ -220,6 +229,8 @@ class Database {
             $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='check_logs'");
             $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='alerts'");
             
+            $this->clearProxyCountCache();
+            
             return true;
         } catch (PDOException $e) {
             throw new Exception("清空数据失败: " . $e->getMessage());
@@ -230,9 +241,17 @@ class Database {
      * 获取代理总数
      */
     public function getProxyCount() {
+        // 记录开始时间
+        $startTime = microtime(true);
+        
         $sql = "SELECT COUNT(*) as count FROM proxies";
         $stmt = $this->pdo->query($sql);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // 记录执行时间
+        $executionTime = round((microtime(true) - $startTime) * 1000, 2);
+        error_log("getProxyCount执行时间: {$executionTime}ms");
+        
         return (int)$result['count'];
     }
     
@@ -309,5 +328,15 @@ class Database {
         
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)$result['count'];
+    }
+    
+    /**
+     * 清理代理数量缓存
+     */
+    private function clearProxyCountCache() {
+        $cacheFile = 'cache_proxy_count.txt';
+        if (file_exists($cacheFile)) {
+            unlink($cacheFile);
+        }
     }
 }

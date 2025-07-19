@@ -86,6 +86,75 @@ class NetworkMonitor {
     }
     
     /**
+     * 快速检查单个代理（用于批量检查，更短的超时时间）
+     */
+    public function checkProxyFast($proxy) {
+        $startTime = microtime(true);
+        $status = 'offline';
+        $errorMessage = null;
+        
+        try {
+            $ch = curl_init();
+            
+            // 基本curl设置，使用更短的超时时间
+            curl_setopt_array($ch, [
+                CURLOPT_URL => TEST_URL,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 5, // 批量检查时使用5秒超时
+                CURLOPT_CONNECTTIMEOUT => 3, // 连接超时更短
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => 'NetWatch Monitor/1.0'
+            ]);
+            
+            // 设置代理
+            if ($proxy['type'] === 'socks5') {
+                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
+            } else {
+                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+            }
+            
+            $proxyUrl = $proxy['ip'] . ':' . $proxy['port'];
+            curl_setopt($ch, CURLOPT_PROXY, $proxyUrl);
+            
+            // 如果有认证信息
+            if (!empty($proxy['username']) && !empty($proxy['password'])) {
+                curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxy['username'] . ':' . $proxy['password']);
+            }
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            
+            curl_close($ch);
+            
+            if ($response !== false && $httpCode === 200) {
+                $status = 'online';
+                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} 快速检查成功");
+            } else {
+                $errorMessage = $curlError ?: "HTTP Code: $httpCode";
+                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} 快速检查失败: $errorMessage");
+            }
+            
+        } catch (Exception $e) {
+            $errorMessage = $e->getMessage();
+            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} 快速检查异常: $errorMessage");
+        }
+        
+        $responseTime = (microtime(true) - $startTime) * 1000; // 转换为毫秒
+        
+        // 更新数据库
+        $this->db->updateProxyStatus($proxy['id'], $status, $responseTime, $errorMessage);
+        
+        return [
+            'status' => $status,
+            'response_time' => $responseTime,
+            'error_message' => $errorMessage
+        ];
+    }
+    
+    /**
      * 检查所有代理
      */
     public function checkAllProxies() {
@@ -291,13 +360,13 @@ class NetworkMonitor {
         $this->logger->info("开始分批检查代理: offset=$offset, limit=$limit, 实际获取 " . count($proxies) . " 个代理");
         
         foreach ($proxies as $proxy) {
-            $result = $this->checkProxy($proxy);
+            $result = $this->checkProxyFast($proxy);
             // 过滤敏感信息后再返回
             $filteredProxy = $this->filterSensitiveData($proxy);
             $results[] = array_merge($filteredProxy, $result);
             
-            // 避免过于频繁的请求
-            usleep(50000); // 0.05秒延迟，比全量检查更快
+            // 减少延迟时间，提高批量检查速度
+            usleep(10000); // 0.01秒延迟，更快的批量检查
         }
         
         $this->logger->info("分批检查完成: 检查了 " . count($results) . " 个代理");
