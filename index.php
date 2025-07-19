@@ -1204,25 +1204,40 @@ $recentLogs = $monitor->getRecentLogs(20);
             btn.disabled = true;
             btn.textContent = '正在准备...';
             
+            // 创建背景遮罩层
+            const overlay = document.createElement('div');
+            overlay.id = 'check-overlay';
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0, 0, 0, 0.6); z-index: 999;
+                backdrop-filter: blur(3px);
+            `;
+            document.body.appendChild(overlay);
+            
             // 创建进度显示界面
             const progressDiv = document.createElement('div');
             progressDiv.id = 'check-progress';
             progressDiv.style.cssText = `
                 position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                background: white; padding: 30px; border-radius: 15px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 1000;
-                text-align: center; min-width: 400px; max-width: 500px;
+                background: white; padding: 40px; border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 1000;
+                text-align: center; min-width: 600px; max-width: 800px; width: 80vw;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                border: 1px solid #e0e0e0;
             `;
             
             progressDiv.innerHTML = `
-                <h3 style="margin: 0 0 20px 0; color: #333;">🔍 正在检查所有代理</h3>
-                <div id="progress-info" style="margin-bottom: 20px; color: #666;">正在连接数据库...</div>
-                <div style="background: #f0f0f0; border-radius: 10px; height: 20px; margin: 20px 0; overflow: hidden;">
-                    <div id="progress-bar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
+                <h3 style="margin: 0 0 30px 0; color: #333; font-size: 24px; font-weight: 600;">🔍 正在检查所有代理</h3>
+                <div id="progress-info" style="margin-bottom: 25px; color: #666; font-size: 16px; line-height: 1.5;">正在连接数据库...</div>
+                <div style="background: #f5f5f5; border-radius: 15px; height: 30px; margin: 30px 0; overflow: hidden; border: 1px solid #e0e0e0;">
+                    <div id="progress-bar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 15px; position: relative;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 600; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);" id="progress-percent">0%</div>
+                    </div>
                 </div>
-                <div id="progress-stats" style="font-size: 14px; color: #888;">准备开始...</div>
-                <button id="cancel-check" style="margin-top: 15px; padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">取消检查</button>
+                <div id="progress-stats" style="font-size: 16px; color: #555; margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #4CAF50;">准备开始...</div>
+                <div style="display: flex; justify-content: center; gap: 15px; margin-top: 20px;">
+                    <button id="cancel-check" style="padding: 12px 24px; background: #f44336; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; transition: background 0.3s ease;" onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">取消检查</button>
+                </div>
             `;
             
             document.body.appendChild(progressDiv);
@@ -1231,6 +1246,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             document.getElementById('cancel-check').onclick = () => {
                 cancelled = true;
                 document.body.removeChild(progressDiv);
+                document.body.removeChild(overlay);
                 btn.textContent = originalText;
                 btn.disabled = false;
             };
@@ -1270,6 +1286,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                 if (totalProxies === 0) {
                     alert('没有找到代理数据，请先导入代理。');
                     document.body.removeChild(progressDiv);
+                    document.body.removeChild(overlay);
                     btn.textContent = originalText;
                     btn.disabled = false;
                     return;
@@ -1325,6 +1342,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                         // 更新进度条
                         const progress = (checkedCount / totalProxies) * 100;
                         document.getElementById('progress-bar').style.width = progress + '%';
+                        document.getElementById('progress-percent').textContent = Math.round(progress) + '%';
                         
                         // 更新进度信息，显示执行时间
                         const executionTime = batchData.execution_time ? ` (用时: ${batchData.execution_time}ms)` : '';
@@ -1360,11 +1378,13 @@ $recentLogs = $monitor->getRecentLogs(20);
                         }
                         
                         document.body.removeChild(progressDiv);
+                        document.body.removeChild(overlay);
                         
                         alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个${alertMessage}\n\n页面将自动刷新显示最新状态`);
                         
                     } catch (alertError) {
                         document.body.removeChild(progressDiv);
+                        document.body.removeChild(overlay);
                         alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
                     }
                     
@@ -1375,6 +1395,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             } catch (error) {
                 if (!cancelled) {
                     document.body.removeChild(progressDiv);
+                    document.body.removeChild(overlay);
                     console.error('检查所有代理失败:', error);
                     alert('❌ 检查失败: ' + error.message);
                 }
