@@ -813,7 +813,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                         <?php foreach ($proxies as $proxy): ?>
                         <tr>
                             <td><?php echo $proxy['id']; ?></td>
-                            <td><?php echo htmlspecialchars($proxy['ip'] . ':' . $proxy['port']); ?></td>
+                            <td><?php echo htmlspecialchars($proxy['ip']); ?></td>
                             <td><?php echo strtoupper($proxy['type']); ?></td>
                             <td>
                                 <span class="status-badge status-<?php echo $proxy['status']; ?>">
