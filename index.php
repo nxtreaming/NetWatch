@@ -57,6 +57,38 @@ if (isset($_GET['ajax'])) {
             }
             break;
             
+        case 'getProxyCount':
+            try {
+                $count = $monitor->getProxyCount();
+                echo json_encode([
+                    'success' => true,
+                    'count' => $count
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => '获取代理数量失败: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
+        case 'checkBatch':
+            try {
+                $offset = intval($_GET['offset'] ?? 0);
+                $limit = intval($_GET['limit'] ?? 10);
+                $results = $monitor->checkProxyBatch($offset, $limit);
+                echo json_encode([
+                    'success' => true,
+                    'results' => $results
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => '批量检查失败: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
         default:
             echo json_encode(['error' => '未知操作']);
     }
@@ -493,48 +525,121 @@ $recentLogs = $monitor->getRecentLogs(20);
                 });
         }
         
-        function checkAllProxies() {
+        async function checkAllProxies() {
             if (confirm('确定要检查所有代理吗？这可能需要一些时间。')) {
                 const btn = event.target;
                 const originalText = btn.textContent;
                 btn.textContent = '检查中...';
                 btn.disabled = true;
                 
-                // 显示进度提示
+                // 创建进度显示界面
                 const progressDiv = document.createElement('div');
                 progressDiv.id = 'check-progress';
-                progressDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000; text-align: center;';
-                progressDiv.innerHTML = '<h3>🔍 正在检查所有代理...</h3><p>请耐心等待，这可能需要几分钟时间</p>';
+                progressDiv.style.cssText = `
+                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                    background: white; padding: 30px; border-radius: 15px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 1000;
+                    text-align: center; min-width: 400px; max-width: 500px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                `;
+                
+                progressDiv.innerHTML = `
+                    <h3 style="margin: 0 0 20px 0; color: #333;">🔍 正在检查所有代理</h3>
+                    <div id="progress-info" style="margin-bottom: 20px; color: #666;">正在获取代理列表...</div>
+                    <div style="background: #f0f0f0; border-radius: 10px; height: 20px; margin: 20px 0; overflow: hidden;">
+                        <div id="progress-bar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
+                    </div>
+                    <div id="progress-stats" style="font-size: 14px; color: #888;">准备开始...</div>
+                    <button id="cancel-check" style="margin-top: 15px; padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">取消检查</button>
+                `;
+                
                 document.body.appendChild(progressDiv);
                 
-                // 调用后端检查所有代理
-                fetch('?ajax=1&action=checkAll')
-                    .then(response => response.json())
-                    .then(data => {
+                let cancelled = false;
+                document.getElementById('cancel-check').onclick = () => {
+                    cancelled = true;
+                    document.body.removeChild(progressDiv);
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                };
+                
+                try {
+                    // 首先获取代理总数
+                    const countResponse = await fetch('?ajax=1&action=getProxyCount');
+                    const countData = await countResponse.json();
+                    
+                    if (!countData.success) {
+                        throw new Error(countData.error || '获取代理数量失败');
+                    }
+                    
+                    const totalProxies = countData.count;
+                    if (totalProxies === 0) {
+                        alert('没有找到代理数据，请先导入代理。');
                         document.body.removeChild(progressDiv);
-                        
-                        if (data.success) {
-                            const totalChecked = data.results ? data.results.length : 0;
-                            const onlineCount = data.results ? data.results.filter(r => r.status === 'online').length : 0;
-                            const offlineCount = totalChecked - onlineCount;
-                            
-                            alert(`✅ 检查完成！\n\n总计: ${totalChecked} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
-                            
-                            // 刷新页面显示最新状态
-                            location.reload();
-                        } else {
-                            alert('❌ 检查失败: ' + (data.error || '未知错误'));
-                        }
-                    })
-                    .catch(error => {
-                        document.body.removeChild(progressDiv);
-                        console.error('检查所有代理失败:', error);
-                        alert('❌ 检查失败，请稍后重试');
-                    })
-                    .finally(() => {
                         btn.textContent = originalText;
                         btn.disabled = false;
-                    });
+                        return;
+                    }
+                    
+                    // 更新进度信息
+                    document.getElementById('progress-info').textContent = `找到 ${totalProxies} 个代理，开始检查...`;
+                    
+                    // 分批检查代理
+                    const batchSize = 10; // 每批检查10个代理
+                    let checkedCount = 0;
+                    let onlineCount = 0;
+                    let offlineCount = 0;
+                    
+                    for (let offset = 0; offset < totalProxies && !cancelled; offset += batchSize) {
+                        const batchResponse = await fetch(`?ajax=1&action=checkBatch&offset=${offset}&limit=${batchSize}`);
+                        const batchData = await batchResponse.json();
+                        
+                        if (!batchData.success) {
+                            throw new Error(batchData.error || '批量检查失败');
+                        }
+                        
+                        // 更新统计
+                        checkedCount += batchData.results.length;
+                        onlineCount += batchData.results.filter(r => r.status === 'online').length;
+                        offlineCount += batchData.results.filter(r => r.status === 'offline').length;
+                        
+                        // 更新进度条
+                        const progress = (checkedCount / totalProxies) * 100;
+                        document.getElementById('progress-bar').style.width = progress + '%';
+                        
+                        // 更新进度信息
+                        document.getElementById('progress-info').textContent = 
+                            `正在检查第 ${Math.min(offset + batchSize, totalProxies)} / ${totalProxies} 个代理...`;
+                        
+                        // 更新统计信息
+                        document.getElementById('progress-stats').textContent = 
+                            `已检查: ${checkedCount} | 在线: ${onlineCount} | 离线: ${offlineCount}`;
+                        
+                        // 添加小延迟，让用户能看到进度
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                    
+                    if (!cancelled) {
+                        document.body.removeChild(progressDiv);
+                        
+                        alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
+                        
+                        // 刷新页面显示最新状态
+                        location.reload();
+                    }
+                    
+                } catch (error) {
+                    if (!cancelled) {
+                        document.body.removeChild(progressDiv);
+                        console.error('检查所有代理失败:', error);
+                        alert('❌ 检查失败: ' + error.message);
+                    }
+                } finally {
+                    if (!cancelled) {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }
+                }
             }
         }
         

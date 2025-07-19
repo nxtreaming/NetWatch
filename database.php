@@ -210,4 +210,24 @@ class Database {
             throw new Exception("清空数据失败: " . $e->getMessage());
         }
     }
+    
+    /**
+     * 获取代理总数
+     */
+    public function getProxyCount() {
+        $sql = "SELECT COUNT(*) as count FROM proxies";
+        $stmt = $this->pdo->query($sql);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)$result['count'];
+    }
+    
+    /**
+     * 分批获取代理列表
+     */
+    public function getProxiesBatch($offset = 0, $limit = 10) {
+        $sql = "SELECT * FROM proxies ORDER BY id LIMIT ? OFFSET ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$limit, $offset]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

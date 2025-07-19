@@ -223,4 +223,32 @@ class NetworkMonitor {
     public function addProxy($ip, $port, $type, $username = null, $password = null) {
         return $this->db->addProxy($ip, $port, $type, $username, $password);
     }
+    
+    /**
+     * 获取代理总数
+     */
+    public function getProxyCount() {
+        return $this->db->getProxyCount();
+    }
+    
+    /**
+     * 分批检查代理
+     */
+    public function checkProxyBatch($offset = 0, $limit = 10) {
+        $proxies = $this->db->getProxiesBatch($offset, $limit);
+        $results = [];
+        
+        $this->logger->info("开始分批检查代理: offset=$offset, limit=$limit, 实际获取 " . count($proxies) . " 个代理");
+        
+        foreach ($proxies as $proxy) {
+            $result = $this->checkProxy($proxy);
+            $results[] = array_merge($proxy, $result);
+            
+            // 避免过于频繁的请求
+            usleep(50000); // 0.05秒延迟，比全量检查更快
+        }
+        
+        $this->logger->info("分批检查完成: 检查了 " . count($results) . " 个代理");
+        return $results;
+    }
 }
