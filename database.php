@@ -239,7 +239,7 @@ class Database {
     /**
      * 分批获取代理列表
      */
-    public function getProxiesBatch($offset = 0, $limit = 10) {
+    public function getProxiesBatch($offset = 0, $limit = 20) {
         $sql = "SELECT * FROM proxies ORDER BY id LIMIT ? OFFSET ?";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$limit, $offset]);

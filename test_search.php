@@ -47,7 +47,7 @@ try {
     echo "3. 分页测试:\n";
     $searchTerm = '1.2.3.x';
     $totalResults = $monitor->getSearchCount($searchTerm);
-    $perPage = 10;
+    $perPage = 20;
     $totalPages = ceil($totalResults / $perPage);
     
     echo "   搜索 '$searchTerm': 总共 $totalResults 个结果，分 $totalPages 页\n";
@@ -67,14 +67,14 @@ try {
     
     // 测试4: 空搜索测试
     echo "4. 空搜索测试:\n";
-    $emptyResults = $monitor->searchProxiesSafe('', 1, 10);
+    $emptyResults = $monitor->searchProxiesSafe('', 1, 20);
     $emptyCount = $monitor->getSearchCount('');
     echo "   空搜索结果: $emptyCount 个（应该等于总数量 $totalCount）\n";
     echo "   实际获取: " . count($emptyResults) . " 个结果\n\n";
     
     // 测试5: 不存在的IP搜索
     echo "5. 不存在IP搜索测试:\n";
-    $notFoundResults = $monitor->searchProxiesSafe('999.999.999.999', 1, 10);
+    $notFoundResults = $monitor->searchProxiesSafe('999.999.999.999', 1, 20);
     $notFoundCount = $monitor->getSearchCount('999.999.999.999');
     echo "   搜索不存在的IP: $notFoundCount 个结果\n";
     echo "   实际获取: " . count($notFoundResults) . " 个结果\n\n";

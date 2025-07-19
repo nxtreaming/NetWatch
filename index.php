@@ -982,7 +982,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                     document.getElementById('progress-info').textContent = `找到 ${totalProxies} 个代理，开始检查...`;
                     
                     // 分批检查代理
-                    const batchSize = 10; // 每批检查10个代理
+                    const batchSize = 20; // 每批检查20个代理
                     let checkedCount = 0;
                     let onlineCount = 0;
                     let offlineCount = 0;

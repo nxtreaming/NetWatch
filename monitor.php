@@ -284,7 +284,7 @@ class NetworkMonitor {
     /**
      * 分批检查代理
      */
-    public function checkProxyBatch($offset = 0, $limit = 10) {
+    public function checkProxyBatch($offset = 0, $limit = 20) {
         $proxies = $this->db->getProxiesBatch($offset, $limit);
         $results = [];
         
