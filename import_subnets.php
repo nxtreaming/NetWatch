@@ -489,7 +489,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         function clearForm() {
-            document.getElementById('subnetForm').reset();
+            // 重置表单基本字段
+            document.getElementById('port').value = '1080';
+            document.getElementById('type').value = 'socks5';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('import_mode').value = 'skip';
+            
+            // 清空所有子网输入框（包括原始的9个和动态添加的）
+            for (let i = 1; i <= subnetCount; i++) {
+                const startInput = document.getElementById(`start_ip_${i}`);
+                const endInput = document.getElementById(`end_ip_${i}`);
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+            }
+            
+            // 重置子网计数器到初始状态
+            subnetCount = 9;
+            
+            // 移除动态添加的子网输入框
+            const container = document.getElementById('subnets-container');
+            const subnetItems = container.querySelectorAll('.subnet-item');
+            // 保留前9个，删除其余的
+            for (let i = 9; i < subnetItems.length; i++) {
+                subnetItems[i].remove();
+            }
         }
         
         function previewProxies() {
