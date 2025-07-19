@@ -109,33 +109,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             default:
                 $result['message'] = '未知操作';
         }
+        
+        // 获取最新的日志信息
+        $logPaths = [
+            LOG_PATH . 'netwatch_' . date('Y-m-d') . '.log',
+            './logs/netwatch_' . date('Y-m-d') . '.log',
+            'logs/netwatch_' . date('Y-m-d') . '.log'
+        ];
+        
+        $logContent = '';
+        foreach ($logPaths as $logPath) {
+            if (file_exists($logPath)) {
+                $content = file_get_contents($logPath);
+                $lines = explode("\n", $content);
+                $recentLines = array_slice($lines, -10); // 最后10行
+                $logContent = implode("\n", $recentLines);
+                break;
+            }
+        }
+        
+        $result['log'] = $logContent;
+        
     } catch (Exception $e) {
         $result['message'] = '操作异常: ' . $e->getMessage();
+        $result['debug'][] = '异常详情: ' . $e->getTraceAsString();
+    } catch (Error $e) {
+        $result['message'] = 'PHP错误: ' . $e->getMessage();
+        $result['debug'][] = '错误详情: ' . $e->getTraceAsString();
     }
     
-    // 获取最新的日志信息
-    $logPaths = [
-        LOG_PATH . 'netwatch_' . date('Y-m-d') . '.log',
-        './logs/netwatch_' . date('Y-m-d') . '.log',
-        'logs/netwatch_' . date('Y-m-d') . '.log'
-    ];
+    // 清理输出缓冲区，防止意外输出
+    ob_clean();
     
-    $logContent = '';
-    foreach ($logPaths as $logPath) {
-        if (file_exists($logPath)) {
-            $content = file_get_contents($logPath);
-            $lines = explode("\n", $content);
-            $recentLines = array_slice($lines, -10); // 最后10行
-            $logContent = implode("\n", $recentLines);
-            break;
-        }
-    }
-    
-    $result['log'] = $logContent;
-    
-    echo json_encode($result);
+    // 输出JSON，支持中文
+    echo json_encode($result, JSON_UNESCAPED_UNICODE);
     exit;
 }
+
+// 加载配置用于页面显示
+require_once 'config.php';
+$mailerType = 'PHPMailer (SMTP)';
 ?>
 
 <!DOCTYPE html>
