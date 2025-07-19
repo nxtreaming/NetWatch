@@ -348,7 +348,7 @@ systemctl restart php8.2-fpm
 php -r "
 require_once 'monitor.php';
 \$monitor = new NetworkMonitor();
-\$proxies = \$monitor->db->getAllProxies();
+\$proxies = \$monitor->getAllProxies();
 if (!empty(\$proxies)) {
     \$result = \$monitor->checkProxy(\$proxies[0]);
     print_r(\$result);

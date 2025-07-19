@@ -159,4 +159,25 @@ class Database {
         $stmt->execute([ALERT_THRESHOLD]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    
+    public function cleanupOldLogs($days = 30) {
+        $cutoffDate = date('Y-m-d H:i:s', strtotime("-$days days"));
+        
+        // 清理检查日志
+        $sql = "DELETE FROM check_logs WHERE checked_at < ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$cutoffDate]);
+        $deletedLogs = $stmt->rowCount();
+        
+        // 清理警报记录
+        $sql = "DELETE FROM alerts WHERE sent_at < ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$cutoffDate]);
+        $deletedAlerts = $stmt->rowCount();
+        
+        return [
+            'deleted_logs' => $deletedLogs,
+            'deleted_alerts' => $deletedAlerts
+        ];
+    }
 }

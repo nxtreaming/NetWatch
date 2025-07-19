@@ -21,7 +21,7 @@ if (isset($_GET['ajax'])) {
         case 'check':
             $proxyId = $_GET['proxy_id'] ?? null;
             if ($proxyId) {
-                $proxies = $monitor->db->getAllProxies();
+                $proxies = $monitor->getAllProxies();
                 $proxy = array_filter($proxies, function($p) use ($proxyId) {
                     return $p['id'] == $proxyId;
                 });
@@ -49,7 +49,7 @@ if (isset($_GET['ajax'])) {
 
 // 获取数据
 $stats = $monitor->getStats();
-$proxies = $monitor->db->getAllProxies();
+$proxies = $monitor->getAllProxies();
 $recentLogs = $monitor->getRecentLogs(20);
 
 ?>

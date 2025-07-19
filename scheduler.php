@@ -39,7 +39,7 @@ class Scheduler {
             $results = $this->monitor->checkAllProxies();
             
             // 检查是否有需要发送警报的代理
-            $failedProxies = $this->db->getFailedProxies();
+            $failedProxies = $this->monitor->getFailedProxies();
             
             if (!empty($failedProxies)) {
                 $this->logger->warning("发现 " . count($failedProxies) . " 个故障代理，发送邮件通知");
@@ -47,7 +47,7 @@ class Scheduler {
                 
                 // 记录警报
                 foreach ($failedProxies as $proxy) {
-                    $this->db->addAlert(
+                    $this->monitor->addAlert(
                         $proxy['id'],
                         'proxy_failure',
                         "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
@@ -85,21 +85,8 @@ class Scheduler {
         $this->logger->info("开始清理 $days 天前的日志");
         
         try {
-            $cutoffDate = date('Y-m-d H:i:s', strtotime("-$days days"));
-            
-            // 清理检查日志
-            $sql = "DELETE FROM check_logs WHERE checked_at < ?";
-            $stmt = $this->db->pdo->prepare($sql);
-            $stmt->execute([$cutoffDate]);
-            $deletedLogs = $stmt->rowCount();
-            
-            // 清理警报记录
-            $sql = "DELETE FROM alerts WHERE sent_at < ?";
-            $stmt = $this->db->pdo->prepare($sql);
-            $stmt->execute([$cutoffDate]);
-            $deletedAlerts = $stmt->rowCount();
-            
-            $this->logger->info("清理完成: 删除了 $deletedLogs 条日志记录和 $deletedAlerts 条警报记录");
+            $result = $this->monitor->cleanupOldLogs($days);
+            $this->logger->info("清理完成: 删除了 {$result['deleted_logs']} 条日志记录和 {$result['deleted_alerts']} 条警报记录");
             
         } catch (Exception $e) {
             $this->logger->error("清理日志失败: " . $e->getMessage());

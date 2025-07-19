@@ -188,4 +188,39 @@ class NetworkMonitor {
     public function getRecentLogs($limit = 100) {
         return $this->db->getRecentLogs($limit);
     }
+    
+    /**
+     * 获取所有代理
+     */
+    public function getAllProxies() {
+        return $this->db->getAllProxies();
+    }
+    
+    /**
+     * 获取故障代理
+     */
+    public function getFailedProxies() {
+        return $this->db->getFailedProxies();
+    }
+    
+    /**
+     * 添加警报
+     */
+    public function addAlert($proxyId, $alertType, $message) {
+        return $this->db->addAlert($proxyId, $alertType, $message);
+    }
+    
+    /**
+     * 清理旧日志
+     */
+    public function cleanupOldLogs($days = 30) {
+        return $this->db->cleanupOldLogs($days);
+    }
+    
+    /**
+     * 添加代理
+     */
+    public function addProxy($ip, $port, $type, $username = null, $password = null) {
+        return $this->db->addProxy($ip, $port, $type, $username, $password);
+    }
 }

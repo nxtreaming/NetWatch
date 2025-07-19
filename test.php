@@ -5,7 +5,15 @@
 
 require_once 'config.php';
 require_once 'monitor.php';
-require_once 'mailer.php';
+
+// 选择邮件发送方式
+if (file_exists('vendor/autoload.php')) {
+    require_once 'mailer.php';
+    define('USE_PHPMAILER', true);
+} else {
+    require_once 'mailer_simple.php';
+    define('USE_PHPMAILER', false);
+}
 
 echo "=== NetWatch 系统测试 ===\n\n";
 
@@ -33,7 +41,7 @@ try {
         'password' => null
     ];
     
-    $db->addProxy($testProxy['ip'], $testProxy['port'], $testProxy['type']);
+    $monitor->addProxy($testProxy['ip'], $testProxy['port'], $testProxy['type']);
     echo "✓ 添加测试代理成功\n";
     
     // 获取统计信息
@@ -57,10 +65,12 @@ try {
 // 测试邮件功能（仅测试配置，不实际发送）
 echo "4. 测试邮件配置...\n";
 try {
-    if (SMTP_USERNAME === 'your-email@gmail.com') {
+    if (defined('SMTP_USERNAME') && SMTP_USERNAME === 'your-email@gmail.com') {
         echo "⚠ 邮件配置未完成，请修改 config.php 中的邮件设置\n";
-    } else {
+    } elseif (defined('SMTP_FROM_EMAIL') && SMTP_FROM_EMAIL !== 'netwatch@yourdomain.com') {
         echo "✓ 邮件配置已设置\n";
+    } else {
+        echo "⚠ 邮件配置未完成，请修改 config.php 中的邮件设置\n";
     }
     echo "\n";
 } catch (Exception $e) {
