@@ -41,6 +41,22 @@ if (isset($_GET['ajax'])) {
             echo json_encode($logs);
             break;
             
+        case 'checkAll':
+            try {
+                $results = $monitor->checkAllProxies();
+                echo json_encode([
+                    'success' => true,
+                    'message' => '所有代理检查完成',
+                    'results' => $results
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => '检查失败: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
         default:
             echo json_encode(['error' => '未知操作']);
     }
@@ -484,11 +500,41 @@ $recentLogs = $monitor->getRecentLogs(20);
                 btn.textContent = '检查中...';
                 btn.disabled = true;
                 
-                // 这里可以实现批量检查的逻辑
-                // 为了简化，我们直接刷新页面
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
+                // 显示进度提示
+                const progressDiv = document.createElement('div');
+                progressDiv.id = 'check-progress';
+                progressDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000; text-align: center;';
+                progressDiv.innerHTML = '<h3>🔍 正在检查所有代理...</h3><p>请耐心等待，这可能需要几分钟时间</p>';
+                document.body.appendChild(progressDiv);
+                
+                // 调用后端检查所有代理
+                fetch('?ajax=1&action=checkAll')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.body.removeChild(progressDiv);
+                        
+                        if (data.success) {
+                            const totalChecked = data.results ? data.results.length : 0;
+                            const onlineCount = data.results ? data.results.filter(r => r.status === 'online').length : 0;
+                            const offlineCount = totalChecked - onlineCount;
+                            
+                            alert(`✅ 检查完成！\n\n总计: ${totalChecked} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
+                            
+                            // 刷新页面显示最新状态
+                            location.reload();
+                        } else {
+                            alert('❌ 检查失败: ' + (data.error || '未知错误'));
+                        }
+                    })
+                    .catch(error => {
+                        document.body.removeChild(progressDiv);
+                        console.error('检查所有代理失败:', error);
+                        alert('❌ 检查失败，请稍后重试');
+                    })
+                    .finally(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    });
             }
         }
         
