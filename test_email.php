@@ -21,6 +21,161 @@ if ($hasPhpMailer) {
     $mailerType = 'SimpleMailer (PHP内置mail函数)';
 }
 
+// 处理AJAX请求（在任何HTML输出之前）
+if (isset($_GET['action'])) {
+    header('Content-Type: application/json');
+    
+    try {
+        switch ($_GET['action']) {
+            case 'test_basic':
+                $subject = 'NetWatch 测试邮件 - ' . date('Y-m-d H:i:s');
+                $body = '
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>NetWatch 测试邮件</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { background-color: #4CAF50; color: white; padding: 15px; border-radius: 5px; }
+                        .content { margin: 20px 0; line-height: 1.6; }
+                        .footer { margin-top: 30px; font-size: 12px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>✅ NetWatch 测试邮件</h2>
+                        <p>这是一封测试邮件，用于验证邮件发送功能</p>
+                    </div>
+                    
+                    <div class="content">
+                        <p><strong>发送时间:</strong> ' . date('Y-m-d H:i:s') . '</p>
+                        <p><strong>邮件发送器:</strong> ' . $mailerType . '</p>
+                        <p><strong>系统状态:</strong> 正常运行</p>
+                        
+                        <p>如果您收到这封邮件，说明NetWatch系统的邮件发送功能工作正常。</p>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>此邮件由 NetWatch 监控系统自动发送</p>
+                    </div>
+                </body>
+                </html>';
+                
+                $result = $mailer->sendMail($subject, $body);
+                
+                if ($result) {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => "测试邮件已发送到: " . SMTP_TO_EMAIL . "\n使用邮件发送器: " . $mailerType
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'error' => '邮件发送失败，请检查邮件配置和服务器设置'
+                    ]);
+                }
+                break;
+                
+            case 'test_failure':
+                // 创建模拟的失败代理数据
+                $mockFailedProxies = [
+                    [
+                        'id' => 1,
+                        'ip' => '192.168.1.100',
+                        'port' => 1080,
+                        'type' => 'socks5',
+                        'failure_count' => 5,
+                        'last_check' => date('Y-m-d H:i:s'),
+                        'response_time' => 0
+                    ],
+                    [
+                        'id' => 2,
+                        'ip' => '10.0.0.50',
+                        'port' => 8080,
+                        'type' => 'http',
+                        'failure_count' => 3,
+                        'last_check' => date('Y-m-d H:i:s'),
+                        'response_time' => 0
+                    ]
+                ];
+                
+                $result = $mailer->sendProxyAlert($mockFailedProxies);
+                
+                if ($result) {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => "故障通知邮件已发送到: " . SMTP_TO_EMAIL . "\n模拟了 " . count($mockFailedProxies) . " 个失败代理"
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'error' => '故障通知邮件发送失败，请检查邮件配置'
+                    ]);
+                }
+                break;
+                
+            case 'test_status':
+                // 获取真实的系统统计数据
+                $monitor = new NetworkMonitor();
+                $stats = $monitor->getStats();
+                
+                $result = $mailer->sendStatusReport($stats);
+                
+                if ($result) {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => "状态报告邮件已发送到: " . SMTP_TO_EMAIL . "\n包含当前系统统计数据"
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'error' => '状态报告邮件发送失败，请检查邮件配置'
+                    ]);
+                }
+                break;
+                
+            case 'check_failed':
+                $monitor = new NetworkMonitor();
+                $failedProxies = $monitor->getFailedProxies();
+                $alertProxies = [];
+                
+                // 筛选出达到阈值的代理
+                foreach ($failedProxies as $proxy) {
+                    if ($proxy['failure_count'] >= ALERT_THRESHOLD) {
+                        $alertProxies[] = $proxy;
+                    }
+                }
+                
+                $emailSent = false;
+                if (!empty($alertProxies)) {
+                    $emailSent = $mailer->sendProxyAlert($alertProxies);
+                }
+                
+                echo json_encode([
+                    'success' => true,
+                    'failed_count' => count($failedProxies),
+                    'alert_count' => count($alertProxies),
+                    'email_sent' => $emailSent
+                ]);
+                break;
+                
+            default:
+                echo json_encode([
+                    'success' => false,
+                    'error' => '未知的操作'
+                ]);
+        }
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -396,160 +551,3 @@ if ($hasPhpMailer) {
     </script>
 </body>
 </html>
-
-<?php
-// 处理AJAX请求
-if (isset($_GET['action'])) {
-    header('Content-Type: application/json');
-    
-    try {
-        switch ($_GET['action']) {
-            case 'test_basic':
-                $subject = 'NetWatch 测试邮件 - ' . date('Y-m-d H:i:s');
-                $body = '
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>NetWatch 测试邮件</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        .header { background-color: #4CAF50; color: white; padding: 15px; border-radius: 5px; }
-                        .content { margin: 20px 0; line-height: 1.6; }
-                        .footer { margin-top: 30px; font-size: 12px; color: #666; }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h2>✅ NetWatch 测试邮件</h2>
-                        <p>这是一封测试邮件，用于验证邮件发送功能</p>
-                    </div>
-                    
-                    <div class="content">
-                        <p><strong>发送时间:</strong> ' . date('Y-m-d H:i:s') . '</p>
-                        <p><strong>邮件发送器:</strong> ' . $mailerType . '</p>
-                        <p><strong>系统状态:</strong> 正常运行</p>
-                        
-                        <p>如果您收到这封邮件，说明NetWatch系统的邮件发送功能工作正常。</p>
-                    </div>
-                    
-                    <div class="footer">
-                        <p>此邮件由 NetWatch 监控系统自动发送</p>
-                    </div>
-                </body>
-                </html>';
-                
-                $result = $mailer->sendMail($subject, $body);
-                
-                if ($result) {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => "测试邮件已发送到: " . SMTP_TO_EMAIL . "\n使用邮件发送器: " . $mailerType
-                    ]);
-                } else {
-                    echo json_encode([
-                        'success' => false,
-                        'error' => '邮件发送失败，请检查邮件配置和服务器设置'
-                    ]);
-                }
-                break;
-                
-            case 'test_failure':
-                // 创建模拟的失败代理数据
-                $mockFailedProxies = [
-                    [
-                        'id' => 1,
-                        'ip' => '192.168.1.100',
-                        'port' => 1080,
-                        'type' => 'socks5',
-                        'failure_count' => 5,
-                        'last_check' => date('Y-m-d H:i:s'),
-                        'response_time' => 0
-                    ],
-                    [
-                        'id' => 2,
-                        'ip' => '10.0.0.50',
-                        'port' => 8080,
-                        'type' => 'http',
-                        'failure_count' => 3,
-                        'last_check' => date('Y-m-d H:i:s'),
-                        'response_time' => 0
-                    ]
-                ];
-                
-                $result = $mailer->sendProxyAlert($mockFailedProxies);
-                
-                if ($result) {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => "故障通知邮件已发送到: " . SMTP_TO_EMAIL . "\n模拟了 " . count($mockFailedProxies) . " 个失败代理"
-                    ]);
-                } else {
-                    echo json_encode([
-                        'success' => false,
-                        'error' => '故障通知邮件发送失败，请检查邮件配置'
-                    ]);
-                }
-                break;
-                
-            case 'test_status':
-                // 获取真实的系统统计数据
-                $monitor = new NetworkMonitor();
-                $stats = $monitor->getStats();
-                
-                $result = $mailer->sendStatusReport($stats);
-                
-                if ($result) {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => "状态报告邮件已发送到: " . SMTP_TO_EMAIL . "\n包含当前系统统计数据"
-                    ]);
-                } else {
-                    echo json_encode([
-                        'success' => false,
-                        'error' => '状态报告邮件发送失败，请检查邮件配置'
-                    ]);
-                }
-                break;
-                
-            case 'check_failed':
-                $monitor = new NetworkMonitor();
-                $failedProxies = $monitor->getFailedProxies();
-                $alertProxies = [];
-                
-                // 筛选出达到阈值的代理
-                foreach ($failedProxies as $proxy) {
-                    if ($proxy['failure_count'] >= ALERT_THRESHOLD) {
-                        $alertProxies[] = $proxy;
-                    }
-                }
-                
-                $emailSent = false;
-                if (!empty($alertProxies)) {
-                    $emailSent = $mailer->sendProxyAlert($alertProxies);
-                }
-                
-                echo json_encode([
-                    'success' => true,
-                    'failed_count' => count($failedProxies),
-                    'alert_count' => count($alertProxies),
-                    'email_sent' => $emailSent
-                ]);
-                break;
-                
-            default:
-                echo json_encode([
-                    'success' => false,
-                    'error' => '未知的操作'
-                ]);
-        }
-    } catch (Exception $e) {
-        echo json_encode([
-            'success' => false,
-            'error' => $e->getMessage()
-        ]);
-    }
-    
-    exit;
-}
-?>
