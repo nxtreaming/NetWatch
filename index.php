@@ -1189,6 +1189,212 @@ $recentLogs = $monitor->getRecentLogs(20);
             }
         }
         
+        function clearSearch() {
+            // 清除搜索，返回主页面
+            window.location.href = '?';
+        }
+        
+        // 检查所有代理函数
+        async function checkAllProxies() {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            
+            if (btn.disabled) return;
+            
+            btn.disabled = true;
+            btn.textContent = '正在准备...';
+            
+            // 创建进度显示界面
+            const progressDiv = document.createElement('div');
+            progressDiv.id = 'check-progress';
+            progressDiv.style.cssText = `
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: white; padding: 30px; border-radius: 15px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 1000;
+                text-align: center; min-width: 400px; max-width: 500px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            `;
+            
+            progressDiv.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #333;">🔍 正在检查所有代理</h3>
+                <div id="progress-info" style="margin-bottom: 20px; color: #666;">正在连接数据库...</div>
+                <div style="background: #f0f0f0; border-radius: 10px; height: 20px; margin: 20px 0; overflow: hidden;">
+                    <div id="progress-bar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
+                </div>
+                <div id="progress-stats" style="font-size: 14px; color: #888;">准备开始...</div>
+                <button id="cancel-check" style="margin-top: 15px; padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">取消检查</button>
+            `;
+            
+            document.body.appendChild(progressDiv);
+            
+            let cancelled = false;
+            document.getElementById('cancel-check').onclick = () => {
+                cancelled = true;
+                document.body.removeChild(progressDiv);
+                btn.textContent = originalText;
+                btn.disabled = false;
+            };
+            
+            try {
+                // 更新状态为正在准备
+                document.getElementById('progress-info').textContent = '正在连接数据库...';
+                
+                // 记录开始时间
+                const prepareStartTime = Date.now();
+                
+                // 首先尝试使用缓存的代理数量
+                let totalProxies = getCachedProxyCount();
+                let countData = null;
+                
+                if (totalProxies !== null) {
+                    // 使用缓存数据
+                    document.getElementById('progress-info').textContent = `使用缓存数据: ${totalProxies} 个代理`;
+                    countData = { cached: true, execution_time: 0 };
+                } else {
+                    // 缓存无效，重新查询
+                    document.getElementById('progress-info').textContent = '正在获取代理数量...';
+                    const countResponse = await fetch('?ajax=1&action=getProxyCount');
+                    countData = await countResponse.json();
+                    
+                    if (!countData.success) {
+                        throw new Error(countData.error || '获取代理数量失败');
+                    }
+                    
+                    totalProxies = countData.count;
+                    
+                    // 更新缓存
+                    cachedProxyCount = totalProxies;
+                    cacheTimestamp = Date.now();
+                }
+                
+                if (totalProxies === 0) {
+                    alert('没有找到代理数据，请先导入代理。');
+                    document.body.removeChild(progressDiv);
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+                
+                // 计算准备时间
+                const prepareTime = Date.now() - prepareStartTime;
+                
+                // 显示缓存状态和执行时间
+                const cacheStatus = countData.cached ? '缓存' : '数据库';
+                const queryTime = countData.execution_time || 0;
+                
+                // 更新进度信息，显示详细信息
+                document.getElementById('progress-info').textContent = `找到 ${totalProxies} 个代理 (查询: ${queryTime}ms ${cacheStatus}, 总用时: ${prepareTime}ms)，开始检查...`;
+                
+                // 如果准备时间较长，显示更长时间让用户看到
+                const displayTime = prepareTime > 1000 ? 1500 : 500;
+                await new Promise(resolve => setTimeout(resolve, displayTime));
+                
+                // 分批检查代理
+                const batchSize = 20; // 每批检查20个代理
+                let checkedCount = 0;
+                let onlineCount = 0;
+                let offlineCount = 0;
+                
+                for (let offset = 0; offset < totalProxies && !cancelled; offset += batchSize) {
+                    try {
+                        // 设置超时时间为2分钟
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 120000);
+                        
+                        const batchResponse = await fetch(`?ajax=1&action=checkBatch&offset=${offset}&limit=${batchSize}`, {
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!batchResponse.ok) {
+                            throw new Error(`HTTP ${batchResponse.status}: ${batchResponse.statusText}`);
+                        }
+                        
+                        const batchData = await batchResponse.json();
+                        
+                        if (!batchData.success) {
+                            throw new Error(batchData.error || '批量检查失败');
+                        }
+                        
+                        // 更新统计
+                        checkedCount += batchData.results.length;
+                        onlineCount += batchData.results.filter(r => r.status === 'online').length;
+                        offlineCount += batchData.results.filter(r => r.status === 'offline').length;
+                        
+                        // 更新进度条
+                        const progress = (checkedCount / totalProxies) * 100;
+                        document.getElementById('progress-bar').style.width = progress + '%';
+                        
+                        // 更新进度信息，显示执行时间
+                        const executionTime = batchData.execution_time ? ` (用时: ${batchData.execution_time}ms)` : '';
+                        document.getElementById('progress-info').textContent = 
+                            `正在检查第 ${Math.min(offset + batchSize, totalProxies)} / ${totalProxies} 个代理${executionTime}...`;
+                        
+                        // 更新统计信息
+                        document.getElementById('progress-stats').textContent = 
+                            `已检查: ${checkedCount} | 在线: ${onlineCount} | 离线: ${offlineCount}`;
+                        
+                        // 减少延迟时间，提高整体速度
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                    } catch (error) {
+                        if (error.name === 'AbortError') {
+                            throw new Error(`第 ${offset + 1}-${Math.min(offset + batchSize, totalProxies)} 个代理检查超时，请检查网络连接或减少批量大小`);
+                        }
+                        throw error;
+                    }
+                }
+                
+                if (!cancelled) {
+                    // 检查是否有失败的代理需要发送邮件
+                    try {
+                        const alertResponse = await fetch('?ajax=1&action=checkFailedProxies');
+                        const alertData = await alertResponse.json();
+                        
+                        let alertMessage = '';
+                        if (alertData.success && alertData.failed_proxies > 0) {
+                            alertMessage = alertData.email_sent ? 
+                                `\n\n⚠️ 发现 ${alertData.failed_proxies} 个连续失败的代理，已发送邮件通知！` :
+                                `\n\n⚠️ 发现 ${alertData.failed_proxies} 个连续失败的代理。`;
+                        }
+                        
+                        document.body.removeChild(progressDiv);
+                        
+                        alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个${alertMessage}\n\n页面将自动刷新显示最新状态`);
+                        
+                    } catch (alertError) {
+                        document.body.removeChild(progressDiv);
+                        alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
+                    }
+                    
+                    // 刷新页面显示最新状态
+                    location.reload();
+                }
+                
+            } catch (error) {
+                if (!cancelled) {
+                    document.body.removeChild(progressDiv);
+                    console.error('检查所有代理失败:', error);
+                    alert('❌ 检查失败: ' + error.message);
+                }
+            } finally {
+                if (!cancelled) {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            }
+        }
+        
+        // 监听搜索框的回车键
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        performSearch();
+                    }
+                });
                 
                 // 自动聚焦搜索框（如果有搜索词）
                 <?php if (!empty($searchTerm)): ?>
