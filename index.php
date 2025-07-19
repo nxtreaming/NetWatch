@@ -44,10 +44,44 @@ if (isset($_GET['ajax'])) {
         case 'checkAll':
             try {
                 $results = $monitor->checkAllProxies();
+                
+                // 检查是否有需要发送警报的代理
+                $failedProxies = $monitor->getFailedProxies();
+                $emailSent = false;
+                
+                if (!empty($failedProxies)) {
+                    try {
+                        // 初始化邮件发送器
+                        if (file_exists('vendor/autoload.php')) {
+                            require_once 'mailer.php';
+                            $mailer = new Mailer();
+                        } else {
+                            require_once 'mailer_simple.php';
+                            $mailer = new SimpleMailer();
+                        }
+                        
+                        $mailer->sendProxyAlert($failedProxies);
+                        $emailSent = true;
+                        
+                        // 记录警报
+                        foreach ($failedProxies as $proxy) {
+                            $monitor->addAlert(
+                                $proxy['id'],
+                                'proxy_failure',
+                                "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
+                            );
+                        }
+                    } catch (Exception $mailError) {
+                        error_log('发送邮件失败: ' . $mailError->getMessage());
+                    }
+                }
+                
                 echo json_encode([
                     'success' => true,
                     'message' => '所有代理检查完成',
-                    'results' => $results
+                    'results' => $results,
+                    'failed_proxies' => count($failedProxies),
+                    'email_sent' => $emailSent
                 ]);
             } catch (Exception $e) {
                 echo json_encode([
@@ -85,6 +119,52 @@ if (isset($_GET['ajax'])) {
                 echo json_encode([
                     'success' => false,
                     'error' => '批量检查失败: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
+        case 'checkFailedProxies':
+            try {
+                // 检查是否有需要发送警报的代理
+                $failedProxies = $monitor->getFailedProxies();
+                $emailSent = false;
+                
+                if (!empty($failedProxies)) {
+                    try {
+                        // 初始化邮件发送器
+                        if (file_exists('vendor/autoload.php')) {
+                            require_once 'mailer.php';
+                            $mailer = new Mailer();
+                        } else {
+                            require_once 'mailer_simple.php';
+                            $mailer = new SimpleMailer();
+                        }
+                        
+                        $mailer->sendProxyAlert($failedProxies);
+                        $emailSent = true;
+                        
+                        // 记录警报
+                        foreach ($failedProxies as $proxy) {
+                            $monitor->addAlert(
+                                $proxy['id'],
+                                'proxy_failure',
+                                "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
+                            );
+                        }
+                    } catch (Exception $mailError) {
+                        error_log('发送邮件失败: ' . $mailError->getMessage());
+                    }
+                }
+                
+                echo json_encode([
+                    'success' => true,
+                    'failed_proxies' => count($failedProxies),
+                    'email_sent' => $emailSent
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => '检查失败代理失败: ' . $e->getMessage()
                 ]);
             }
             break;
@@ -620,9 +700,26 @@ $recentLogs = $monitor->getRecentLogs(20);
                     }
                     
                     if (!cancelled) {
-                        document.body.removeChild(progressDiv);
-                        
-                        alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
+                        // 检查是否有失败的代理需要发送邮件
+                        try {
+                            const alertResponse = await fetch('?ajax=1&action=checkFailedProxies');
+                            const alertData = await alertResponse.json();
+                            
+                            let alertMessage = '';
+                            if (alertData.success && alertData.failed_proxies > 0) {
+                                alertMessage = alertData.email_sent ? 
+                                    `\n\n⚠️ 发现 ${alertData.failed_proxies} 个连续失败的代理，已发送邮件通知！` :
+                                    `\n\n⚠️ 发现 ${alertData.failed_proxies} 个连续失败的代理。`;
+                            }
+                            
+                            document.body.removeChild(progressDiv);
+                            
+                            alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个${alertMessage}\n\n页面将自动刷新显示最新状态`);
+                            
+                        } catch (alertError) {
+                            document.body.removeChild(progressDiv);
+                            alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
+                        }
                         
                         // 刷新页面显示最新状态
                         location.reload();
