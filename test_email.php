@@ -29,50 +29,69 @@ if (isset($_GET['action'])) {
         switch ($_GET['action']) {
             case 'test_basic':
                 $subject = 'NetWatch 测试邮件 - ' . date('Y-m-d H:i:s');
-                $body = '
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>NetWatch 测试邮件</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        .header { background-color: #4CAF50; color: white; padding: 15px; border-radius: 5px; }
-                        .content { margin: 20px 0; line-height: 1.6; }
-                        .footer { margin-top: 30px; font-size: 12px; color: #666; }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h2>✅ NetWatch 测试邮件</h2>
-                        <p>这是一封测试邮件，用于验证邮件发送功能</p>
-                    </div>
+                
+                // 使用简单的HTML格式，避免格式问题
+                $body = '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>NetWatch 测试邮件</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; border-radius: 5px; }
+        .content { margin: 20px 0; line-height: 1.6; }
+        .footer { margin-top: 30px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>✅ NetWatch 测试邮件</h2>
+        <p>这是一封测试邮件，用于验证邮件发送功能</p>
+    </div>
+    
+    <div class="content">
+        <p><strong>发送时间:</strong> ' . date('Y-m-d H:i:s') . '</p>
+        <p><strong>邮件发送器:</strong> ' . htmlspecialchars($mailerType) . '</p>
+        <p><strong>系统状态:</strong> 正常运行</p>
+        
+        <p>如果您收到这封邮件，说明NetWatch系统的邮件发送功能工作正常。</p>
+    </div>
+    
+    <div class="footer">
+        <p>此邮件由 NetWatch 监控系统自动发送</p>
+    </div>
+</body>
+</html>';
+                
+                // 添加更详细的错误处理
+                try {
+                    $result = $mailer->sendMail($subject, $body, true);
                     
-                    <div class="content">
-                        <p><strong>发送时间:</strong> ' . date('Y-m-d H:i:s') . '</p>
-                        <p><strong>邮件发送器:</strong> ' . $mailerType . '</p>
-                        <p><strong>系统状态:</strong> 正常运行</p>
+                    if ($result) {
+                        echo json_encode([
+                            'success' => true,
+                            'message' => "✅ 测试邮件发送成功！\n\n发送到: " . SMTP_TO_EMAIL . "\n发送器: " . $mailerType . "\n发送时间: " . date('Y-m-d H:i:s')
+                        ]);
+                    } else {
+                        // 检查日志文件获取更详细的错误信息
+                        $logPath = __DIR__ . '/logs/error.log';
+                        $errorDetails = '';
+                        if (file_exists($logPath)) {
+                            $logContent = file_get_contents($logPath);
+                            $lines = explode("\n", $logContent);
+                            $recentLines = array_slice($lines, -10); // 获取最后10行
+                            $errorDetails = "\n\n最近的日志信息:\n" . implode("\n", $recentLines);
+                        }
                         
-                        <p>如果您收到这封邮件，说明NetWatch系统的邮件发送功能工作正常。</p>
-                    </div>
-                    
-                    <div class="footer">
-                        <p>此邮件由 NetWatch 监控系统自动发送</p>
-                    </div>
-                </body>
-                </html>';
-                
-                $result = $mailer->sendMail($subject, $body);
-                
-                if ($result) {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => "测试邮件已发送到: " . SMTP_TO_EMAIL . "\n使用邮件发送器: " . $mailerType
-                    ]);
-                } else {
+                        echo json_encode([
+                            'success' => false,
+                            'error' => '邮件发送失败。SimpleMailer.sendMail() 返回 false。' . $errorDetails
+                        ]);
+                    }
+                } catch (Exception $e) {
                     echo json_encode([
                         'success' => false,
-                        'error' => '邮件发送失败，请检查邮件配置和服务器设置'
+                        'error' => 'SimpleMailer 异常: ' . $e->getMessage() . "\n\n堆栈跟踪:\n" . $e->getTraceAsString()
                     ]);
                 }
                 break;
