@@ -1234,7 +1234,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 600; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);" id="progress-percent">0%</div>
                     </div>
                 </div>
-                <div id="progress-stats" style="font-size: 16px; color: #555; margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #4CAF50;">准备开始...</div>
+                <div id="progress-stats" style="font-size: 16px; color: #555; margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 10px; border: 1px solid #e0e0e0;">准备开始...</div>
                 <div style="display: flex; justify-content: center; gap: 15px; margin-top: 20px;">
                     <button id="cancel-check" style="padding: 12px 24px; background: #f44336; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; transition: background 0.3s ease;" onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">取消检查</button>
                 </div>
