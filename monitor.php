@@ -96,7 +96,9 @@ class NetworkMonitor {
         
         foreach ($proxies as $proxy) {
             $result = $this->checkProxy($proxy);
-            $results[] = array_merge($proxy, $result);
+            // 过滤敏感信息后再返回
+            $filteredProxy = $this->filterSensitiveData($proxy);
+            $results[] = array_merge($filteredProxy, $result);
             
             // 避免过于频繁的请求
             usleep(100000); // 0.1秒延迟
@@ -190,10 +192,37 @@ class NetworkMonitor {
     }
     
     /**
-     * 获取所有代理
+     * 获取所有代理（内部使用，包含敏感信息）
      */
     public function getAllProxies() {
         return $this->db->getAllProxies();
+    }
+    
+    /**
+     * 获取所有代理（安全版本，不包含敏感信息）
+     */
+    public function getAllProxiesSafe() {
+        $proxies = $this->db->getAllProxies();
+        $safeProxies = [];
+        
+        foreach ($proxies as $proxy) {
+            $safeProxies[] = $this->filterSensitiveData($proxy);
+        }
+        
+        return $safeProxies;
+    }
+    
+    /**
+     * 根据ID获取代理（内部使用，包含敏感信息）
+     */
+    public function getProxyById($id) {
+        $proxies = $this->db->getAllProxies();
+        foreach ($proxies as $proxy) {
+            if ($proxy['id'] == $id) {
+                return $proxy;
+            }
+        }
+        return null;
     }
     
     /**
@@ -232,6 +261,17 @@ class NetworkMonitor {
     }
     
     /**
+     * 过滤代理敏感信息（用户名和密码）
+     */
+    private function filterSensitiveData($proxy) {
+        $filtered = $proxy;
+        // 移除敏感信息
+        unset($filtered['username']);
+        unset($filtered['password']);
+        return $filtered;
+    }
+    
+    /**
      * 分批检查代理
      */
     public function checkProxyBatch($offset = 0, $limit = 10) {
@@ -242,7 +282,9 @@ class NetworkMonitor {
         
         foreach ($proxies as $proxy) {
             $result = $this->checkProxy($proxy);
-            $results[] = array_merge($proxy, $result);
+            // 过滤敏感信息后再返回
+            $filteredProxy = $this->filterSensitiveData($proxy);
+            $results[] = array_merge($filteredProxy, $result);
             
             // 避免过于频繁的请求
             usleep(50000); // 0.05秒延迟，比全量检查更快

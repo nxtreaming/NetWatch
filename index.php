@@ -21,12 +21,9 @@ if (isset($_GET['ajax'])) {
         case 'check':
             $proxyId = $_GET['proxy_id'] ?? null;
             if ($proxyId) {
-                $proxies = $monitor->getAllProxies();
-                $proxy = array_filter($proxies, function($p) use ($proxyId) {
-                    return $p['id'] == $proxyId;
-                });
+                $proxy = $monitor->getProxyById($proxyId);
                 if ($proxy) {
-                    $result = $monitor->checkProxy(array_values($proxy)[0]);
+                    $result = $monitor->checkProxy($proxy);
                     echo json_encode($result);
                 } else {
                     echo json_encode(['error' => '代理不存在']);
@@ -177,7 +174,7 @@ if (isset($_GET['ajax'])) {
 
 // 获取数据
 $stats = $monitor->getStats();
-$proxies = $monitor->getAllProxies();
+$proxies = $monitor->getAllProxiesSafe(); // 使用安全版本，不包含敏感信息
 $recentLogs = $monitor->getRecentLogs(20);
 
 ?>
