@@ -23,6 +23,11 @@ define('MAX_RETRIES', 3);  // 最大重试次数
 define('ALERT_THRESHOLD', 3);  // 连续失败多少次后发送邮件
 
 // 测试URL配置
+// 如果httpbin.org无法访问，可以尝试以下替代URL：
+// define('TEST_URL', 'http://icanhazip.com');
+// define('TEST_URL', 'http://ifconfig.me/ip');
+// define('TEST_URL', 'http://api.ipify.org');
+// define('TEST_URL', 'http://checkip.amazonaws.com');
 define('TEST_URL', 'http://httpbin.org/ip');  // 用于测试代理的URL
 define('TEST_HTTPS_URL', 'https://httpbin.org/ip');  // 用于测试HTTPS代理的URL
 
