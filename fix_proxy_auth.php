@@ -40,12 +40,10 @@ if ($_POST && isset($_POST['proxy_id'], $_POST['username'], $_POST['password']))
     $username = $_POST['username'];
     $password = $_POST['password'];
     
-    // 直接更新数据库
+    // 使用Database类的公共方法更新认证信息
     $db = new Database();
-    $sql = "UPDATE proxies SET username = ?, password = ? WHERE id = ?";
-    $stmt = $db->pdo->prepare($sql);
     
-    if ($stmt->execute([$username, $password, $proxyId])) {
+    if ($db->updateProxyAuth($proxyId, $username, $password)) {
         echo "<div style='color: green; padding: 10px; background: #e8f5e8; margin: 10px 0;'>";
         echo "✓ 代理 ID $proxyId 的认证信息已更新";
         echo "</div>";

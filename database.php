@@ -182,6 +182,15 @@ class Database {
     }
     
     /**
+     * 更新代理认证信息
+     */
+    public function updateProxyAuth($id, $username, $password) {
+        $sql = "UPDATE proxies SET username = ?, password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$username, $password, $id]);
+    }
+    
+    /**
      * 清空所有数据（代理、日志、警报）
      */
     public function clearAllData() {
