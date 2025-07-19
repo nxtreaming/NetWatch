@@ -3,16 +3,28 @@
  * 清空代理列表工具
  */
 
-require_once 'config.php';
-require_once 'monitor.php';
+// 开启错误显示用于调试
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-$monitor = new NetworkMonitor();
+try {
+    require_once 'config.php';
+    require_once 'monitor.php';
+} catch (Exception $e) {
+    die("<h2>加载文件失败</h2><p>错误: " . htmlspecialchars($e->getMessage()) . "</p>");
+}
 
-echo "<h2>🗑️ 清空代理列表工具</h2>";
-
-// 获取当前代理数量
-$proxies = $monitor->getAllProxies();
-$totalProxies = count($proxies);
+try {
+    $monitor = new NetworkMonitor();
+    echo "<h2>🗑️ 清空代理列表工具</h2>";
+    
+    // 获取当前代理数量
+    $proxies = $monitor->getAllProxies();
+    $totalProxies = count($proxies);
+} catch (Exception $e) {
+    die("<h2>初始化失败</h2><p>错误: " . htmlspecialchars($e->getMessage()) . "</p><p>请检查数据库连接和文件权限</p>");
+}
 
 echo "<div style='background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 20px 0; border-radius: 5px;'>";
 echo "<h3>⚠️ 警告</h3>";
@@ -33,15 +45,8 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
     try {
         $db = new Database();
         
-        // 删除所有相关数据
-        $db->pdo->exec("DELETE FROM alerts");
-        $db->pdo->exec("DELETE FROM check_logs");
-        $db->pdo->exec("DELETE FROM proxies");
-        
-        // 重置自增ID
-        $db->pdo->exec("DELETE FROM sqlite_sequence WHERE name='proxies'");
-        $db->pdo->exec("DELETE FROM sqlite_sequence WHERE name='check_logs'");
-        $db->pdo->exec("DELETE FROM sqlite_sequence WHERE name='alerts'");
+        // 使用Database类的公共方法清空所有数据
+        $db->clearAllData();
         
         $clearExecuted = true;
         

@@ -180,4 +180,25 @@ class Database {
             'deleted_alerts' => $deletedAlerts
         ];
     }
+    
+    /**
+     * 清空所有数据（代理、日志、警报）
+     */
+    public function clearAllData() {
+        try {
+            // 删除所有相关数据
+            $this->pdo->exec("DELETE FROM alerts");
+            $this->pdo->exec("DELETE FROM check_logs");
+            $this->pdo->exec("DELETE FROM proxies");
+            
+            // 重置自增ID
+            $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='proxies'");
+            $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='check_logs'");
+            $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='alerts'");
+            
+            return true;
+        } catch (PDOException $e) {
+            throw new Exception("清空数据失败: " . $e->getMessage());
+        }
+    }
 }
