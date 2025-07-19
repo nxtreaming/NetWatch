@@ -164,19 +164,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
             font-size: 12px;
         }
         
-        .config-info {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #666;
-            text-align: left;
-        }
-        
-        .config-info strong {
-            color: #333;
-        }
+
     </style>
 </head>
 <body>
@@ -213,13 +201,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
             <button type="submit" class="login-btn">登录</button>
         </form>
         
-        <div class="config-info">
-            <strong>配置说明：</strong><br>
-            请在 <code>config.php</code> 中设置：<br>
-            • <code>LOGIN_USERNAME</code> - 登录用户名<br>
-            • <code>LOGIN_PASSWORD</code> - 登录密码<br>
-            • <code>ENABLE_LOGIN</code> - 启用/禁用登录功能
-        </div>
+
         
         <div class="footer">
             NetWatch &copy; <?php echo date('Y'); ?> - 网络代理监控系统
