@@ -25,6 +25,9 @@ echo "</ul>";
 echo "<p><strong>当前代理数量：$totalProxies 个</strong></p>";
 echo "</div>";
 
+// 标记是否已执行清空操作
+$clearExecuted = false;
+
 // 处理清空请求
 if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes') {
     try {
@@ -40,10 +43,12 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
         $db->pdo->exec("DELETE FROM sqlite_sequence WHERE name='check_logs'");
         $db->pdo->exec("DELETE FROM sqlite_sequence WHERE name='alerts'");
         
+        $clearExecuted = true;
+        
         echo "<div style='background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; margin: 20px 0; border-radius: 5px; color: #155724;'>";
         echo "<h3>✅ 清空完成</h3>";
         echo "<p>已成功删除 <strong>$totalProxies</strong> 个代理及相关数据</p>";
-        echo "<p><a href='import.php'>点击这里重新导入代理</a></p>";
+        echo "<p><a href='import.php' style='background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;'>立即导入新代理</a></p>";
         echo "</div>";
         
         // 刷新代理列表
@@ -58,7 +63,8 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
     }
 }
 
-if ($totalProxies > 0) {
+// 只有在没有执行清空操作且有代理时才显示代理列表和清空表单
+if ($totalProxies > 0 && !$clearExecuted) {
     echo "<h3>当前代理列表预览</h3>";
     echo "<table border='1' style='border-collapse: collapse; width: 100%; margin: 20px 0;'>";
     echo "<tr><th>ID</th><th>代理</th><th>类型</th><th>用户名</th><th>状态</th></tr>";
@@ -95,11 +101,11 @@ if ($totalProxies > 0) {
     echo "</div>";
     echo "</form>";
     
-} else {
+} else if ($totalProxies == 0 && !$clearExecuted) {
     echo "<div style='background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; margin: 20px 0; border-radius: 5px; color: #0c5460;'>";
     echo "<h3>ℹ️ 代理列表已为空</h3>";
     echo "<p>当前没有任何代理数据</p>";
-    echo "<p><a href='import.php'>点击这里导入代理</a></p>";
+    echo "<p><a href='import.php' style='background: #17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;'>点击这里导入代理</a></p>";
     echo "</div>";
 }
 
