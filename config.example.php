@@ -37,3 +37,9 @@ define('LOG_LEVEL', 'INFO');  // DEBUG, INFO, WARNING, ERROR
 
 // 时区设置
 date_default_timezone_set('Asia/Shanghai');
+
+// 登录配置
+define('LOGIN_USERNAME', 'admin');  // 登录用户名
+define('LOGIN_PASSWORD', 'admin123');  // 登录密码
+define('SESSION_TIMEOUT', 3600);  // 会话超时时间（秒），默认1小时
+define('ENABLE_LOGIN', true);  // 是否启用登录功能

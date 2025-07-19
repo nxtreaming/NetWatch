@@ -4,10 +4,21 @@
  */
 
 require_once 'config.php';
+require_once 'auth.php';
 require_once 'monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 $monitor = new NetworkMonitor();
 $action = $_GET['action'] ?? 'dashboard';
+
+// 处理登出请求
+if ($action === 'logout') {
+    Auth::logout();
+    header('Location: login.php?action=logout');
+    exit;
+}
 
 // 处理AJAX请求
 if (isset($_GET['ajax'])) {
@@ -166,6 +177,18 @@ if (isset($_GET['ajax'])) {
             }
             break;
             
+        case 'sessionCheck':
+            try {
+                if (!Auth::isLoggedIn()) {
+                    echo json_encode(['valid' => false]);
+                } else {
+                    echo json_encode(['valid' => true]);
+                }
+            } catch (Exception $e) {
+                echo json_encode(['valid' => false, 'error' => $e->getMessage()]);
+            }
+            break;
+            
         default:
             echo json_encode(['error' => '未知操作']);
     }
@@ -218,6 +241,51 @@ $recentLogs = $monitor->getRecentLogs(20);
         .header p {
             opacity: 0.9;
             font-size: 14px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            flex: 1;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-info {
+            text-align: right;
+            font-size: 12px;
+        }
+        
+        .username {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .session-time {
+            opacity: 0.8;
+        }
+        
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
         }
         
         .stats-grid {
@@ -421,8 +489,21 @@ $recentLogs = $monitor->getRecentLogs(20);
 <body>
     <div class="header">
         <div class="container">
-            <h1>🌐 NetWatch</h1>
-            <p>网络代理监控系统 - 实时监控您的代理服务器状态</p>
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🌐 NetWatch</h1>
+                    <p>网络代理监控系统 - 实时监控您的代理服务器状态</p>
+                </div>
+                <?php if (Auth::isLoginEnabled()): ?>
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                        <div class="session-time">登录时间：<?php echo date('Y-m-d H:i:s', Auth::getLoginTime()); ?></div>
+                    </div>
+                    <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出登录</a>
+                </div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
     
@@ -748,6 +829,29 @@ $recentLogs = $monitor->getRecentLogs(20);
                 btn.style.transform = 'rotate(0deg)';
             }, 500);
         }
+        
+        // 会话管理
+        <?php if (Auth::isLoginEnabled()): ?>
+        function checkSession() {
+            fetch('?ajax=1&action=sessionCheck')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.valid) {
+                        alert('会话已过期，请重新登录');
+                        window.location.href = 'login.php';
+                    }
+                })
+                .catch(error => {
+                    console.error('会话检查失败:', error);
+                });
+        }
+        
+        // 每5分钟检查一次会话状态
+        setInterval(checkSession, 5 * 60 * 1000);
+        
+        // 页面加载时检查一次
+        checkSession();
+        <?php endif; ?>
     </script>
 </body>
 </html>
