@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $type = $_POST['type'];
         $username = trim($_POST['username']) ?: null;
         $password = trim($_POST['password']) ?: null;
+        $importMode = $_POST['import_mode'] ?? 'skip';
         
         if (!$port || !in_array($type, ['socks5', 'http'])) {
             throw new Exception('请填写有效的端口和代理类型');
@@ -67,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('请至少配置一个子网');
         }
         
-        $result = $monitor->importProxies($proxyList);
+        $result = $monitor->importProxies($proxyList, $importMode);
         $result['total_generated'] = $totalProxies;
         
     } catch (Exception $e) {
@@ -321,6 +322,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="stat-number"><?php echo $result['imported']; ?></div>
                     <div class="stat-label">成功导入</div>
                 </div>
+                <?php if (isset($result['skipped']) && $result['skipped'] > 0): ?>
+                <div class="stat-item">
+                    <div class="stat-number"><?php echo $result['skipped']; ?></div>
+                    <div class="stat-label">跳过重复</div>
+                </div>
+                <?php endif; ?>
                 <div class="stat-item">
                     <div class="stat-number"><?php echo count($result['errors']); ?></div>
                     <div class="stat-label">导入失败</div>
@@ -366,6 +373,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label for="password">密码 (可选)</label>
                         <input type="password" name="password" id="password" value="<?php echo htmlspecialchars($_POST['password'] ?? ''); ?>">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="import_mode">导入模式</label>
+                    <select name="import_mode" id="import_mode" required>
+                        <option value="skip" <?php echo ($_POST['import_mode'] ?? 'skip') === 'skip' ? 'selected' : ''; ?>>跳过模式 - 跳过已存在的代理 (推荐)</option>
+                        <option value="add" <?php echo ($_POST['import_mode'] ?? '') === 'add' ? 'selected' : ''; ?>>新增模式 - 添加到现有代理列表</option>
+                    </select>
+                    <div class="help-text">
+                        新增模式：所有代理都会被添加，可能产生重复记录<br>
+                        跳过模式：如果相同IP:端口已存在，则跳过不导入
                     </div>
                 </div>
                 <div class="help-text">

@@ -76,6 +76,13 @@ class Database {
         return $stmt->execute([$ip, $port, $type, $username, $password]);
     }
     
+    public function proxyExists($ip, $port) {
+        $sql = "SELECT COUNT(*) FROM proxies WHERE ip = ? AND port = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$ip, $port]);
+        return $stmt->fetchColumn() > 0;
+    }
+    
     public function getAllProxies() {
         $sql = "SELECT * FROM proxies ORDER BY id";
         $stmt = $this->pdo->query($sql);

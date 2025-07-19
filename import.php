@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
             }
             
-            $result = $monitor->importProxies($proxyList);
+            $result = $monitor->importProxies($proxyList, 'add');
             
         } elseif (isset($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
             // 从文件导入

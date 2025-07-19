@@ -111,12 +111,19 @@ class NetworkMonitor {
     /**
      * 批量导入代理
      */
-    public function importProxies($proxyList) {
+    public function importProxies($proxyList, $importMode = 'skip') {
         $imported = 0;
+        $skipped = 0;
         $errors = [];
         
         foreach ($proxyList as $proxyData) {
             try {
+                // 如果是跳过模式，先检查是否已存在
+                if ($importMode === 'skip' && $this->db->proxyExists($proxyData['ip'], $proxyData['port'])) {
+                    $skipped++;
+                    continue;
+                }
+                
                 if ($this->db->addProxy(
                     $proxyData['ip'],
                     $proxyData['port'],
@@ -133,10 +140,11 @@ class NetworkMonitor {
             }
         }
         
-        $this->logger->info("导入完成: 成功 $imported 个，失败 " . count($errors) . " 个");
+        $this->logger->info("导入完成: 成功 $imported 个，跳过 $skipped 个，失败 " . count($errors) . " 个");
         
         return [
             'imported' => $imported,
+            'skipped' => $skipped,
             'errors' => $errors
         ];
     }
@@ -174,7 +182,7 @@ class NetworkMonitor {
             ];
         }
         
-        return $this->importProxies($proxyList);
+        return $this->importProxies($proxyList, 'add');
     }
     
     /**
