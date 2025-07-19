@@ -195,9 +195,15 @@ if (isset($_GET['ajax'])) {
     exit;
 }
 
+// 获取分页参数
+$page = max(1, intval($_GET['page'] ?? 1));
+$perPage = 200;
+
 // 获取数据
 $stats = $monitor->getStats();
-$proxies = $monitor->getAllProxiesSafe(); // 使用安全版本，不包含敏感信息
+$totalProxies = $monitor->getProxyCount();
+$totalPages = ceil($totalProxies / $perPage);
+$proxies = $monitor->getProxiesPaginatedSafe($page, $perPage); // 使用分页安全版本
 $recentLogs = $monitor->getRecentLogs(20);
 
 ?>
@@ -433,17 +439,6 @@ $recentLogs = $monitor->getRecentLogs(20);
             transition: all 0.2s;
         }
         
-        .refresh-btn:hover {
-            background: #5a6fd8;
-            transform: scale(1.1);
-        }
-        
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-        
-        .log-entry {
             padding: 10px;
             border-bottom: 1px solid #e9ecef;
             font-family: 'Courier New', monospace;
@@ -467,6 +462,50 @@ $recentLogs = $monitor->getRecentLogs(20);
         .log-online { color: #4CAF50; }
         .log-offline { color: #f44336; }
         
+        /* 分页样式 */
+        .pagination-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .pagination-info {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .pagination {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #333;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .page-btn:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
         @media (max-width: 768px) {
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -482,6 +521,23 @@ $recentLogs = $monitor->getRecentLogs(20);
             
             th, td {
                 padding: 8px;
+            }
+            
+            .pagination-container {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .pagination {
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .page-btn {
+                padding: 6px 10px;
+                font-size: 13px;
             }
         }
     </style>
@@ -574,6 +630,35 @@ $recentLogs = $monitor->getRecentLogs(20);
                     </tbody>
                 </table>
             </div>
+            
+            <!-- 分页导航 -->
+            <?php if ($totalPages > 1): ?>
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    显示第 <?php echo (($page - 1) * $perPage + 1); ?> - <?php echo min($page * $perPage, $totalProxies); ?> 条，共 <?php echo $totalProxies; ?> 条代理
+                </div>
+                <div class="pagination">
+                    <?php if ($page > 1): ?>
+                        <a href="?page=1" class="page-btn">首页</a>
+                        <a href="?page=<?php echo $page - 1; ?>" class="page-btn">上一页</a>
+                    <?php endif; ?>
+                    
+                    <?php
+                    $startPage = max(1, $page - 2);
+                    $endPage = min($totalPages, $page + 2);
+                    
+                    for ($i = $startPage; $i <= $endPage; $i++):
+                    ?>
+                        <a href="?page=<?php echo $i; ?>" class="page-btn <?php echo $i == $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                    <?php endfor; ?>
+                    
+                    <?php if ($page < $totalPages): ?>
+                        <a href="?page=<?php echo $page + 1; ?>" class="page-btn">下一页</a>
+                        <a href="?page=<?php echo $totalPages; ?>" class="page-btn">末页</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
         
         <!-- 最近日志 -->
@@ -825,9 +910,10 @@ $recentLogs = $monitor->getRecentLogs(20);
             refreshStats();
             refreshLogs();
             
+            // 在分页模式下刷新当前页面
             setTimeout(() => {
-                btn.style.transform = 'rotate(0deg)';
-            }, 500);
+                location.reload();
+            }, 1000);
         }
         
         // 会话管理

@@ -211,13 +211,15 @@ class NetworkMonitor {
      */
     public function getAllProxiesSafe() {
         $proxies = $this->db->getAllProxies();
-        $safeProxies = [];
-        
-        foreach ($proxies as $proxy) {
-            $safeProxies[] = $this->filterSensitiveData($proxy);
-        }
-        
-        return $safeProxies;
+        return array_map([$this, 'filterSensitiveData'], $proxies);
+    }
+    
+    /**
+     * 获取分页代理列表（安全版本）
+     */
+    public function getProxiesPaginatedSafe($page = 1, $perPage = 200) {
+        $proxies = $this->db->getProxiesPaginated($page, $perPage);
+        return array_map([$this, 'filterSensitiveData'], $proxies);
     }
     
     /**

@@ -89,6 +89,14 @@ class Database {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
+    public function getProxiesPaginated($page = 1, $perPage = 200) {
+        $offset = ($page - 1) * $perPage;
+        $sql = "SELECT * FROM proxies ORDER BY id LIMIT ? OFFSET ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$perPage, $offset]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
     public function updateProxyStatus($id, $status, $responseTime = 0, $errorMessage = null) {
         $failureCount = $status === 'online' ? 0 : null;
         
