@@ -212,21 +212,59 @@ if (isset($_GET['ajax'])) {
             }
             break;
             
+        case 'search':
+            try {
+                $searchTerm = $_GET['term'] ?? '';
+                $page = max(1, intval($_GET['page'] ?? 1));
+                $perPage = 200;
+                
+                $proxies = $monitor->searchProxiesSafe($searchTerm, $page, $perPage);
+                $totalCount = $monitor->getSearchCount($searchTerm);
+                $totalPages = ceil($totalCount / $perPage);
+                
+                echo json_encode([
+                    'success' => true,
+                    'proxies' => $proxies,
+                    'total_count' => $totalCount,
+                    'total_pages' => $totalPages,
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'search_term' => $searchTerm
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => '搜索失败: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
         default:
             echo json_encode(['error' => '未知操作']);
     }
     exit;
 }
 
-// 获取分页参数
+// 获取分页参数和搜索参数
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 200;
+$searchTerm = $_GET['search'] ?? '';
 
 // 获取数据
 $stats = $monitor->getStats();
-$totalProxies = $monitor->getProxyCount();
-$totalPages = ceil($totalProxies / $perPage);
-$proxies = $monitor->getProxiesPaginatedSafe($page, $perPage); // 使用分页安全版本
+
+if (!empty($searchTerm)) {
+    // 搜索模式
+    $proxies = $monitor->searchProxiesSafe($searchTerm, $page, $perPage);
+    $totalProxies = $monitor->getSearchCount($searchTerm);
+    $totalPages = ceil($totalProxies / $perPage);
+} else {
+    // 正常分页模式
+    $totalProxies = $monitor->getProxyCount();
+    $totalPages = ceil($totalProxies / $perPage);
+    $proxies = $monitor->getProxiesPaginatedSafe($page, $perPage);
+}
+
 $recentLogs = $monitor->getRecentLogs(20);
 
 ?>
@@ -396,6 +434,80 @@ $recentLogs = $monitor->getRecentLogs(20);
         .btn-small {
             padding: 4px 8px;
             font-size: 12px;
+        }
+        
+        /* 搜索功能样式 */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        #search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 300px;
+            min-width: 200px;
+        }
+        
+        #search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+        
+        .search-btn {
+            background: #28a745;
+        }
+        
+        .search-btn:hover {
+            background: #218838;
+        }
+        
+        .clear-btn {
+            background: #6c757d;
+        }
+        
+        .clear-btn:hover {
+            background: #5a6268;
+        }
+        
+        .search-info {
+            background: #e3f2fd;
+            padding: 10px 20px;
+            border-bottom: 1px solid #e9ecef;
+            color: #1976d2;
+            font-size: 14px;
+        }
+        
+        .search-results {
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .header-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-container {
+                justify-content: center;
+            }
+            
+            #search-input {
+                width: 100%;
+                max-width: 300px;
+            }
         }
         
         .table-container {
@@ -615,8 +727,23 @@ $recentLogs = $monitor->getRecentLogs(20);
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">代理服务器列表</h2>
-                <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
+                <div class="header-actions">
+                    <div class="search-container">
+                        <input type="text" id="search-input" placeholder="搜索IP地址或网段（如: 1.2.3.4 或 1.2.3.x）" value="<?php echo htmlspecialchars($searchTerm); ?>">
+                        <button class="btn search-btn" onclick="performSearch()">搜索</button>
+                        <?php if (!empty($searchTerm)): ?>
+                        <button class="btn clear-btn" onclick="clearSearch()">清除</button>
+                        <?php endif; ?>
+                    </div>
+                    <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
+                </div>
             </div>
+            
+            <?php if (!empty($searchTerm)): ?>
+            <div class="search-info">
+                <span class="search-results">搜索 "<?php echo htmlspecialchars($searchTerm); ?>" 找到 <?php echo $totalProxies; ?> 个结果</span>
+            </div>
+            <?php endif; ?>
             <div class="table-container">
                 <table id="proxies-table">
                     <thead>
@@ -656,14 +783,18 @@ $recentLogs = $monitor->getRecentLogs(20);
             
             <!-- 分页导航 -->
             <?php if ($totalPages > 1): ?>
+            <?php 
+            // 构建分页URL参数
+            $searchParam = !empty($searchTerm) ? '&search=' . urlencode($searchTerm) : '';
+            ?>
             <div class="pagination-container">
                 <div class="pagination-info">
-                    显示第 <?php echo (($page - 1) * $perPage + 1); ?> - <?php echo min($page * $perPage, $totalProxies); ?> 条，共 <?php echo $totalProxies; ?> 条代理
+                    显示第 <?php echo (($page - 1) * $perPage + 1); ?> - <?php echo min($page * $perPage, $totalProxies); ?> 条，共 <?php echo $totalProxies; ?> 条<?php echo !empty($searchTerm) ? '搜索结果' : '代理'; ?>
                 </div>
                 <div class="pagination">
                     <?php if ($page > 1): ?>
-                        <a href="?page=1" class="page-btn">首页</a>
-                        <a href="?page=<?php echo $page - 1; ?>" class="page-btn">上一页</a>
+                        <a href="?page=1<?php echo $searchParam; ?>" class="page-btn">首页</a>
+                        <a href="?page=<?php echo $page - 1; ?><?php echo $searchParam; ?>" class="page-btn">上一页</a>
                     <?php endif; ?>
                     
                     <?php
@@ -672,12 +803,12 @@ $recentLogs = $monitor->getRecentLogs(20);
                     
                     for ($i = $startPage; $i <= $endPage; $i++):
                     ?>
-                        <a href="?page=<?php echo $i; ?>" class="page-btn <?php echo $i == $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                        <a href="?page=<?php echo $i; ?><?php echo $searchParam; ?>" class="page-btn <?php echo $i == $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
                     <?php if ($page < $totalPages): ?>
-                        <a href="?page=<?php echo $page + 1; ?>" class="page-btn">下一页</a>
-                        <a href="?page=<?php echo $totalPages; ?>" class="page-btn">末页</a>
+                        <a href="?page=<?php echo $page + 1; ?><?php echo $searchParam; ?>" class="page-btn">下一页</a>
+                        <a href="?page=<?php echo $totalPages; ?><?php echo $searchParam; ?>" class="page-btn">末页</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -938,6 +1069,43 @@ $recentLogs = $monitor->getRecentLogs(20);
                 location.reload();
             }, 1000);
         }
+        
+        // 搜索功能
+        function performSearch() {
+            const searchInput = document.getElementById('search-input');
+            const searchTerm = searchInput.value.trim();
+            
+            if (searchTerm) {
+                // 跳转到搜索结果页面
+                window.location.href = '?search=' + encodeURIComponent(searchTerm);
+            } else {
+                // 如果搜索词为空，清除搜索
+                clearSearch();
+            }
+        }
+        
+        function clearSearch() {
+            // 清除搜索，返回主页面
+            window.location.href = '?';
+        }
+        
+        // 监听搜索框的回车键
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        performSearch();
+                    }
+                });
+                
+                // 自动聚焦搜索框（如果有搜索词）
+                <?php if (!empty($searchTerm)): ?>
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+                <?php endif; ?>
+            }
+        });
         
         // 会话管理
         <?php if (Auth::isLoginEnabled()): ?>

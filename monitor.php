@@ -303,4 +303,25 @@ class NetworkMonitor {
         $this->logger->info("分批检查完成: 检查了 " . count($results) . " 个代理");
         return $results;
     }
+    
+    /**
+     * 搜索代理（安全版本）
+     * @param string $searchTerm 搜索词
+     * @param int $page 页码
+     * @param int $perPage 每页数量
+     * @return array 搜索结果
+     */
+    public function searchProxiesSafe($searchTerm, $page = 1, $perPage = 200) {
+        $proxies = $this->db->searchProxies($searchTerm, $page, $perPage);
+        return array_map([$this, 'filterSensitiveData'], $proxies);
+    }
+    
+    /**
+     * 获取搜索结果总数
+     * @param string $searchTerm 搜索词
+     * @return int 搜索结果总数
+     */
+    public function getSearchCount($searchTerm) {
+        return $this->db->getSearchCount($searchTerm);
+    }
 }
