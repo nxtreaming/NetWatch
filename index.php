@@ -1621,13 +1621,29 @@ $recentLogs = $monitor->getRecentLogs(20);
                             document.getElementById('parallel-batch-info').textContent = 
                                 `活跃批次: ${activeBatches} | 已完成批次: ${completedBatches} | 总批次: ${progressData.total_batches}`;
                             
-                            // 检查是否完成 - 不仅要进度达到100%，还要确保所有批次都完成
+                            // 检查是否完成 - 绝对严格：必须所有批次都完成才能显示完成对话框
                             const allBatchesCompleted = completedBatches >= progressData.total_batches;
                             const progressComplete = progress >= 100;
-                            
-                            // 更宽松的完成条件：进度100%且(所有批次完成 或 已检测数量达到总数)
                             const allProxiesChecked = progressData.total_checked >= progressData.total_proxies;
-                            const shouldComplete = progressComplete && (allBatchesCompleted || allProxiesChecked);
+                            
+                            // 额外检查：确保没有正在运行的批次
+                            const runningBatches = progressData.batch_statuses.filter(b => b.status === 'running').length;
+                            const hasRunningBatches = runningBatches > 0;
+                            
+                            // 绝对严格的完成条件：所有批次完成 且 没有正在运行的批次
+                            const shouldComplete = allBatchesCompleted && !hasRunningBatches;
+                            
+                            // 调试日志：记录完成条件检查
+                            console.log('完成条件检查:', {
+                                completedBatches,
+                                totalBatches: progressData.total_batches,
+                                allBatchesCompleted,
+                                runningBatches,
+                                hasRunningBatches,
+                                progressComplete,
+                                allProxiesChecked,
+                                shouldComplete
+                            });
                             
                             if (shouldComplete) {
                                 clearInterval(progressInterval);
@@ -1641,20 +1657,27 @@ $recentLogs = $monitor->getRecentLogs(20);
                                     // 刷新页面显示最新状态
                                     location.reload();
                                 }
-                            } else if (progressComplete && !allBatchesCompleted) {
-                                // 进度已达到100%但批次还未全部完成，显示等待信息
-                                if (waitingForBatchesTime === 0) {
+                            } else if (!allBatchesCompleted) {
+                                // 批次还未全部完成，显示等待信息
+                                // 只有在检测真正完成后才开始超时计时
+                                if (progressComplete && allProxiesChecked && waitingForBatchesTime === 0) {
                                     waitingForBatchesTime = Date.now(); // 记录开始等待的时间
                                 }
                                 
                                 const waitingDuration = Date.now() - waitingForBatchesTime;
                                 const waitingSeconds = Math.floor(waitingDuration / 1000);
                                 
-                                document.getElementById('parallel-progress-info').textContent = 
-                                    `检测已完成，等待批次进程结束... (${completedBatches}/${progressData.total_batches} 个批次已完成, 已等待${waitingSeconds}秒)`;
+                                // 根据进度情况显示不同的等待信息
+                                if (progressComplete && allProxiesChecked) {
+                                    document.getElementById('parallel-progress-info').textContent = 
+                                        `检测已完成，等待批次进程结束... (${completedBatches}/${progressData.total_batches} 个批次已完成, 已等待${waitingSeconds}秒)`;
+                                } else {
+                                    document.getElementById('parallel-progress-info').textContent = 
+                                        `并行检测进行中... (${progressData.total_checked}/${progressData.total_proxies} 个代理已检测, ${completedBatches}/${progressData.total_batches} 个批次已完成)`;
+                                }
                                 
-                                // 超时检查：如果等待批次完成超过30秒，强制完成
-                                if (waitingDuration > 30000) { // 30秒
+                                // 超时检查：只有在开始等待后才检查超时
+                                if (waitingForBatchesTime > 0 && waitingDuration > 30000) { // 30秒
                                     console.warn('批次进程超时，强制完成检测');
                                     clearInterval(progressInterval);
                                     
