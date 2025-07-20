@@ -1717,7 +1717,6 @@ $recentLogs = $monitor->getRecentLogs(20);
                                     // 刷新页面显示最新状态
                                     location.reload();
                                 }, 100); // 100ms延迟，确保UI更新完成
-                            }
                             } else {
                                 // 批次还未全部完成，显示等待信息
                                 // 只有在检测真正完成且所有代理都检测完后才开始超时计时
