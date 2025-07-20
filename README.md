@@ -221,6 +221,3 @@ grep ERROR logs/netwatch_*.log
 
 MIT License
 
-## 支持
-
-如有问题或建议，请联系系统管理员。
