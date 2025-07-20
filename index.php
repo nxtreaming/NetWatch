@@ -1684,38 +1684,38 @@ $recentLogs = $monitor->getRecentLogs(20);
                                 
                                 // 使用setTimeout确保UI更新完成后再显示对话框
                                 setTimeout(() => {
-                                
-                                if (!cancelled) {
-                                    // 最终安全检查：再次验证所有条件
-                                    const finalCompletedBatches = progressData.batch_statuses.filter(b => b.status === 'completed').length;
-                                    const finalRunningBatches = progressData.batch_statuses.filter(b => b.status === 'running').length;
-                                    const finalAllBatchesCompleted = finalCompletedBatches === progressData.total_batches;
-                                    const finalNoRunningBatches = finalRunningBatches === 0;
-                                    const finalAllProxiesChecked = progressData.total_checked >= progressData.total_proxies;
-                                    
-                                    if (finalAllBatchesCompleted && finalNoRunningBatches && finalAllProxiesChecked) {
-                                        console.log('✅ 最终安全检查通过，显示完成对话框');
-                                        document.body.removeChild(progressDiv);
-                                        document.body.removeChild(overlay);
+                                    if (!cancelled) {
+                                        // 最终安全检查：再次验证所有条件
+                                        const finalCompletedBatches = progressData.batch_statuses.filter(b => b.status === 'completed').length;
+                                        const finalRunningBatches = progressData.batch_statuses.filter(b => b.status === 'running').length;
+                                        const finalAllBatchesCompleted = finalCompletedBatches === progressData.total_batches;
+                                        const finalNoRunningBatches = finalRunningBatches === 0;
+                                        const finalAllProxiesChecked = progressData.total_checked >= progressData.total_proxies;
                                         
-                                        alert(`🎉 并行检测完成！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n页面将自动刷新显示最新状态`);
-                                    } else {
-                                        console.error('❌ 最终安全检查失败！阻止显示完成对话框:', {
-                                            finalCompletedBatches,
-                                            totalBatches: progressData.total_batches,
-                                            finalAllBatchesCompleted,
-                                            finalRunningBatches,
-                                            finalNoRunningBatches,
-                                            finalAllProxiesChecked,
-                                            totalChecked: progressData.total_checked,
-                                            totalProxies: progressData.total_proxies
-                                        });
-                                        // 不显示对话框，继续等待
-                                        return;
+                                        if (finalAllBatchesCompleted && finalNoRunningBatches && finalAllProxiesChecked) {
+                                            console.log('✅ 最终安全检查通过，显示完成对话框');
+                                            document.body.removeChild(progressDiv);
+                                            document.body.removeChild(overlay);
+                                            
+                                            alert(`🎉 并行检测完成！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n页面将自动刷新显示最新状态`);
+                                            
+                                            // 刷新页面显示最新状态
+                                            location.reload();
+                                        } else {
+                                            console.error('❌ 最终安全检查失败！阻止显示完成对话框:', {
+                                                finalCompletedBatches,
+                                                totalBatches: progressData.total_batches,
+                                                finalAllBatchesCompleted,
+                                                finalRunningBatches,
+                                                finalNoRunningBatches,
+                                                finalAllProxiesChecked,
+                                                totalChecked: progressData.total_checked,
+                                                totalProxies: progressData.total_proxies
+                                            });
+                                            // 不显示对话框，继续等待
+                                            return;
+                                        }
                                     }
-                                    
-                                    // 刷新页面显示最新状态
-                                    location.reload();
                                 }, 100); // 100ms延迟，确保UI更新完成
                             } else {
                                 // 批次还未全部完成，显示等待信息
