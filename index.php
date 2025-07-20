@@ -1590,6 +1590,10 @@ $recentLogs = $monitor->getRecentLogs(20);
                     `每批次 400 个代理，最多 6 个批次并行执行`;
                 
                 // 开始监控进度
+                const startTime = Date.now();
+                const maxWaitTime = 30 * 60 * 1000; // 30分钟超时
+                let waitingForBatchesTime = 0; // 等待批次完成的时间
+                
                 progressInterval = setInterval(async () => {
                     if (cancelled) return;
                     
@@ -1617,8 +1621,11 @@ $recentLogs = $monitor->getRecentLogs(20);
                             document.getElementById('parallel-batch-info').textContent = 
                                 `活跃批次: ${activeBatches} | 已完成批次: ${completedBatches} | 总批次: ${progressData.total_batches}`;
                             
-                            // 检查是否完成
-                            if (progress >= 100) {
+                            // 检查是否完成 - 不仅要进度达到100%，还要确保所有批次都完成
+                            const allBatchesCompleted = completedBatches >= progressData.total_batches;
+                            const progressComplete = progress >= 100;
+                            
+                            if (progressComplete && allBatchesCompleted) {
                                 clearInterval(progressInterval);
                                 
                                 if (!cancelled) {
@@ -1630,10 +1637,52 @@ $recentLogs = $monitor->getRecentLogs(20);
                                     // 刷新页面显示最新状态
                                     location.reload();
                                 }
+                            } else if (progressComplete && !allBatchesCompleted) {
+                                // 进度已达到100%但批次还未全部完成，显示等待信息
+                                if (waitingForBatchesTime === 0) {
+                                    waitingForBatchesTime = Date.now(); // 记录开始等待的时间
+                                }
+                                
+                                const waitingDuration = Date.now() - waitingForBatchesTime;
+                                const waitingSeconds = Math.floor(waitingDuration / 1000);
+                                
+                                document.getElementById('parallel-progress-info').textContent = 
+                                    `检测已完成，等待批次进程结束... (${completedBatches}/${progressData.total_batches} 个批次已完成, 已等待${waitingSeconds}秒)`;
+                                
+                                // 超时检查：如果等待批次完成超过2分钟，强制完成
+                                if (waitingDuration > 120000) { // 2分钟
+                                    console.warn('批次进程超时，强制完成检测');
+                                    clearInterval(progressInterval);
+                                    
+                                    if (!cancelled) {
+                                        document.body.removeChild(progressDiv);
+                                        document.body.removeChild(overlay);
+                                        
+                                        alert(`⚠️ 并行检测完成（部分批次超时）！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n注意：有 ${progressData.total_batches - completedBatches} 个批次可能未完全结束，但检测已完成\n\n页面将自动刷新显示最新状态`);
+                                        
+                                        location.reload();
+                                    }
+                                }
                             }
                         }
                     } catch (error) {
                         console.error('获取进度失败:', error);
+                    }
+                    
+                    // 整体超时检查：如果总时间超过30分钟，强制停止
+                    const totalDuration = Date.now() - startTime;
+                    if (totalDuration > maxWaitTime) {
+                        console.warn('并行检测总体超时，强制停止');
+                        clearInterval(progressInterval);
+                        
+                        if (!cancelled) {
+                            document.body.removeChild(progressDiv);
+                            document.body.removeChild(overlay);
+                            
+                            alert(`⚠️ 并行检测超时！\n\n检测已运行超过30分钟，可能存在问题。\n请检查服务器状态或联系管理员。\n\n页面将自动刷新`);
+                            
+                            location.reload();
+                        }
                     }
                 }, 1000); // 每秒更新一次进度
                 

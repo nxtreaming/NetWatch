@@ -84,8 +84,8 @@ define('PARALLEL_BATCH_SIZE', 400);   // 每批次代理数量
 系统默认配置：
 - 批次大小：400个代理/批次（可通过PARALLEL_BATCH_SIZE调整）
 - 最大并行进程：6个（可通过PARALLEL_MAX_PROCESSES调整）
-- 检测超时：5秒/代理
-- 连接超时：3秒/代理
+- 检测超时：2秒/代理（优化后，正常代理200ms内响应）
+- 连接超时：2秒/代理
 
 ### 配置调整建议
 - **服务器配置较低**：减少PARALLEL_MAX_PROCESSES到3-4
