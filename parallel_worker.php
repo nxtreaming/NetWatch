@@ -129,19 +129,50 @@ function updateBatchStatus($statusFile, $updates) {
         return false;
     }
     
-    $status = json_decode(file_get_contents($statusFile), true);
-    if (!$status) {
+    // 使用文件锁确保原子性操作
+    $lockFile = $statusFile . '.lock';
+    $lockHandle = fopen($lockFile, 'w');
+    
+    if (!$lockHandle || !flock($lockHandle, LOCK_EX)) {
+        if ($lockHandle) fclose($lockHandle);
         return false;
     }
     
-    // 合并更新
-    foreach ($updates as $key => $value) {
-        $status[$key] = $value;
+    try {
+        $status = json_decode(file_get_contents($statusFile), true);
+        if (!$status) {
+            return false;
+        }
+        
+        // 合并更新
+        foreach ($updates as $key => $value) {
+            $status[$key] = $value;
+        }
+        
+        // 原子性写入：先写临时文件，再重命名
+        $tempFile = $statusFile . '.tmp';
+        $result = file_put_contents($tempFile, json_encode($status, JSON_UNESCAPED_UNICODE));
+        
+        if ($result !== false) {
+            // 原子性重命名
+            $success = rename($tempFile, $statusFile);
+            
+            // 强制刷新文件系统缓存
+            if ($success && function_exists('opcache_invalidate')) {
+                opcache_invalidate($statusFile, true);
+            }
+            
+            return $success;
+        }
+        
+        return false;
+        
+    } finally {
+        // 释放锁
+        flock($lockHandle, LOCK_UN);
+        fclose($lockHandle);
+        @unlink($lockFile);
     }
-    
-    // 写回文件
-    file_put_contents($statusFile, json_encode($status));
-    return true;
 }
 
 /**

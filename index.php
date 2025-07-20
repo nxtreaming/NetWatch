@@ -1625,7 +1625,11 @@ $recentLogs = $monitor->getRecentLogs(20);
                             const allBatchesCompleted = completedBatches >= progressData.total_batches;
                             const progressComplete = progress >= 100;
                             
-                            if (progressComplete && allBatchesCompleted) {
+                            // 更宽松的完成条件：进度100%且(所有批次完成 或 已检测数量达到总数)
+                            const allProxiesChecked = progressData.total_checked >= progressData.total_proxies;
+                            const shouldComplete = progressComplete && (allBatchesCompleted || allProxiesChecked);
+                            
+                            if (shouldComplete) {
                                 clearInterval(progressInterval);
                                 
                                 if (!cancelled) {
@@ -1649,8 +1653,8 @@ $recentLogs = $monitor->getRecentLogs(20);
                                 document.getElementById('parallel-progress-info').textContent = 
                                     `检测已完成，等待批次进程结束... (${completedBatches}/${progressData.total_batches} 个批次已完成, 已等待${waitingSeconds}秒)`;
                                 
-                                // 超时检查：如果等待批次完成超过2分钟，强制完成
-                                if (waitingDuration > 120000) { // 2分钟
+                                // 超时检查：如果等待批次完成超过30秒，强制完成
+                                if (waitingDuration > 30000) { // 30秒
                                     console.warn('批次进程超时，强制完成检测');
                                     clearInterval(progressInterval);
                                     
