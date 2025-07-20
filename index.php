@@ -1656,6 +1656,15 @@ $recentLogs = $monitor->getRecentLogs(20);
                             
                             if (shouldComplete) {
                                 console.log('✅ 所有完成条件都满足，显示完成对话框');
+                                
+                                // 最后更新一次UI显示，确保显示正确的完成状态
+                                document.getElementById('parallel-progress-bar').style.width = '100%';
+                                document.getElementById('parallel-progress-percent').textContent = '100%';
+                                document.getElementById('parallel-progress-info').textContent = 
+                                    `检测完成！(${progressData.total_checked}/${progressData.total_proxies} 个代理已检测)`;
+                                document.getElementById('parallel-batch-info').textContent = 
+                                    `活跃批次: 0 | 已完成批次: ${progressData.total_batches} | 总批次: ${progressData.total_batches}`;
+                                
                                 clearInterval(progressInterval);
                                 
                                 if (!cancelled) {
@@ -1690,6 +1699,15 @@ $recentLogs = $monitor->getRecentLogs(20);
                                 // 超时检查：只有在真正开始等待批次状态更新后才检查超时
                                 if (waitingForBatchesTime > 0 && waitingDuration > 30000 && progressComplete && allProxiesChecked && !hasRunningBatches) { // 30秒
                                     console.warn('批次进程超时，强制完成检测');
+                                    
+                                    // 更新UI显示为完成状态
+                                    document.getElementById('parallel-progress-bar').style.width = '100%';
+                                    document.getElementById('parallel-progress-percent').textContent = '100%';
+                                    document.getElementById('parallel-progress-info').textContent = 
+                                        `检测完成（超时）！(${progressData.total_checked}/${progressData.total_proxies} 个代理已检测)`;
+                                    document.getElementById('parallel-batch-info').textContent = 
+                                        `活跃批次: 0 | 已完成批次: ${completedBatches} | 总批次: ${progressData.total_batches}`;
+                                    
                                     clearInterval(progressInterval);
                                     
                                     if (!cancelled) {
