@@ -175,9 +175,16 @@ class Auth {
      */
     public static function getRedirectUrl() {
         self::startSession();
-        $redirectUrl = $_SESSION['redirect_after_login'] ?? 'index.php';
+        $redirectUrl = $_SESSION['redirect_after_login'] ?? '/';
         unset($_SESSION['redirect_after_login']);
-        return $redirectUrl;
+        
+        // Ensure we return a valid URL path
+        if ($redirectUrl === '/' || empty($redirectUrl)) {
+            return '/';
+        }
+        
+        // Remove any leading slashes to prevent double slashes
+        return '/' . ltrim($redirectUrl, '/');
     }
 }
 ?>
