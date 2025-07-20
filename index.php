@@ -1622,7 +1622,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                                 `活跃批次: ${activeBatches} | 已完成批次: ${completedBatches} | 总批次: ${progressData.total_batches}`;
                             
                             // 检查是否完成 - 绝对严格：必须所有批次都完成才能显示完成对话框
-                            const allBatchesCompleted = completedBatches >= progressData.total_batches;
+                            const allBatchesCompleted = completedBatches === progressData.total_batches; // 使用严格相等
                             const progressComplete = progress >= 100;
                             const allProxiesChecked = progressData.total_checked >= progressData.total_proxies;
                             
@@ -1632,6 +1632,20 @@ $recentLogs = $monitor->getRecentLogs(20);
                             
                             // 绝对严格的完成条件：所有批次完成 且 没有正在运行的批次 且 所有代理都检测完成
                             const shouldComplete = allBatchesCompleted && !hasRunningBatches && allProxiesChecked;
+                            
+                            // 特别调试：如果条件不满足但仍然触发了完成，记录警告
+                            if (!shouldComplete) {
+                                console.warn('⚠️ 完成条件不满足，不应该显示完成对话框:', {
+                                    completedBatches,
+                                    totalBatches: progressData.total_batches,
+                                    allBatchesCompleted,
+                                    runningBatches,
+                                    hasRunningBatches,
+                                    allProxiesChecked,
+                                    totalChecked: progressData.total_checked,
+                                    totalProxies: progressData.total_proxies
+                                });
+                            }
                             
                             // 调试日志：记录完成条件检查
                             console.log('完成条件检查:', {
@@ -1655,9 +1669,12 @@ $recentLogs = $monitor->getRecentLogs(20);
                             });
                             
                             if (shouldComplete) {
-                                console.log('✅ 所有完成条件都满足，显示完成对话框');
+                                console.log('✅ 所有完成条件都满足，先同步更新UI再显示完成对话框');
                                 
-                                // 最后更新一次UI显示，确保显示正确的完成状态
+                                // 立即停止轮询，防止更多UI更新
+                                clearInterval(progressInterval);
+                                
+                                // 同步更新UI显示为最终完成状态
                                 document.getElementById('parallel-progress-bar').style.width = '100%';
                                 document.getElementById('parallel-progress-percent').textContent = '100%';
                                 document.getElementById('parallel-progress-info').textContent = 
@@ -1665,17 +1682,42 @@ $recentLogs = $monitor->getRecentLogs(20);
                                 document.getElementById('parallel-batch-info').textContent = 
                                     `活跃批次: 0 | 已完成批次: ${progressData.total_batches} | 总批次: ${progressData.total_batches}`;
                                 
-                                clearInterval(progressInterval);
+                                // 使用setTimeout确保UI更新完成后再显示对话框
+                                setTimeout(() => {
                                 
                                 if (!cancelled) {
-                                    document.body.removeChild(progressDiv);
-                                    document.body.removeChild(overlay);
+                                    // 最终安全检查：再次验证所有条件
+                                    const finalCompletedBatches = progressData.batch_statuses.filter(b => b.status === 'completed').length;
+                                    const finalRunningBatches = progressData.batch_statuses.filter(b => b.status === 'running').length;
+                                    const finalAllBatchesCompleted = finalCompletedBatches === progressData.total_batches;
+                                    const finalNoRunningBatches = finalRunningBatches === 0;
+                                    const finalAllProxiesChecked = progressData.total_checked >= progressData.total_proxies;
                                     
-                                    alert(`🎉 并行检测完成！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n页面将自动刷新显示最新状态`);
+                                    if (finalAllBatchesCompleted && finalNoRunningBatches && finalAllProxiesChecked) {
+                                        console.log('✅ 最终安全检查通过，显示完成对话框');
+                                        document.body.removeChild(progressDiv);
+                                        document.body.removeChild(overlay);
+                                        
+                                        alert(`🎉 并行检测完成！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n页面将自动刷新显示最新状态`);
+                                    } else {
+                                        console.error('❌ 最终安全检查失败！阻止显示完成对话框:', {
+                                            finalCompletedBatches,
+                                            totalBatches: progressData.total_batches,
+                                            finalAllBatchesCompleted,
+                                            finalRunningBatches,
+                                            finalNoRunningBatches,
+                                            finalAllProxiesChecked,
+                                            totalChecked: progressData.total_checked,
+                                            totalProxies: progressData.total_proxies
+                                        });
+                                        // 不显示对话框，继续等待
+                                        return;
+                                    }
                                     
                                     // 刷新页面显示最新状态
                                     location.reload();
-                                }
+                                }, 100); // 100ms延迟，确保UI更新完成
+                            }
                             } else {
                                 // 批次还未全部完成，显示等待信息
                                 // 只有在检测真正完成且所有代理都检测完后才开始超时计时
