@@ -1,0 +1,154 @@
+<?php
+/**
+ * 并行代理检测工作进程
+ * 处理单个批次的代理检测任务
+ */
+
+// 设置错误报告
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// 设置执行时间限制
+set_time_limit(600); // 10分钟
+
+require_once 'config.php';
+require_once 'database.php';
+require_once 'monitor.php';
+require_once 'logger.php';
+
+// 检查命令行参数
+if ($argc < 5) {
+    echo "Usage: php parallel_worker.php <batch_id> <offset> <limit> <status_file>\n";
+    exit(1);
+}
+
+$batchId = $argv[1];
+$offset = (int)$argv[2];
+$limit = (int)$argv[3];
+$statusFile = $argv[4];
+
+// 初始化组件
+$db = new Database();
+$monitor = new NetworkMonitor();
+$logger = new Logger();
+
+$logger->info("工作进程启动: {$batchId}, offset={$offset}, limit={$limit}");
+
+try {
+    // 更新批次状态为运行中
+    updateBatchStatus($statusFile, [
+        'status' => 'running',
+        'start_time' => time()
+    ]);
+    
+    // 获取当前批次的代理列表
+    $proxies = $db->getProxiesBatch($offset, $limit);
+    $totalProxies = count($proxies);
+    
+    if ($totalProxies == 0) {
+        updateBatchStatus($statusFile, [
+            'status' => 'completed',
+            'end_time' => time(),
+            'error' => '没有找到代理数据'
+        ]);
+        exit(0);
+    }
+    
+    $logger->info("批次 {$batchId} 获取到 {$totalProxies} 个代理");
+    
+    // 检测每个代理
+    $checkedCount = 0;
+    $onlineCount = 0;
+    $offlineCount = 0;
+    
+    foreach ($proxies as $proxy) {
+        // 检查是否被取消
+        if (isCancelled()) {
+            $logger->info("批次 {$batchId} 被取消");
+            updateBatchStatus($statusFile, [
+                'status' => 'cancelled',
+                'end_time' => time()
+            ]);
+            exit(0);
+        }
+        
+        // 使用快速检测方法
+        $result = $monitor->checkProxyFast($proxy);
+        
+        $checkedCount++;
+        if ($result['status'] === 'online') {
+            $onlineCount++;
+        } else {
+            $offlineCount++;
+        }
+        
+        // 更新进度
+        $progress = ($checkedCount / $totalProxies) * 100;
+        updateBatchStatus($statusFile, [
+            'progress' => round($progress, 2),
+            'checked' => $checkedCount,
+            'online' => $onlineCount,
+            'offline' => $offlineCount
+        ]);
+        
+        // 短暂延迟避免过于频繁的请求
+        usleep(5000); // 0.005秒
+        
+        // 每检查10个代理记录一次日志
+        if ($checkedCount % 10 == 0) {
+            $logger->info("批次 {$batchId} 进度: {$checkedCount}/{$totalProxies} (在线: {$onlineCount}, 离线: {$offlineCount})");
+        }
+    }
+    
+    // 标记批次完成
+    updateBatchStatus($statusFile, [
+        'status' => 'completed',
+        'progress' => 100,
+        'end_time' => time()
+    ]);
+    
+    $logger->info("批次 {$batchId} 完成: 检查 {$checkedCount} 个代理，在线 {$onlineCount} 个，离线 {$offlineCount} 个");
+    
+} catch (Exception $e) {
+    $logger->error("批次 {$batchId} 出现错误: " . $e->getMessage());
+    
+    updateBatchStatus($statusFile, [
+        'status' => 'error',
+        'end_time' => time(),
+        'error' => $e->getMessage()
+    ]);
+    
+    exit(1);
+}
+
+/**
+ * 更新批次状态
+ */
+function updateBatchStatus($statusFile, $updates) {
+    if (!file_exists($statusFile)) {
+        return false;
+    }
+    
+    $status = json_decode(file_get_contents($statusFile), true);
+    if (!$status) {
+        return false;
+    }
+    
+    // 合并更新
+    foreach ($updates as $key => $value) {
+        $status[$key] = $value;
+    }
+    
+    // 写回文件
+    file_put_contents($statusFile, json_encode($status));
+    return true;
+}
+
+/**
+ * 检查是否被取消
+ */
+function isCancelled() {
+    $tempDir = sys_get_temp_dir() . '/netwatch_parallel';
+    $cancelFile = $tempDir . '/cancel.flag';
+    return file_exists($cancelFile);
+}

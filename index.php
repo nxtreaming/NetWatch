@@ -8,6 +8,10 @@ require_once 'auth.php';
 require_once 'database.php';
 require_once 'monitor.php';
 
+// 并行检测配置常量
+define('PARALLEL_MAX_PROCESSES', 6);    // 最大并行进程数
+define('PARALLEL_BATCH_SIZE', 400);     // 每批次代理数量
+
 // 设置时区为中国标准时间
 date_default_timezone_set('Asia/Shanghai');
 
@@ -251,6 +255,56 @@ if (isset($_GET['ajax'])) {
             }
             break;
             
+        case 'startParallelCheck':
+            try {
+                require_once 'parallel_monitor.php';
+                // 创建并行监控器：使用配置常量
+                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE);
+                
+                // 启动并行检测（异步）
+                $result = $parallelMonitor->startParallelCheck();
+                
+                echo json_encode($result);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => '启动并行检测失败: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
+        case 'getParallelProgress':
+            try {
+                require_once 'parallel_monitor.php';
+                // 创建并行监控器：使用配置常量
+                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE);
+                
+                $progress = $parallelMonitor->getParallelProgress();
+                echo json_encode($progress);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => '获取进度失败: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
+        case 'cancelParallelCheck':
+            try {
+                require_once 'parallel_monitor.php';
+                // 创建并行监控器：使用配置常量
+                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE);
+                
+                $result = $parallelMonitor->cancelParallelCheck();
+                echo json_encode($result);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => '取消检测失败: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
         case 'sessionCheck':
             try {
                 if (!Auth::isLoggedIn()) {
@@ -480,6 +534,41 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         .btn:hover {
             background: #5a6fd8;
+        }
+        
+        .btn-parallel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-parallel:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-parallel:active {
+            transform: translateY(0);
+        }
+        
+        .btn-parallel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-parallel:hover::before {
+            left: 100%;
         }
         
         .btn-small {
@@ -787,6 +876,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                         <?php endif; ?>
                     </div>
                     <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
+                    <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
                 </div>
             </div>
             
@@ -1398,6 +1488,161 @@ $recentLogs = $monitor->getRecentLogs(20);
                     document.body.removeChild(overlay);
                     console.error('检查所有代理失败:', error);
                     alert('❌ 检查失败: ' + error.message);
+                }
+            } finally {
+                if (!cancelled) {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            }
+        }
+        
+        /**
+         * 并行检测所有代理（高性能版本）
+         */
+        async function checkAllProxiesParallel() {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            
+            if (btn.disabled) return;
+            
+            btn.disabled = true;
+            btn.textContent = '正在启动并行检测...';
+            
+            // 创建背景遮罩层
+            const overlay = document.createElement('div');
+            overlay.id = 'parallel-check-overlay';
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0, 0, 0, 0.7); z-index: 999;
+                backdrop-filter: blur(5px);
+            `;
+            document.body.appendChild(overlay);
+            
+            // 创建进度显示界面
+            const progressDiv = document.createElement('div');
+            progressDiv.id = 'parallel-check-progress';
+            progressDiv.style.cssText = `
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: white; padding: 50px; border-radius: 25px;
+                box-shadow: 0 25px 80px rgba(0,0,0,0.6); z-index: 1000;
+                text-align: center; min-width: 700px; max-width: 900px; width: 85vw;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                border: 2px solid #4CAF50;
+            `;
+            
+            progressDiv.innerHTML = `
+                <h3 style="margin: 0 0 30px 0; color: #333; font-size: 28px; font-weight: 700;">🚀 并行检测所有代理</h3>
+                <div id="parallel-progress-info" style="margin-bottom: 25px; color: #666; font-size: 18px; line-height: 1.6;">正在启动并行检测引擎...</div>
+                <div style="background: #f0f0f0; border-radius: 20px; height: 35px; margin: 35px 0; overflow: hidden; border: 2px solid #ddd;">
+                    <div id="parallel-progress-bar" style="background: linear-gradient(90deg, #4CAF50, #45a049, #2E7D32); height: 100%; width: 0%; transition: width 0.8s ease; border-radius: 18px; position: relative;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 700; font-size: 16px; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);" id="parallel-progress-percent">0%</div>
+                    </div>
+                </div>
+                <div id="parallel-progress-stats" style="font-size: 18px; color: #555; margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 15px; border: 2px solid #e0e0e0;">准备启动...</div>
+                <div id="parallel-batch-info" style="font-size: 16px; color: #777; margin-bottom: 25px; padding: 15px; background: #fff3cd; border-radius: 10px; border: 1px solid #ffeaa7;">批次信息加载中...</div>
+                <div style="display: flex; justify-content: center; gap: 20px; margin-top: 25px;">
+                    <button id="cancel-parallel-check" style="padding: 15px 30px; background: #f44336; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 18px; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.background='#d32f2f'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='#f44336'; this.style.transform='scale(1)'">取消检测</button>
+                </div>
+            `;
+            
+            document.body.appendChild(progressDiv);
+            
+            let cancelled = false;
+            let progressInterval = null;
+            
+            document.getElementById('cancel-parallel-check').onclick = async () => {
+                cancelled = true;
+                
+                // 发送取消请求
+                try {
+                    await fetch('?ajax=1&action=cancelParallelCheck');
+                } catch (e) {
+                    console.error('取消请求失败:', e);
+                }
+                
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
+                
+                document.body.removeChild(progressDiv);
+                document.body.removeChild(overlay);
+                btn.textContent = originalText;
+                btn.disabled = false;
+            };
+            
+            try {
+                // 启动并行检测
+                document.getElementById('parallel-progress-info').textContent = '正在启动并行检测引擎...';
+                
+                const startResponse = await fetch('?ajax=1&action=startParallelCheck');
+                const startData = await startResponse.json();
+                
+                if (!startData.success) {
+                    throw new Error(startData.error || '启动并行检测失败');
+                }
+                
+                // 显示启动信息
+                document.getElementById('parallel-progress-info').textContent = 
+                    `并行检测已启动！总计 ${startData.total_proxies} 个代理，分为 ${startData.total_batches} 个批次`;
+                
+                document.getElementById('parallel-batch-info').textContent = 
+                    `每批次 400 个代理，最多 6 个批次并行执行`;
+                
+                // 开始监控进度
+                progressInterval = setInterval(async () => {
+                    if (cancelled) return;
+                    
+                    try {
+                        const progressResponse = await fetch('?ajax=1&action=getParallelProgress');
+                        const progressData = await progressResponse.json();
+                        
+                        if (progressData.success) {
+                            // 更新进度条
+                            const progress = progressData.overall_progress;
+                            document.getElementById('parallel-progress-bar').style.width = progress + '%';
+                            document.getElementById('parallel-progress-percent').textContent = Math.round(progress) + '%';
+                            
+                            // 更新进度信息
+                            document.getElementById('parallel-progress-info').textContent = 
+                                `并行检测进行中... (${progressData.completed_batches}/${progressData.total_batches} 个批次完成)`;
+                            
+                            // 更新统计信息
+                            document.getElementById('parallel-progress-stats').textContent = 
+                                `已检查: ${progressData.total_checked} | 在线: ${progressData.total_online} | 离线: ${progressData.total_offline}`;
+                            
+                            // 更新批次信息
+                            const activeBatches = progressData.batch_statuses.filter(b => b.status === 'running').length;
+                            const completedBatches = progressData.batch_statuses.filter(b => b.status === 'completed').length;
+                            document.getElementById('parallel-batch-info').textContent = 
+                                `活跃批次: ${activeBatches} | 已完成批次: ${completedBatches} | 总批次: ${progressData.total_batches}`;
+                            
+                            // 检查是否完成
+                            if (progress >= 100) {
+                                clearInterval(progressInterval);
+                                
+                                if (!cancelled) {
+                                    document.body.removeChild(progressDiv);
+                                    document.body.removeChild(overlay);
+                                    
+                                    alert(`🎉 并行检测完成！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n页面将自动刷新显示最新状态`);
+                                    
+                                    // 刷新页面显示最新状态
+                                    location.reload();
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('获取进度失败:', error);
+                    }
+                }, 1000); // 每秒更新一次进度
+                
+            } catch (error) {
+                if (!cancelled) {
+                    document.body.removeChild(progressDiv);
+                    document.body.removeChild(overlay);
+                    console.error('并行检测失败:', error);
+                    alert('❌ 并行检测失败: ' + error.message);
                 }
             } finally {
                 if (!cancelled) {
