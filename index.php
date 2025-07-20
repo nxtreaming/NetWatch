@@ -660,7 +660,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         }
         
         th, td {
-            padding: 12px;
+            padding: 6px;
             text-align: left;
             border-bottom: 1px solid #e9ecef;
         }
