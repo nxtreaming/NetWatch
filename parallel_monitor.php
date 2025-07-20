@@ -306,6 +306,7 @@ class ParallelMonitor {
         $completedBatches = 0;
         $totalBatches = count($statusFiles);
         $batchStatuses = [];
+        $totalProxies = 0; // 总代理数量
         
         foreach ($statusFiles as $statusFile) {
             $batchStatus = json_decode(file_get_contents($statusFile), true);
@@ -313,6 +314,7 @@ class ParallelMonitor {
                 $totalChecked += $batchStatus['checked'];
                 $totalOnline += $batchStatus['online'];
                 $totalOffline += $batchStatus['offline'];
+                $totalProxies += $batchStatus['limit']; // 累加每个批次的总数
                 
                 if ($batchStatus['status'] === 'completed') {
                     $completedBatches++;
@@ -322,13 +324,15 @@ class ParallelMonitor {
             }
         }
         
-        $overallProgress = $totalBatches > 0 ? ($completedBatches / $totalBatches) * 100 : 0;
+        // 基于实际检测的IP数量计算进度，而不是批次完成情况
+        $overallProgress = $totalProxies > 0 ? ($totalChecked / $totalProxies) * 100 : 0;
         
         return [
             'success' => true,
             'overall_progress' => round($overallProgress, 2),
             'completed_batches' => $completedBatches,
             'total_batches' => $totalBatches,
+            'total_proxies' => $totalProxies, // 添加总代理数量
             'total_checked' => $totalChecked,
             'total_online' => $totalOnline,
             'total_offline' => $totalOffline,

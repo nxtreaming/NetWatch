@@ -1603,9 +1603,9 @@ $recentLogs = $monitor->getRecentLogs(20);
                             document.getElementById('parallel-progress-bar').style.width = progress + '%';
                             document.getElementById('parallel-progress-percent').textContent = Math.round(progress) + '%';
                             
-                            // 更新进度信息
+                            // 更新进度信息 - 基于实际检测的IP数量
                             document.getElementById('parallel-progress-info').textContent = 
-                                `并行检测进行中... (${progressData.completed_batches}/${progressData.total_batches} 个批次完成)`;
+                                `并行检测进行中... (${progressData.total_checked}/${progressData.total_proxies} 个代理已检测)`;
                             
                             // 更新统计信息
                             document.getElementById('parallel-progress-stats').textContent = 
