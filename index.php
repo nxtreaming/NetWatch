@@ -1630,8 +1630,8 @@ $recentLogs = $monitor->getRecentLogs(20);
                             const runningBatches = progressData.batch_statuses.filter(b => b.status === 'running').length;
                             const hasRunningBatches = runningBatches > 0;
                             
-                            // 绝对严格的完成条件：所有批次完成 且 没有正在运行的批次
-                            const shouldComplete = allBatchesCompleted && !hasRunningBatches;
+                            // 绝对严格的完成条件：所有批次完成 且 没有正在运行的批次 且 所有代理都检测完成
+                            const shouldComplete = allBatchesCompleted && !hasRunningBatches && allProxiesChecked;
                             
                             // 调试日志：记录完成条件检查
                             console.log('完成条件检查:', {
@@ -1642,10 +1642,20 @@ $recentLogs = $monitor->getRecentLogs(20);
                                 hasRunningBatches,
                                 progressComplete,
                                 allProxiesChecked,
-                                shouldComplete
+                                shouldComplete,
+                                totalChecked: progressData.total_checked,
+                                totalProxies: progressData.total_proxies,
+                                batchStatuses: progressData.batch_statuses.map(b => ({
+                                    id: b.batch_id,
+                                    status: b.status,
+                                    progress: b.progress,
+                                    checked: b.checked,
+                                    limit: b.limit
+                                }))
                             });
                             
                             if (shouldComplete) {
+                                console.log('✅ 所有完成条件都满足，显示完成对话框');
                                 clearInterval(progressInterval);
                                 
                                 if (!cancelled) {
@@ -1657,14 +1667,15 @@ $recentLogs = $monitor->getRecentLogs(20);
                                     // 刷新页面显示最新状态
                                     location.reload();
                                 }
-                            } else if (!allBatchesCompleted) {
+                            } else {
                                 // 批次还未全部完成，显示等待信息
-                                // 只有在检测真正完成后才开始超时计时
-                                if (progressComplete && allProxiesChecked && waitingForBatchesTime === 0) {
+                                // 只有在检测真正完成且所有代理都检测完后才开始超时计时
+                                if (progressComplete && allProxiesChecked && !hasRunningBatches && waitingForBatchesTime === 0) {
                                     waitingForBatchesTime = Date.now(); // 记录开始等待的时间
+                                    console.log('开始等待批次状态更新计时');
                                 }
                                 
-                                const waitingDuration = Date.now() - waitingForBatchesTime;
+                                const waitingDuration = waitingForBatchesTime > 0 ? Date.now() - waitingForBatchesTime : 0;
                                 const waitingSeconds = Math.floor(waitingDuration / 1000);
                                 
                                 // 根据进度情况显示不同的等待信息
@@ -1676,8 +1687,8 @@ $recentLogs = $monitor->getRecentLogs(20);
                                         `并行检测进行中... (${progressData.total_checked}/${progressData.total_proxies} 个代理已检测, ${completedBatches}/${progressData.total_batches} 个批次已完成)`;
                                 }
                                 
-                                // 超时检查：只有在开始等待后才检查超时
-                                if (waitingForBatchesTime > 0 && waitingDuration > 30000) { // 30秒
+                                // 超时检查：只有在真正开始等待批次状态更新后才检查超时
+                                if (waitingForBatchesTime > 0 && waitingDuration > 30000 && progressComplete && allProxiesChecked && !hasRunningBatches) { // 30秒
                                     console.warn('批次进程超时，强制完成检测');
                                     clearInterval(progressInterval);
                                     

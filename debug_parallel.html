@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>并行检测调试助手</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .debug-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .debug-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .status-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .status-item.success {
+            border-left-color: #28a745;
+        }
+        .status-item.warning {
+            border-left-color: #ffc107;
+        }
+        .status-item.error {
+            border-left-color: #dc3545;
+        }
+        .batch-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .batch-table th,
+        .batch-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .batch-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .batch-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+        .console-log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 NetWatch 并行检测调试助手</h1>
+        <p>此页面帮助诊断并行检测的完成条件问题。请打开浏览器控制台查看详细日志。</p>
+        
+        <div class="debug-section">
+            <h3>📊 当前状态</h3>
+            <button class="refresh-btn" onclick="refreshStatus()">刷新状态</button>
+            <div id="status-display">点击刷新按钮获取状态...</div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>🎯 完成条件检查</h3>
+            <div id="completion-check">等待数据...</div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>📋 批次详情</h3>
+            <div id="batch-details">等待数据...</div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>📝 控制台日志</h3>
+            <div id="console-logs" class="console-log">控制台日志将显示在这里...</div>
+        </div>
+    </div>
+
+    <script>
+        let logs = [];
+        
+        // 拦截console.log
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog('LOG', args.join(' '));
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLog('WARN', args.join(' '));
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog('ERROR', args.join(' '));
+        };
+        
+        function addLog(level, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push(`[${timestamp}] ${level}: ${message}`);
+            
+            // 保持最近100条日志
+            if (logs.length > 100) {
+                logs = logs.slice(-100);
+            }
+            
+            updateConsoleDisplay();
+        }
+        
+        function updateConsoleDisplay() {
+            const consoleDiv = document.getElementById('console-logs');
+            consoleDiv.textContent = logs.join('\n');
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        async function refreshStatus() {
+            try {
+                const response = await fetch('?ajax=1&action=getParallelProgress');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayStatus(data);
+                    checkCompletionConditions(data);
+                    displayBatchDetails(data);
+                } else {
+                    document.getElementById('status-display').innerHTML = 
+                        '<div class="status-item error">❌ 获取状态失败</div>';
+                }
+            } catch (error) {
+                console.error('获取状态失败:', error);
+                document.getElementById('status-display').innerHTML = 
+                    '<div class="status-item error">❌ 网络错误: ' + error.message + '</div>';
+            }
+        }
+        
+        function displayStatus(data) {
+            const progress = data.overall_progress;
+            const completedBatches = data.batch_statuses.filter(b => b.status === 'completed').length;
+            const runningBatches = data.batch_statuses.filter(b => b.status === 'running').length;
+            
+            const html = `
+                <div class="status-grid">
+                    <div class="status-item ${progress >= 100 ? 'success' : 'warning'}">
+                        <strong>总体进度:</strong> ${progress.toFixed(2)}%
+                    </div>
+                    <div class="status-item">
+                        <strong>检测进度:</strong> ${data.total_checked}/${data.total_proxies}
+                    </div>
+                    <div class="status-item">
+                        <strong>在线代理:</strong> ${data.total_online}
+                    </div>
+                    <div class="status-item">
+                        <strong>离线代理:</strong> ${data.total_offline}
+                    </div>
+                    <div class="status-item ${completedBatches >= data.total_batches ? 'success' : 'warning'}">
+                        <strong>完成批次:</strong> ${completedBatches}/${data.total_batches}
+                    </div>
+                    <div class="status-item ${runningBatches === 0 ? 'success' : 'warning'}">
+                        <strong>运行批次:</strong> ${runningBatches}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('status-display').innerHTML = html;
+        }
+        
+        function checkCompletionConditions(data) {
+            const progress = data.overall_progress;
+            const completedBatches = data.batch_statuses.filter(b => b.status === 'completed').length;
+            const runningBatches = data.batch_statuses.filter(b => b.status === 'running').length;
+            
+            const allBatchesCompleted = completedBatches >= data.total_batches;
+            const progressComplete = progress >= 100;
+            const allProxiesChecked = data.total_checked >= data.total_proxies;
+            const hasRunningBatches = runningBatches > 0;
+            
+            const shouldComplete = allBatchesCompleted && !hasRunningBatches && allProxiesChecked;
+            
+            const html = `
+                <div class="status-grid">
+                    <div class="status-item ${allBatchesCompleted ? 'success' : 'error'}">
+                        <strong>所有批次完成:</strong> ${allBatchesCompleted ? '是' : '否'}
+                    </div>
+                    <div class="status-item ${!hasRunningBatches ? 'success' : 'error'}">
+                        <strong>没有运行批次:</strong> ${!hasRunningBatches ? '是' : '否'}
+                    </div>
+                    <div class="status-item ${allProxiesChecked ? 'success' : 'error'}">
+                        <strong>所有代理检测完成:</strong> ${allProxiesChecked ? '是' : '否'}
+                    </div>
+                    <div class="status-item ${progressComplete ? 'success' : 'warning'}">
+                        <strong>进度完成:</strong> ${progressComplete ? '是' : '否'}
+                    </div>
+                    <div class="status-item ${shouldComplete ? 'success' : 'error'}">
+                        <strong>应该显示完成:</strong> ${shouldComplete ? '是' : '否'}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('completion-check').innerHTML = html;
+            
+            // 记录到控制台
+            console.log('完成条件检查 (调试页面):', {
+                allBatchesCompleted,
+                hasRunningBatches,
+                allProxiesChecked,
+                progressComplete,
+                shouldComplete,
+                completedBatches,
+                totalBatches: data.total_batches,
+                runningBatches,
+                totalChecked: data.total_checked,
+                totalProxies: data.total_proxies
+            });
+        }
+        
+        function displayBatchDetails(data) {
+            let html = '<table class="batch-table"><thead><tr>';
+            html += '<th>批次ID</th><th>状态</th><th>进度</th><th>已检测</th><th>总数</th><th>在线</th><th>离线</th>';
+            html += '</tr></thead><tbody>';
+            
+            data.batch_statuses.forEach(batch => {
+                const statusClass = batch.status === 'completed' ? 'success' : 
+                                   batch.status === 'running' ? 'warning' : 'error';
+                html += `<tr class="${statusClass}">`;
+                html += `<td>${batch.batch_id || 'N/A'}</td>`;
+                html += `<td>${batch.status || 'unknown'}</td>`;
+                html += `<td>${(batch.progress || 0).toFixed(1)}%</td>`;
+                html += `<td>${batch.checked || 0}</td>`;
+                html += `<td>${batch.limit || 0}</td>`;
+                html += `<td>${batch.online || 0}</td>`;
+                html += `<td>${batch.offline || 0}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            document.getElementById('batch-details').innerHTML = html;
+        }
+        
+        // 自动刷新
+        setInterval(refreshStatus, 2000);
+        
+        // 初始加载
+        refreshStatus();
+    </script>
+</body>
+</html>
