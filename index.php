@@ -714,6 +714,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             transition: all 0.2s;
         }
         
+        .log-entry {
             padding: 10px;
             border-bottom: 1px solid #e9ecef;
             font-family: 'Courier New', monospace;
