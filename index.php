@@ -675,38 +675,43 @@ $recentLogs = $monitor->getRecentLogs(20);
         /* Set specific widths for columns */
         #proxies-table th:first-child,
         #proxies-table td:first-child {
-            width: 80px; /* ID column - increased from 60px */
+            width: 60px;
         }
         
         #proxies-table th:nth-child(2),
         #proxies-table td:nth-child(2) {
-            width: 180px; /* Address column - increased from 150px */
+            width: 150px;
+            text-align: center;
         }
         
         #proxies-table th:nth-child(3),
         #proxies-table td:nth-child(3) {
-            width: 100px; /* Type column - increased from 80px */
+            width: 100px;
+            text-align: center;
         }
         
         #proxies-table th:nth-child(4),
         #proxies-table td:nth-child(4) {
-            width: 120px; /* Status column - kept same */
+            width: 120px;
+            text-align: center;
         }
         
         #proxies-table th:nth-child(5),
         #proxies-table td:nth-child(5) {
-            width: 120px; /* Response time column */
+            width: 120px;
+            text-align: center;
         }
         
         #proxies-table th:nth-child(6),
         #proxies-table td:nth-child(6) {
-            width: 100px; /* Failure count column - made narrower */
+            width: 100px;
             text-align: center;
         }
         
         #proxies-table th:nth-child(7),
         #proxies-table td:nth-child(7) {
-            width: 150px; /* Last check column */
+            width: 150px;
+            text-align: center;
         }
         
         #proxies-table th:nth-child(8),
