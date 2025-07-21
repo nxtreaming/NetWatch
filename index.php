@@ -930,7 +930,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             // 构建分页URL参数
             $searchParam = !empty($searchTerm) ? '&search=' . urlencode($searchTerm) : '';
             ?>
-            <div class="pagination-container">
+            <div class="pagination-container" style="padding: 0 20px;">
                 <div class="pagination-info">
                     显示第 <?php echo (($page - 1) * $perPage + 1); ?> - <?php echo min($page * $perPage, $totalProxies); ?> 条，共 <?php echo $totalProxies; ?> 条<?php echo !empty($searchTerm) ? '搜索结果' : '代理'; ?>
                 </div>
