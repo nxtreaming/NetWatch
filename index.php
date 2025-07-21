@@ -442,7 +442,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         .user-info {
             text-align: right;
-            font-size: 12px;
+            font-size: 13px;
         }
         
         .username {
@@ -478,7 +478,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         .stat-card {
             background: white;
-            padding: 15px 10px;
+            padding: 10px 5px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             text-align: center;
@@ -490,14 +490,14 @@ $recentLogs = $monitor->getRecentLogs(20);
         }
         
         .stat-number {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             margin-bottom: 5px;
         }
         
         .stat-label {
             color: #666;
-            font-size: 14px;
+            font-size: 15px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -915,11 +915,11 @@ $recentLogs = $monitor->getRecentLogs(20);
             </div>
             <div class="stat-card">
                 <div class="stat-number online"><?php echo $stats['online']; ?></div>
-                <div class="stat-label">在线</div>
+                <div class="stat-label">在线数量</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number offline"><?php echo $stats['offline']; ?></div>
-                <div class="stat-label">离线</div>
+                <div class="stat-label">离线数量</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number unknown"><?php echo $stats['unknown']; ?></div>
