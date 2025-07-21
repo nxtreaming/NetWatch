@@ -1,10 +1,11 @@
 # NetWatch - 网络代理监控系统
 
-NetWatch 是一个基于PHP的网络代理监控系统，专门用于监控大量SOCKS5和HTTP代理的可用性状态。
+NetWatch 是一个基于PHP的高性能网络代理监控系统，专门用于监控大量SOCKS5和HTTP代理的可用性状态。支持并行处理，能够高效地监控数千个代理服务器。
 
 ## 功能特性
 
 - 🌐 **多协议支持**: 支持SOCKS5和HTTP代理监控
+- 🚀 **高性能并行处理**: 支持多进程并行检测，最高可同时处理12个进程，每批次500个代理
 - 📊 **实时监控**: 实时检测代理服务器状态和响应时间
 - 📧 **邮件通知**: 代理故障时自动发送邮件通知
 - 📈 **Web界面**: 简洁美观的Web管理界面
@@ -12,13 +13,30 @@ NetWatch 是一个基于PHP的网络代理监控系统，专门用于监控大�
 - 🔄 **自动调度**: 后台定时任务自动执行监控
 - 📥 **批量导入**: 支持批量导入代理配置
 - 💾 **SQLite数据库**: 轻量级数据库，无需额外配置
+- ⏱️ **时区支持**: 自动处理时区转换，支持北京时间显示
 
 ## 系统要求
 
 - PHP 8.0+
 - cURL扩展
 - SQLite扩展
-- 已配置的Web服务器 (Nginx + PHP-FPM)
+- PCNTL扩展（用于并行处理）
+- POSIX扩展
+- 已配置的Web服务器 (Nginx + PHP-FPM 或 Apache)
+
+## 性能配置
+
+系统默认配置了以下性能参数，您可以根据服务器配置进行调整（在`index.php`中修改）：
+
+```php
+define('PARALLEL_MAX_PROCESSES', 12);   // 最大并行进程数
+define('PARALLEL_BATCH_SIZE', 500);     // 每批次处理的代理数量
+```
+
+> 💡 **性能建议**：
+> - 对于4核8G服务器，建议保持默认配置
+> - 对于更高配置的服务器，可以适当增加`PARALLEL_MAX_PROCESSES`
+> - 如果网络延迟较高，可以适当减少`PARALLEL_BATCH_SIZE`
 
 ## 安装步骤
 
@@ -150,23 +168,42 @@ sudo systemctl start netwatch
 ## 目录结构
 
 ```
-netwatch/
-├── config.php          # 配置文件
-├── database.php        # 数据库操作类
-├── monitor.php         # 监控核心类
-├── logger.php          # 日志记录类
-├── mailer.php          # 邮件发送类
-├── scheduler.php       # 定时任务调度器
-├── index.php           # Web监控面板
-├── import.php          # 代理导入页面
-├── test.php            # 系统测试脚本
-├── composer.json       # Composer配置
-├── README.md           # 说明文档
-├── data/               # 数据目录
-│   └── netwatch.db     # SQLite数据库
-└── logs/               # 日志目录
-    └── netwatch_*.log  # 日志文件
+NetWatch/
+├── config.php                # 主配置文件
+├── index.php                # 主入口文件，Web界面
+├── auth.php                 # 用户认证模块
+├── database.php             # 数据库操作类
+├── monitor.php              # 单进程监控实现
+├── parallel_monitor.php      # 并行监控实现
+├── parallel_worker.php       # 并行工作进程
+├── parallel_batch_manager.php # 批量任务管理
+├── import.php               # 代理导入脚本
+├── import_subnets.php        # 子网批量导入工具
+├── mailer.php               # 邮件通知模块
+├── logger.php               # 日志记录模块
+├── scheduler.php            # 定时任务调度器
+├── clear_proxies.php        # 代理清理工具
+├── login.php                # 登录页面
+├── config.example.php       # 配置文件示例
+├── composer.json            # Composer依赖配置
+├── data/                    # 数据目录
+│   └── netwatch.db         # SQLite数据库
+├── logs/                    # 日志目录
+│   └── netwatch_*.log      # 日志文件
+├── Debug/                   # 调试相关文件
+└── Docs/                    # 文档目录
 ```
+
+### 主要文件说明
+
+- **config.php** - 系统配置文件，包含数据库连接、邮件设置等
+- **index.php** - 主入口文件，提供Web管理界面
+- **monitor.php** - 单进程代理监控实现
+- **parallel_*.php** - 并行监控相关文件，支持高性能批量检测
+- **import*.php** - 代理导入工具，支持单个代理和子网批量导入
+- **mailer.php** - 邮件通知模块，用于发送告警
+- **logger.php** - 日志记录模块，记录系统运行状态
+- **scheduler.php** - 定时任务调度器，用于定期执行监控
 
 ## API接口
 
