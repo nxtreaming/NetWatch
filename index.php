@@ -660,7 +660,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;
+            table-layout: auto; /* Changed from fixed to auto for better column width handling */
         }
         
         #proxies-table th,
@@ -669,9 +669,29 @@ $recentLogs = $monitor->getRecentLogs(20);
             text-align: left;
             border-bottom: 1px solid #e9ecef;
             vertical-align: middle;
+            word-break: break-word; /* Ensure long content wraps properly */
         }
         
-        /* Remove center alignment for status column */
+        /* Set specific widths for columns */
+        #proxies-table th:first-child,
+        #proxies-table td:first-child {
+            width: 60px; /* ID column */
+        }
+        
+        #proxies-table th:nth-child(2),
+        #proxies-table td:nth-child(2) {
+            width: 150px; /* Address column */
+        }
+        
+        #proxies-table th:nth-child(3),
+        #proxies-table td:nth-child(3) {
+            width: 80px; /* Type column */
+        }
+        
+        #proxies-table th:nth-child(4),
+        #proxies-table td:nth-child(4) {
+            width: 100px; /* Status column */
+        }
         
         th {
             background: #f8f9fa;
