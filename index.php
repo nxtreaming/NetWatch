@@ -934,7 +934,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                 <div class="pagination-info">
                     显示第 <?php echo (($page - 1) * $perPage + 1); ?> - <?php echo min($page * $perPage, $totalProxies); ?> 条，共 <?php echo $totalProxies; ?> 条<?php echo !empty($searchTerm) ? '搜索结果' : '代理'; ?>
                 </div>
-                <div class="pagination" style="margin: 0 20px;">
+                <div class="pagination">
                     <?php if ($page > 1): ?>
                         <a href="?page=1<?php echo $searchParam; ?>" class="page-btn">首页</a>
                         <a href="?page=<?php echo $page - 1; ?><?php echo $searchParam; ?>" class="page-btn">上一页</a>
