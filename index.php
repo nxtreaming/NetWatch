@@ -653,6 +653,13 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         .table-container {
             overflow-x: auto;
+            margin-top: 15px;
+        }
+        
+        /* Add left padding to the first column (ID) */
+        #proxies-table th:first-child,
+        #proxies-table td:first-child {
+            padding-left: 20px;
         }
         
         table {
