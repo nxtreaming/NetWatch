@@ -680,7 +680,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         #proxies-table th:nth-child(2),
         #proxies-table td:nth-child(2) {
-            width: 200px; /* Address column - increased from 150px */
+            width: 180px; /* Address column - increased from 150px */
         }
         
         #proxies-table th:nth-child(3),
@@ -690,7 +690,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         #proxies-table th:nth-child(4),
         #proxies-table td:nth-child(4) {
-            width: 100px; /* Status column - kept same */
+            width: 120px; /* Status column - kept same */
         }
         
         #proxies-table th:nth-child(5),
@@ -700,7 +700,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         #proxies-table th:nth-child(6),
         #proxies-table td:nth-child(6) {
-            width: 60px; /* Failure count column - made narrower */
+            width: 100px; /* Failure count column - made narrower */
             text-align: center;
         }
         
