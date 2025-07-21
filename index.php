@@ -662,12 +662,6 @@ $recentLogs = $monitor->getRecentLogs(20);
             padding: 12px 15px;
         }
         
-        /* Add extra left padding to the first column (ID) */
-        #proxies-table th:first-child,
-        #proxies-table td:first-child {
-            padding-left: 20px;
-        }
-        
         table {
             width: 100%;
             border-collapse: collapse;
