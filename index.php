@@ -656,21 +656,24 @@ $recentLogs = $monitor->getRecentLogs(20);
             margin-top: 15px;
         }
         
-        /* Table cell padding */
-        #proxies-table th,
-        #proxies-table td {
-            padding: 12px 15px;
-        }
-        
+        /* Table styles */
         table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
         
-        th, td {
-            padding: 6px;
+        #proxies-table th,
+        #proxies-table td {
+            padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+        
+        /* Ensure status badge is properly centered in its cell */
+        #proxies-table td:nth-child(4) {
+            text-align: center;
         }
         
         th {
