@@ -24,9 +24,8 @@ function formatTime($timeString, $format = 'm-d H:i') {
     }
     
     try {
-        // 尝试从 UTC 时间转换为北京时间
-        $dt = new DateTime($timeString, new DateTimeZone('UTC'));
-        $dt->setTimezone(new DateTimeZone('Asia/Shanghai'));
+        // 直接格式化时间，不进行时区转换，因为时间已经是正确的本地时间
+        $dt = new DateTime($timeString);
         return $dt->format($format);
     } catch (Exception $e) {
         // 如果转换失败，使用原始方法
