@@ -478,9 +478,9 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         .stat-card {
             background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             text-align: center;
             transition: transform 0.2s;
         }
@@ -490,9 +490,9 @@ $recentLogs = $monitor->getRecentLogs(20);
         }
         
         .stat-number {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         
         .stat-label {
