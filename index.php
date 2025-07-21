@@ -671,10 +671,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             vertical-align: middle;
         }
         
-        /* Ensure status badge is properly centered in its cell */
-        #proxies-table td:nth-child(4) {
-            text-align: center;
-        }
+        /* Remove center alignment for status column */
         
         th {
             background: #f8f9fa;
