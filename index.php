@@ -22,14 +22,14 @@ date_default_timezone_set('Asia/Shanghai');
  * @param bool $isUtc 是否为UTC时间，默认false（本地时间）
  * @return string 格式化后的时间字符串
  */
-function formatTime($timeString, $format = 'm-d H:i', $isUtc = false) {
+function formatTime($timeString, $format = 'm-d H:i', $isUtc = true) {
     if (!$timeString) {
         return 'N/A';
     }
     
     try {
         if ($isUtc) {
-            // 如果是UTC时间，转换为北京时间
+            // 数据库中的时间是UTC，转换为北京时间
             $dt = new DateTime($timeString, new DateTimeZone('UTC'));
             $dt->setTimezone(new DateTimeZone('Asia/Shanghai'));
         } else {
@@ -894,7 +894,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                 <div class="header-right">
                     <div class="user-info">
                         <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                        <div class="session-time">登录时间：<?php echo formatTime(date('Y-m-d H:i:s', Auth::getLoginTime()), 'Y-m-d H:i:s'); ?></div>
+                        <div class="session-time">登录时间：<?php echo formatTime(Auth::getLoginTime(), 'Y-m-d H:i:s', false); ?></div>
                     </div>
                     <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出登录</a>
                 </div>
@@ -977,7 +977,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                             </td>
                             <td><?php echo number_format($proxy['response_time'], 2); ?>ms</td>
                             <td><?php echo $proxy['failure_count']; ?></td>
-                            <td><?php echo formatTime($proxy['last_check'], 'm-d H:i', true); // 最后检查时间需要从UTC转换 ?></td>
+                            <td><?php echo formatTime($proxy['last_check'], 'm-d H:i'); // 自动从UTC转换为北京时间 ?></td>
                             <td>
                                 <button class="btn btn-small" onclick="checkProxy(<?php echo $proxy['id']; ?>)">检查</button>
                             </td>

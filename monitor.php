@@ -3,6 +3,9 @@
  * 网络监控核心类
  */
 
+// 设置时区为中国标准时间
+date_default_timezone_set('Asia/Shanghai');
+
 require_once 'config.php';
 require_once 'database.php';
 require_once 'logger.php';

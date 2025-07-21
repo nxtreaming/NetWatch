@@ -4,6 +4,9 @@
  * 将大量代理分组并行检测，提高检测效率
  */
 
+// 设置时区为中国标准时间
+date_default_timezone_set('Asia/Shanghai');
+
 require_once 'config.php';
 require_once 'database.php';
 require_once 'monitor.php';
