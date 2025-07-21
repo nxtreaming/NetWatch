@@ -16,16 +16,26 @@ define('PARALLEL_BATCH_SIZE', 400);     // 每批次代理数量
 date_default_timezone_set('Asia/Shanghai');
 
 /**
- * 格式化时间显示，自动处理UTC到北京时间的转换
+ * 格式化时间显示
+ * @param string $timeString 时间字符串
+ * @param string $format 时间格式，默认'm-d H:i'
+ * @param bool $isUtc 是否为UTC时间，默认false（本地时间）
+ * @return string 格式化后的时间字符串
  */
-function formatTime($timeString, $format = 'm-d H:i') {
+function formatTime($timeString, $format = 'm-d H:i', $isUtc = false) {
     if (!$timeString) {
         return 'N/A';
     }
     
     try {
-        // 直接格式化时间，不进行时区转换，因为时间已经是正确的本地时间
-        $dt = new DateTime($timeString);
+        if ($isUtc) {
+            // 如果是UTC时间，转换为北京时间
+            $dt = new DateTime($timeString, new DateTimeZone('UTC'));
+            $dt->setTimezone(new DateTimeZone('Asia/Shanghai'));
+        } else {
+            // 直接格式化本地时间
+            $dt = new DateTime($timeString);
+        }
         return $dt->format($format);
     } catch (Exception $e) {
         // 如果转换失败，使用原始方法
@@ -967,7 +977,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                             </td>
                             <td><?php echo number_format($proxy['response_time'], 2); ?>ms</td>
                             <td><?php echo $proxy['failure_count']; ?></td>
-                            <td><?php echo formatTime($proxy['last_check']); ?></td>
+                            <td><?php echo formatTime($proxy['last_check'], 'm-d H:i', true); // 最后检查时间需要从UTC转换 ?></td>
                             <td>
                                 <button class="btn btn-small" onclick="checkProxy(<?php echo $proxy['id']; ?>)">检查</button>
                             </td>
