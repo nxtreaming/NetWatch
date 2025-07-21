@@ -675,22 +675,44 @@ $recentLogs = $monitor->getRecentLogs(20);
         /* Set specific widths for columns */
         #proxies-table th:first-child,
         #proxies-table td:first-child {
-            width: 60px; /* ID column */
+            width: 80px; /* ID column - increased from 60px */
         }
         
         #proxies-table th:nth-child(2),
         #proxies-table td:nth-child(2) {
-            width: 150px; /* Address column */
+            width: 200px; /* Address column - increased from 150px */
         }
         
         #proxies-table th:nth-child(3),
         #proxies-table td:nth-child(3) {
-            width: 80px; /* Type column */
+            width: 100px; /* Type column - increased from 80px */
         }
         
         #proxies-table th:nth-child(4),
         #proxies-table td:nth-child(4) {
-            width: 100px; /* Status column */
+            width: 100px; /* Status column - kept same */
+        }
+        
+        #proxies-table th:nth-child(5),
+        #proxies-table td:nth-child(5) {
+            width: 120px; /* Response time column */
+        }
+        
+        #proxies-table th:nth-child(6),
+        #proxies-table td:nth-child(6) {
+            width: 60px; /* Failure count column - made narrower */
+            text-align: center;
+        }
+        
+        #proxies-table th:nth-child(7),
+        #proxies-table td:nth-child(7) {
+            width: 150px; /* Last check column */
+        }
+        
+        #proxies-table th:nth-child(8),
+        #proxies-table td:nth-child(8) {
+            width: 100px; /* Actions column */
+            text-align: center;
         }
         
         th {
