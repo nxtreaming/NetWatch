@@ -9,8 +9,8 @@ require_once 'database.php';
 require_once 'monitor.php';
 
 // 并行检测配置常量
-define('PARALLEL_MAX_PROCESSES', 6);    // 最大并行进程数
-define('PARALLEL_BATCH_SIZE', 400);     // 每批次代理数量
+define('PARALLEL_MAX_PROCESSES', 12);   // 最大并行进程数
+define('PARALLEL_BATCH_SIZE', 500);     // 每批次代理数量
 
 // 设置时区为中国标准时间
 date_default_timezone_set('Asia/Shanghai');
