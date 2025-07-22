@@ -103,7 +103,7 @@ class NetworkMonitor {
             curl_setopt_array($ch, [
                 CURLOPT_URL => TEST_URL,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 3, // 批量检查时使用2秒超时
+                CURLOPT_TIMEOUT => 3, // 批量检查时使用3秒超时
                 CURLOPT_CONNECTTIMEOUT => 2, // 连接超时2秒
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_SSL_VERIFYPEER => false,
