@@ -175,11 +175,11 @@ class SimpleMailer {
                 </div>
                 <div class="stat-box">
                     <div class="stat-number online">' . $stats['online'] . '</div>
-                    <div class="stat-label">在线</div>
+                    <div class="stat-label">在线数量</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-number offline">' . $stats['offline'] . '</div>
-                    <div class="stat-label">离线</div>
+                    <div class="stat-label">离线数量</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-number unknown">' . $stats['unknown'] . '</div>
