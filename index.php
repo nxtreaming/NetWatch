@@ -896,7 +896,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             <div class="header-content">
                 <div class="header-left">
                     <h1>🌐 NetWatch</h1>
-                    <p>网络代理监控系统 - 实时监控代理服务器状态</p>
+                    <p>网络代理监控系统</p>
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
