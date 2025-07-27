@@ -1797,7 +1797,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                     `并行检测已启动！总计 ${startData.total_proxies} 个代理，分为 ${startData.total_batches} 个批次`;
                 
                 document.getElementById('parallel-batch-info').textContent = 
-                    `每批次 400 个代理，最多 6 个批次并行执行`;
+                    `每批次 <?php echo PARALLEL_BATCH_SIZE; ?> 个代理，最多 <?php echo PARALLEL_MAX_PROCESSES; ?> 个批次并行执行`;
                 
                 // 开始监控进度
                 const startTime = Date.now();
