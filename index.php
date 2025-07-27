@@ -907,7 +907,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                         </div>
                         <div class="session-time">登录时间：<?php 
                             $loginTime = Auth::getLoginTime();
-                            echo $loginTime ? date('Y-m-d H:i:s', $loginTime) : 'N/A';
+                            echo $loginTime ? date('m-d H:i', $loginTime) : 'N/A';
                         ?></div>
                     </div>
                 </div>
