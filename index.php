@@ -860,20 +860,18 @@ $recentLogs = $monitor->getRecentLogs(20);
             }
             
             .container {
-                padding: 0 10px;
+                padding: 0 8px;
             }
             
             table {
-                font-size: 14px;
+                font-size: 12px;
             }
             
             th, td {
-                padding: 8px;
+                padding: 6px;
             }
             
             /* 移动端隐藏除地址、状态、操作外的其他列 */
-            #proxies-table th:nth-child(1),
-            #proxies-table td:nth-child(1),  /* ID */
             #proxies-table th:nth-child(3),
             #proxies-table td:nth-child(3),  /* 类型 */
             #proxies-table th:nth-child(5),
@@ -886,9 +884,13 @@ $recentLogs = $monitor->getRecentLogs(20);
             }
             
             /* 调整剩余列的宽度 */
+            #proxies-table th:nth-child(1),
+            #proxies-table td:nth-child(1) { /* ID */
+                width: 20%;
+            }
             #proxies-table th:nth-child(2),
             #proxies-table td:nth-child(2) { /* 地址 */
-                width: 50%;
+                width: 40%;
             }
             
             #proxies-table th:nth-child(4),
@@ -899,7 +901,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             
             #proxies-table th:nth-child(8),
             #proxies-table td:nth-child(8) { /* 操作 */
-                width: 20%;
+                width: 10%;
                 text-align: center;
             }
             
