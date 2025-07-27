@@ -130,6 +130,8 @@ sudo systemctl start netwatch
 
 访问 `http://your-domain/netwatch/` 查看监控面板：
 
+![NetWatch 演示界面](Docs/demo_site.png)
+
 - **统计概览**: 显示代理总数、在线/离线状态、平均响应时间
 - **代理列表**: 显示所有代理的详细状态信息
 - **检查日志**: 显示最近的监控检查记录
