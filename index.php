@@ -871,6 +871,38 @@ $recentLogs = $monitor->getRecentLogs(20);
                 padding: 8px;
             }
             
+            /* 移动端隐藏除地址、状态、操作外的其他列 */
+            #proxies-table th:nth-child(1),
+            #proxies-table td:nth-child(1),  /* ID */
+            #proxies-table th:nth-child(3),
+            #proxies-table td:nth-child(3),  /* 类型 */
+            #proxies-table th:nth-child(5),
+            #proxies-table td:nth-child(5),  /* 响应时间 */
+            #proxies-table th:nth-child(6),
+            #proxies-table td:nth-child(6),  /* 失败次数 */
+            #proxies-table th:nth-child(7),
+            #proxies-table td:nth-child(7) { /* 最后检查 */
+                display: none;
+            }
+            
+            /* 调整剩余列的宽度 */
+            #proxies-table th:nth-child(2),
+            #proxies-table td:nth-child(2) { /* 地址 */
+                width: 50%;
+            }
+            
+            #proxies-table th:nth-child(4),
+            #proxies-table td:nth-child(4) { /* 状态 */
+                width: 30%;
+                text-align: center;
+            }
+            
+            #proxies-table th:nth-child(8),
+            #proxies-table td:nth-child(8) { /* 操作 */
+                width: 20%;
+                text-align: center;
+            }
+            
             .pagination-container {
                 flex-direction: column;
                 align-items: flex-start;
