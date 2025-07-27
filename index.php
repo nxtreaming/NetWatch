@@ -913,14 +913,17 @@ $recentLogs = $monitor->getRecentLogs(20);
             
             /* 移动端头部操作区域优化 */
             .header-actions {
-                flex-direction: column;
+                display: flex;
+                flex-wrap: wrap;
                 gap: 10px;
                 width: 100%;
+                justify-content: center;
             }
             
             .search-container {
                 width: 100%;
                 justify-content: center;
+                order: 1;
             }
             
             #search-input {
@@ -930,17 +933,15 @@ $recentLogs = $monitor->getRecentLogs(20);
                 padding: 6px 8px;
             }
             
-            /* 移动端主要按钮优化 */
-            .header-actions .btn {
-                padding: 6px 12px;
-                font-size: 12px;
+            /* 移动端主要按钮优化 - 在同一行显示 */
+            .header-actions > .btn {
+                order: 2;
                 flex: 1;
-                max-width: 120px;
-            }
-            
-            .btn-parallel {
-                padding: 6px 12px;
+                max-width: 45%;
+                padding: 6px 8px;
                 font-size: 12px;
+                text-align: center;
+                white-space: nowrap;
             }
             
             .search-btn, .clear-btn {
