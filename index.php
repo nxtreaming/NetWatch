@@ -442,9 +442,15 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         .user-info {
             display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 13px;
+        }
+        
+        .user-row {
+            display: flex;
             align-items: center;
             gap: 15px;
-            font-size: 13px;
         }
         
         .username {
@@ -453,8 +459,6 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         .session-time {
             opacity: 0.8;
-            text-align: right;
-            font-size: 13px;
             margin-top: 5px;
         }
         
@@ -897,13 +901,15 @@ $recentLogs = $monitor->getRecentLogs(20);
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
                     <div class="user-info">
-                        <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                        <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
+                        </div>
+                        <div class="session-time">登录时间：<?php 
+                            $loginTime = Auth::getLoginTime();
+                            echo $loginTime ? date('Y-m-d H:i:s', $loginTime) : 'N/A';
+                        ?></div>
                     </div>
-                    <div class="session-time">登录时间：<?php 
-                        $loginTime = Auth::getLoginTime();
-                        echo $loginTime ? date('Y-m-d H:i:s', $loginTime) : 'N/A';
-                    ?></div>
                 </div>
                 <?php endif; ?>
             </div>
