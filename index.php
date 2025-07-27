@@ -914,16 +914,14 @@ $recentLogs = $monitor->getRecentLogs(20);
             /* 移动端头部操作区域优化 */
             .header-actions {
                 display: flex;
-                flex-wrap: wrap;
+                flex-direction: column;
                 gap: 10px;
                 width: 100%;
-                justify-content: center;
             }
             
             .search-container {
                 width: 100%;
                 justify-content: center;
-                order: 1;
             }
             
             #search-input {
@@ -933,11 +931,15 @@ $recentLogs = $monitor->getRecentLogs(20);
                 padding: 6px 8px;
             }
             
-            /* 移动端主要按钮优化 - 在同一行显示 */
-            .header-actions > .btn {
-                order: 2;
+            /* 移动端按钮容器 - 水平布局 */
+            .action-buttons {
+                display: flex;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            .action-buttons .btn {
                 flex: 1;
-                max-width: 45%;
                 padding: 6px 8px;
                 font-size: 12px;
                 text-align: center;
@@ -1031,8 +1033,10 @@ $recentLogs = $monitor->getRecentLogs(20);
                         <button class="btn clear-btn" onclick="clearSearch()">清除</button>
                         <?php endif; ?>
                     </div>
-                    <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
-                    <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
+                    <div class="action-buttons">
+                        <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
+                        <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
+                    </div>
                 </div>
             </div>
             
