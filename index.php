@@ -903,6 +903,51 @@ $recentLogs = $monitor->getRecentLogs(20);
                 text-align: center;
             }
             
+            /* 移动端按钮优化 */
+            .btn-small {
+                padding: 2px 6px;
+                font-size: 10px;
+                white-space: nowrap;
+                min-width: 32px;
+            }
+            
+            /* 移动端头部操作区域优化 */
+            .header-actions {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            .search-container {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            #search-input {
+                width: 60%;
+                min-width: 120px;
+                font-size: 12px;
+                padding: 6px 8px;
+            }
+            
+            /* 移动端主要按钮优化 */
+            .header-actions .btn {
+                padding: 6px 12px;
+                font-size: 12px;
+                flex: 1;
+                max-width: 120px;
+            }
+            
+            .btn-parallel {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .search-btn, .clear-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
             .pagination-container {
                 flex-direction: column;
                 align-items: flex-start;
