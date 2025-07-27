@@ -1471,22 +1471,45 @@ $recentLogs = $monitor->getRecentLogs(20);
                 position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 background: white; padding: 40px; border-radius: 20px;
                 box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 1000;
-                text-align: center; min-width: 600px; max-width: 800px; width: 80vw;
+                text-align: center; min-width: 300px; max-width: 800px; width: 90vw;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 border: 1px solid #e0e0e0;
+                max-height: 90vh; overflow-y: auto;
             `;
             
+            // 移动端适配
+            if (window.innerWidth <= 768) {
+                progressDiv.style.cssText = `
+                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                    background: white; padding: 20px; border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000;
+                    text-align: center; width: 95vw; max-width: 400px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    border: 1px solid #e0e0e0;
+                    max-height: 90vh; overflow-y: auto;
+                `;
+            }
+            
+            // 移动端适配的HTML内容
+            const isMobile = window.innerWidth <= 768;
+            const titleSize = isMobile ? '20px' : '24px';
+            const textSize = isMobile ? '14px' : '16px';
+            const buttonPadding = isMobile ? '8px 16px' : '12px 24px';
+            const buttonSize = isMobile ? '14px' : '16px';
+            const progressHeight = isMobile ? '25px' : '30px';
+            const margin = isMobile ? '15px' : '30px';
+            
             progressDiv.innerHTML = `
-                <h3 style="margin: 0 0 30px 0; color: #333; font-size: 24px; font-weight: 600;">🔍 正在检查所有代理</h3>
-                <div id="progress-info" style="margin-bottom: 25px; color: #666; font-size: 16px; line-height: 1.5;">正在连接数据库...</div>
-                <div style="background: #f5f5f5; border-radius: 15px; height: 30px; margin: 30px 0; overflow: hidden; border: 1px solid #e0e0e0;">
+                <h3 style="margin: 0 0 ${margin} 0; color: #333; font-size: ${titleSize}; font-weight: 600;">🔍 正在检查所有代理</h3>
+                <div id="progress-info" style="margin-bottom: 20px; color: #666; font-size: ${textSize}; line-height: 1.5;">正在连接数据库...</div>
+                <div style="background: #f5f5f5; border-radius: 15px; height: ${progressHeight}; margin: 20px 0; overflow: hidden; border: 1px solid #e0e0e0;">
                     <div id="progress-bar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 15px; position: relative;">
-                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 600; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);" id="progress-percent">0%</div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 600; font-size: 12px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);" id="progress-percent">0%</div>
                     </div>
                 </div>
-                <div id="progress-stats" style="font-size: 16px; color: #555; margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 10px; border: 1px solid #e0e0e0;">准备开始...</div>
-                <div style="display: flex; justify-content: center; gap: 15px; margin-top: 20px;">
-                    <button id="cancel-check" style="padding: 12px 24px; background: #f44336; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; transition: background 0.3s ease;" onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">取消检查</button>
+                <div id="progress-stats" style="font-size: ${textSize}; color: #555; margin-bottom: 20px; padding: ${isMobile ? '10px' : '15px'}; background: #f8f9fa; border-radius: 10px; border: 1px solid #e0e0e0; word-break: break-word;">准备开始...</div>
+                <div style="display: flex; justify-content: center; gap: ${isMobile ? '10px' : '15px'}; margin-top: 15px;">
+                    <button id="cancel-check" style="padding: ${buttonPadding}; background: #f44336; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: ${buttonSize}; font-weight: 500; transition: background 0.3s ease;" onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">取消检查</button>
                 </div>
             `;
             
@@ -1686,23 +1709,48 @@ $recentLogs = $monitor->getRecentLogs(20);
                 position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 background: white; padding: 50px; border-radius: 25px;
                 box-shadow: 0 25px 80px rgba(0,0,0,0.6); z-index: 1000;
-                text-align: center; min-width: 700px; max-width: 900px; width: 85vw;
+                text-align: center; min-width: 300px; max-width: 900px; width: 90vw;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 border: 2px solid #4CAF50;
+                max-height: 90vh; overflow-y: auto;
             `;
             
+            // 移动端适配
+            if (window.innerWidth <= 768) {
+                progressDiv.style.cssText = `
+                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                    background: white; padding: 25px; border-radius: 20px;
+                    box-shadow: 0 15px 40px rgba(0,0,0,0.6); z-index: 1000;
+                    text-align: center; width: 95vw; max-width: 420px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    border: 2px solid #4CAF50;
+                    max-height: 90vh; overflow-y: auto;
+                `;
+            }
+            
+            // 移动端适配的HTML内容
+            const isMobile = window.innerWidth <= 768;
+            const titleSize = isMobile ? '22px' : '28px';
+            const textSize = isMobile ? '14px' : '18px';
+            const smallTextSize = isMobile ? '13px' : '16px';
+            const buttonPadding = isMobile ? '10px 20px' : '15px 30px';
+            const buttonSize = isMobile ? '16px' : '18px';
+            const progressHeight = isMobile ? '30px' : '35px';
+            const margin = isMobile ? '20px' : '30px';
+            const gap = isMobile ? '15px' : '20px';
+            
             progressDiv.innerHTML = `
-                <h3 style="margin: 0 0 30px 0; color: #333; font-size: 28px; font-weight: 700;">🚀 并行检测所有代理</h3>
-                <div id="parallel-progress-info" style="margin-bottom: 25px; color: #666; font-size: 18px; line-height: 1.6;">正在启动并行检测引擎...</div>
-                <div style="background: #f0f0f0; border-radius: 20px; height: 35px; margin: 35px 0; overflow: hidden; border: 2px solid #ddd;">
-                    <div id="parallel-progress-bar" style="background: linear-gradient(90deg, #4CAF50, #45a049, #2E7D32); height: 100%; width: 0%; transition: width 0.8s ease; border-radius: 18px; position: relative;">
-                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 700; font-size: 16px; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);" id="parallel-progress-percent">0%</div>
+                <h3 style="margin: 0 0 ${margin} 0; color: #333; font-size: ${titleSize}; font-weight: 700;">🚀 并行检测所有代理</h3>
+                <div id="parallel-progress-info" style="margin-bottom: ${isMobile ? '20px' : '25px'}; color: #666; font-size: ${textSize}; line-height: 1.6; word-break: break-word;">正在启动并行检测引擎...</div>
+                <div style="background: #f0f0f0; border-radius: ${isMobile ? '15px' : '20px'}; height: ${progressHeight}; margin: ${isMobile ? '20px' : '35px'} 0; overflow: hidden; border: 2px solid #ddd;">
+                    <div id="parallel-progress-bar" style="background: linear-gradient(90deg, #4CAF50, #45a049, #2E7D32); height: 100%; width: 0%; transition: width 0.8s ease; border-radius: ${isMobile ? '13px' : '18px'}; position: relative;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 700; font-size: ${isMobile ? '12px' : '16px'}; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);" id="parallel-progress-percent">0%</div>
                     </div>
                 </div>
-                <div id="parallel-progress-stats" style="font-size: 18px; color: #555; margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 15px; border: 2px solid #e0e0e0;">准备启动...</div>
-                <div id="parallel-batch-info" style="font-size: 16px; color: #777; margin-bottom: 25px; padding: 15px; background: #fff3cd; border-radius: 10px; border: 1px solid #ffeaa7;">批次信息加载中...</div>
-                <div style="display: flex; justify-content: center; gap: 20px; margin-top: 25px;">
-                    <button id="cancel-parallel-check" style="padding: 15px 30px; background: #f44336; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 18px; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.background='#d32f2f'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='#f44336'; this.style.transform='scale(1)'">取消检测</button>
+                <div id="parallel-progress-stats" style="font-size: ${textSize}; color: #555; margin-bottom: ${isMobile ? '20px' : '30px'}; padding: ${isMobile ? '15px' : '20px'}; background: #f8f9fa; border-radius: 15px; border: 2px solid #e0e0e0; word-break: break-word;">准备启动...</div>
+                <div id="parallel-batch-info" style="font-size: ${smallTextSize}; color: #777; margin-bottom: ${isMobile ? '20px' : '25px'}; padding: ${isMobile ? '12px' : '15px'}; background: #fff3cd; border-radius: 10px; border: 1px solid #ffeaa7; word-break: break-word;">批次信息加载中...</div>
+                <div style="display: flex; justify-content: center; gap: ${gap}; margin-top: ${isMobile ? '20px' : '25px'};">
+                    <button id="cancel-parallel-check" style="padding: ${buttonPadding}; background: #f44336; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: ${buttonSize}; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.background='#d32f2f'; ${isMobile ? '' : 'this.style.transform=\'scale(1.05)\''};" onmouseout="this.style.background='#f44336'; ${isMobile ? '' : 'this.style.transform=\'scale(1)\''};">取消检测</button>
                 </div>
             `;
             
