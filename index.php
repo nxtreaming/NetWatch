@@ -60,6 +60,16 @@ if ($action === 'logout') {
 if (isset($_GET['ajax'])) {
     header('Content-Type: application/json');
     
+    // 统一检查登录状态（除了sessionCheck操作）
+    if ($action !== 'sessionCheck' && !Auth::isLoggedIn()) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'unauthorized',
+            'message' => '登录已过期，请重新登录'
+        ]);
+        exit;
+    }
+    
     switch ($action) {
         case 'stats':
             echo json_encode($monitor->getStats());
@@ -1605,6 +1615,15 @@ $recentLogs = $monitor->getRecentLogs(20);
                         
                         const batchData = await batchResponse.json();
                         
+                        // 检查是否是登录过期
+                        if (!batchData.success && batchData.error === 'unauthorized') {
+                            document.body.removeChild(progressDiv);
+                            document.body.removeChild(overlay);
+                            alert('登录已过期，请重新登录');
+                            window.location.href = 'login.php';
+                            return;
+                        }
+                        
                         if (!batchData.success) {
                             throw new Error(batchData.error || '批量检查失败');
                         }
@@ -1789,6 +1808,12 @@ $recentLogs = $monitor->getRecentLogs(20);
                 const startData = await startResponse.json();
                 
                 if (!startData.success) {
+                    // 检查是否是登录过期
+                    if (startData.error === 'unauthorized') {
+                        alert('登录已过期，请重新登录');
+                        window.location.href = 'login.php';
+                        return;
+                    }
                     throw new Error(startData.error || '启动并行检测失败');
                 }
                 
@@ -1810,6 +1835,16 @@ $recentLogs = $monitor->getRecentLogs(20);
                     try {
                         const progressResponse = await fetch('?ajax=1&action=getParallelProgress');
                         const progressData = await progressResponse.json();
+                        
+                        // 检查是否是登录过期
+                        if (!progressData.success && progressData.error === 'unauthorized') {
+                            clearInterval(progressInterval);
+                            document.body.removeChild(progressDiv);
+                            document.body.removeChild(overlay);
+                            alert('登录已过期，请重新登录');
+                            window.location.href = 'login.php';
+                            return;
+                        }
                         
                         if (progressData.success) {
                             // 更新进度条
