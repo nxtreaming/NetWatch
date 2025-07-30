@@ -731,7 +731,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         .controls-row {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 23px;
             flex-wrap: wrap;
         }
         
