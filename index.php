@@ -1084,16 +1084,17 @@ $recentLogs = $monitor->getRecentLogs(20);
             /* 移动端按钮容器 - 水平布局 */
             .action-buttons {
                 display: flex;
-                gap: 10px;
-                width: 100%;
+                gap: 8px;
+                justify-content: center;
             }
             
             .action-buttons .btn {
-                flex: 1;
-                padding: 6px 8px;
+                padding: 6px 12px;
                 font-size: 12px;
                 text-align: center;
                 white-space: nowrap;
+                min-width: auto;
+                flex: none;
             }
             
             .search-btn, .clear-btn {
@@ -1192,7 +1193,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                             <button class="btn filter-btn <?php echo $statusFilter === 'unknown' ? 'active' : ''; ?>" onclick="filterByStatus('unknown')">未知</button>
                         </div>
                         <div class="action-buttons">
-                            <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
+                            <button class="btn" onclick="checkAllProxies()">逐个检测</button>
                             <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
                         </div>
                     </div>
