@@ -1084,7 +1084,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             /* 移动端按钮容器 - 水平布局 */
             .action-buttons {
                 display: flex;
-                gap: 8px;
+                gap: 16px;
                 justify-content: center;
             }
             
