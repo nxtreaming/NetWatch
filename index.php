@@ -336,6 +336,54 @@ if (isset($_GET['ajax'])) {
             }
             break;
             
+        case 'debugStatuses':
+            try {
+                $db = new Database();
+                $statuses = $db->getDistinctStatuses();
+                echo json_encode([
+                    'success' => true,
+                    'statuses' => $statuses
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => $e->getMessage()
+                ]);
+            }
+            break;
+            
+        case 'createTestData':
+            try {
+                $db = new Database();
+                // 获取前5个代理的ID
+                $proxies = $db->getProxiesBatch(0, 5);
+                $updated = 0;
+                
+                foreach ($proxies as $index => $proxy) {
+                    if ($index < 2) {
+                        // 前2个设为离线
+                        $db->updateProxyStatus($proxy['id'], 'offline', 0, '测试数据');
+                        $updated++;
+                    } elseif ($index < 4) {
+                        // 中间2个设为未知
+                        $db->updateProxyStatus($proxy['id'], 'unknown', 0, '测试数据');
+                        $updated++;
+                    }
+                }
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => "已创建测试数据：2个离线代理和2个未知代理",
+                    'updated' => $updated
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => $e->getMessage()
+                ]);
+            }
+            break;
+            
         case 'search':
             try {
                 $searchTerm = $_GET['term'] ?? '';
@@ -613,14 +661,15 @@ $recentLogs = $monitor->getRecentLogs(20);
             align-items: center;
             gap: 15px;
             flex-wrap: wrap;
+            justify-content: space-between;
         }
         
         /* 状态筛选样式 */
         .status-filter-container {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 8px;
+            flex-shrink: 0;
         }
         
         .filter-label {
@@ -659,6 +708,15 @@ $recentLogs = $monitor->getRecentLogs(20);
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
             flex-wrap: wrap;
         }
         
@@ -970,47 +1028,30 @@ $recentLogs = $monitor->getRecentLogs(20);
             .header-actions {
                 display: flex;
                 flex-direction: column;
-                gap: 15px;
-                align-items: flex-end;
+                gap: 10px;
+                align-items: stretch;
             }
             
-            .status-filter-container {
-                display: flex;
-                align-items: center;
+            .controls-row {
+                flex-direction: column;
                 gap: 10px;
-                margin-top: 10px;
+                align-items: stretch;
+            }
+            
+            /* 移动端状态筛选优化 */
+            .status-filter-container {
+                justify-content: center;
+                gap: 5px;
             }
             
             .filter-label {
-                font-weight: 600;
-                color: #555;
-                font-size: 14px;
+                font-size: 12px;
             }
             
             .filter-btn {
-                background: #f8f9fa;
-                color: #495057;
-                border: 1px solid #dee2e6;
-                padding: 6px 12px;
-                font-size: 13px;
-                border-radius: 4px;
-                transition: all 0.2s ease;
-            }
-            
-            .filter-btn:hover {
-                background: #e9ecef;
-                border-color: #adb5bd;
-            }
-            
-            .filter-btn.active {
-                background: #667eea;
-                color: white;
-                border-color: #667eea;
-            }
-            
-            .filter-btn.active:hover {
-                background: #5a6fd8;
-                border-color: #5a6fd8;
+                padding: 4px 8px;
+                font-size: 11px;
+                min-width: 40px;
             }
             
             .search-container {
@@ -1043,27 +1084,6 @@ $recentLogs = $monitor->getRecentLogs(20);
             .search-btn, .clear-btn {
                 padding: 6px 10px;
                 font-size: 12px;
-            }
-            
-            /* 移动端状态筛选优化 */
-            .status-filter-container {
-                flex-wrap: wrap;
-                justify-content: center;
-                margin-top: 5px;
-                gap: 5px;
-            }
-            
-            .filter-label {
-                font-size: 12px;
-                width: 100%;
-                text-align: center;
-                margin-bottom: 5px;
-            }
-            
-            .filter-btn {
-                padding: 4px 8px;
-                font-size: 11px;
-                min-width: 40px;
             }
             
             .pagination-container {
@@ -1148,16 +1168,18 @@ $recentLogs = $monitor->getRecentLogs(20);
                         <button class="btn clear-btn" onclick="clearSearch()">清除</button>
                         <?php endif; ?>
                     </div>
-                    <div class="status-filter-container">
-                        <span class="filter-label">状态筛选：</span>
-                        <button class="btn filter-btn <?php echo empty($statusFilter) ? 'active' : ''; ?>" onclick="filterByStatus('')">全部</button>
-                        <button class="btn filter-btn <?php echo $statusFilter === 'online' ? 'active' : ''; ?>" onclick="filterByStatus('online')">在线</button>
-                        <button class="btn filter-btn <?php echo $statusFilter === 'offline' ? 'active' : ''; ?>" onclick="filterByStatus('offline')">离线</button>
-                        <button class="btn filter-btn <?php echo $statusFilter === 'unknown' ? 'active' : ''; ?>" onclick="filterByStatus('unknown')">未知</button>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
-                        <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
+                    <div class="controls-row">
+                        <div class="status-filter-container">
+                            <span class="filter-label">状态：</span>
+                            <button class="btn filter-btn <?php echo empty($statusFilter) ? 'active' : ''; ?>" onclick="filterByStatus('')">全部</button>
+                            <button class="btn filter-btn <?php echo $statusFilter === 'online' ? 'active' : ''; ?>" onclick="filterByStatus('online')">在线</button>
+                            <button class="btn filter-btn <?php echo $statusFilter === 'offline' ? 'active' : ''; ?>" onclick="filterByStatus('offline')">离线</button>
+                            <button class="btn filter-btn <?php echo $statusFilter === 'unknown' ? 'active' : ''; ?>" onclick="filterByStatus('unknown')">未知</button>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
+                            <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2228,6 +2250,43 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         function refreshAll() {
             location.reload();
+        }
+        
+        // 调试函数：查看数据库中的实际状态值
+        function debugStatuses() {
+            fetch('?ajax=1&action=debugStatuses')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('数据库中的状态值:', data.statuses);
+                        alert('请查看浏览器控制台查看状态值');
+                    } else {
+                        console.error('获取状态值失败:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('调试失败:', error);
+                });
+        }
+        
+        // 测试函数：创建不同状态的测试数据
+        function createTestData() {
+            if (confirm('这将修改前4个代理的状态为离线和未知，用于测试筛选功能。确定继续吗？')) {
+                fetch('?ajax=1&action=createTestData')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message + '\n\n页面将刷新以显示更新后的数据');
+                            location.reload();
+                        } else {
+                            alert('创建测试数据失败: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('创建测试数据失败:', error);
+                        alert('创建测试数据失败');
+                    });
+            }
         }
         
         // 监听搜索框的回车键
