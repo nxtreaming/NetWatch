@@ -1193,7 +1193,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                             <button class="btn filter-btn <?php echo $statusFilter === 'unknown' ? 'active' : ''; ?>" onclick="filterByStatus('unknown')">未知</button>
                         </div>
                         <div class="action-buttons">
-                            <button class="btn" onclick="checkAllProxies()">逐个检测</button>
+                            <button class="btn" onclick="checkAllProxies()">🔍 逐个检测</button>
                             <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
                         </div>
                     </div>
