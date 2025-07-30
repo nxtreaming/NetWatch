@@ -731,8 +731,13 @@ $recentLogs = $monitor->getRecentLogs(20);
         .controls-row {
             display: flex;
             align-items: center;
-            gap: 23px;
+            gap: 15px;
             flex-wrap: wrap;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
         }
         
         #search-input {
