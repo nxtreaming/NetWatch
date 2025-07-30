@@ -1093,7 +1093,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                 font-size: 12px;
                 text-align: center;
                 white-space: nowrap;
-                min-width: auto;
+                min-width: 80px;
                 flex: none;
             }
             
