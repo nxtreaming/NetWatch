@@ -339,11 +339,12 @@ if (isset($_GET['ajax'])) {
         case 'search':
             try {
                 $searchTerm = $_GET['term'] ?? '';
+                $statusFilter = $_GET['status'] ?? '';
                 $page = max(1, intval($_GET['page'] ?? 1));
                 $perPage = 200;
                 
-                $proxies = $monitor->searchProxiesSafe($searchTerm, $page, $perPage);
-                $totalCount = $monitor->getSearchCount($searchTerm);
+                $proxies = $monitor->searchProxiesSafe($searchTerm, $page, $perPage, $statusFilter);
+                $totalCount = $monitor->getSearchCount($searchTerm, $statusFilter);
                 $totalPages = ceil($totalCount / $perPage);
                 
                 echo json_encode([
@@ -353,7 +354,8 @@ if (isset($_GET['ajax'])) {
                     'total_pages' => $totalPages,
                     'current_page' => $page,
                     'per_page' => $perPage,
-                    'search_term' => $searchTerm
+                    'search_term' => $searchTerm,
+                    'status_filter' => $statusFilter
                 ]);
             } catch (Exception $e) {
                 echo json_encode([
@@ -369,18 +371,19 @@ if (isset($_GET['ajax'])) {
     exit;
 }
 
-// 获取分页参数和搜索参数
+// 获取分页参数、搜索参数和状态筛选参数
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 200;
 $searchTerm = $_GET['search'] ?? '';
+$statusFilter = $_GET['status'] ?? '';
 
 // 获取数据
 $stats = $monitor->getStats();
 
-if (!empty($searchTerm)) {
-    // 搜索模式
-    $proxies = $monitor->searchProxiesSafe($searchTerm, $page, $perPage);
-    $totalProxies = $monitor->getSearchCount($searchTerm);
+if (!empty($searchTerm) || !empty($statusFilter)) {
+    // 搜索或筛选模式
+    $proxies = $monitor->searchProxiesSafe($searchTerm, $page, $perPage, $statusFilter);
+    $totalProxies = $monitor->getSearchCount($searchTerm, $statusFilter);
     $totalPages = ceil($totalProxies / $perPage);
 } else {
     // 正常分页模式
@@ -610,6 +613,46 @@ $recentLogs = $monitor->getRecentLogs(20);
             align-items: center;
             gap: 15px;
             flex-wrap: wrap;
+        }
+        
+        /* 状态筛选样式 */
+        .status-filter-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .filter-label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .filter-btn {
+            background: #f8f9fa;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .filter-btn.active:hover {
+            background: #5a6fd8;
+            border-color: #5a6fd8;
         }
         
         .search-container {
@@ -927,8 +970,47 @@ $recentLogs = $monitor->getRecentLogs(20);
             .header-actions {
                 display: flex;
                 flex-direction: column;
+                gap: 15px;
+                align-items: flex-end;
+            }
+            
+            .status-filter-container {
+                display: flex;
+                align-items: center;
                 gap: 10px;
-                width: 100%;
+                margin-top: 10px;
+            }
+            
+            .filter-label {
+                font-weight: 600;
+                color: #555;
+                font-size: 14px;
+            }
+            
+            .filter-btn {
+                background: #f8f9fa;
+                color: #495057;
+                border: 1px solid #dee2e6;
+                padding: 6px 12px;
+                font-size: 13px;
+                border-radius: 4px;
+                transition: all 0.2s ease;
+            }
+            
+            .filter-btn:hover {
+                background: #e9ecef;
+                border-color: #adb5bd;
+            }
+            
+            .filter-btn.active {
+                background: #667eea;
+                color: white;
+                border-color: #667eea;
+            }
+            
+            .filter-btn.active:hover {
+                background: #5a6fd8;
+                border-color: #5a6fd8;
             }
             
             .search-container {
@@ -961,6 +1043,27 @@ $recentLogs = $monitor->getRecentLogs(20);
             .search-btn, .clear-btn {
                 padding: 6px 10px;
                 font-size: 12px;
+            }
+            
+            /* 移动端状态筛选优化 */
+            .status-filter-container {
+                flex-wrap: wrap;
+                justify-content: center;
+                margin-top: 5px;
+                gap: 5px;
+            }
+            
+            .filter-label {
+                font-size: 12px;
+                width: 100%;
+                text-align: center;
+                margin-bottom: 5px;
+            }
+            
+            .filter-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+                min-width: 40px;
             }
             
             .pagination-container {
@@ -1041,9 +1144,16 @@ $recentLogs = $monitor->getRecentLogs(20);
                     <div class="search-container">
                         <input type="text" id="search-input" placeholder="搜索IP地址或网段（如: 1.2.3.4 或 1.2.3.x）" value="<?php echo htmlspecialchars($searchTerm); ?>">
                         <button class="btn search-btn" onclick="performSearch()">搜索</button>
-                        <?php if (!empty($searchTerm)): ?>
+                        <?php if (!empty($searchTerm) || !empty($statusFilter)): ?>
                         <button class="btn clear-btn" onclick="clearSearch()">清除</button>
                         <?php endif; ?>
+                    </div>
+                    <div class="status-filter-container">
+                        <span class="filter-label">状态筛选：</span>
+                        <button class="btn filter-btn <?php echo empty($statusFilter) ? 'active' : ''; ?>" onclick="filterByStatus('')">全部</button>
+                        <button class="btn filter-btn <?php echo $statusFilter === 'online' ? 'active' : ''; ?>" onclick="filterByStatus('online')">在线</button>
+                        <button class="btn filter-btn <?php echo $statusFilter === 'offline' ? 'active' : ''; ?>" onclick="filterByStatus('offline')">离线</button>
+                        <button class="btn filter-btn <?php echo $statusFilter === 'unknown' ? 'active' : ''; ?>" onclick="filterByStatus('unknown')">未知</button>
                     </div>
                     <div class="action-buttons">
                         <button class="btn" onclick="checkAllProxies()">检查所有代理</button>
@@ -1052,9 +1162,17 @@ $recentLogs = $monitor->getRecentLogs(20);
                 </div>
             </div>
             
-            <?php if (!empty($searchTerm)): ?>
+            <?php if (!empty($searchTerm) || !empty($statusFilter)): ?>
             <div class="search-info">
-                <span class="search-results">搜索 "<?php echo htmlspecialchars($searchTerm); ?>" 找到 <?php echo $totalProxies; ?> 个结果</span>
+                <span class="search-results">
+                    <?php if (!empty($searchTerm) && !empty($statusFilter)): ?>
+                        搜索 "<?php echo htmlspecialchars($searchTerm); ?>" 并筛选 "<?php echo $statusFilter; ?>" 状态，找到 <?php echo $totalProxies; ?> 个结果
+                    <?php elseif (!empty($searchTerm)): ?>
+                        搜索 "<?php echo htmlspecialchars($searchTerm); ?>" 找到 <?php echo $totalProxies; ?> 个结果
+                    <?php elseif (!empty($statusFilter)): ?>
+                        筛选 "<?php echo $statusFilter; ?>" 状态，找到 <?php echo $totalProxies; ?> 个结果
+                    <?php endif; ?>
+                </span>
             </div>
             <?php endif; ?>
             <div class="table-container">
@@ -1098,11 +1216,29 @@ $recentLogs = $monitor->getRecentLogs(20);
             <?php if ($totalPages > 1): ?>
             <?php 
             // 构建分页URL参数
-            $searchParam = !empty($searchTerm) ? '&search=' . urlencode($searchTerm) : '';
+            $urlParams = [];
+            if (!empty($searchTerm)) {
+                $urlParams[] = 'search=' . urlencode($searchTerm);
+            }
+            if (!empty($statusFilter)) {
+                $urlParams[] = 'status=' . urlencode($statusFilter);
+            }
+            $searchParam = !empty($urlParams) ? '&' . implode('&', $urlParams) : '';
             ?>
             <div class="pagination-container" style="padding: 0 20px;">
                 <div class="pagination-info">
-                    显示第 <?php echo (($page - 1) * $perPage + 1); ?> - <?php echo min($page * $perPage, $totalProxies); ?> 条，共 <?php echo $totalProxies; ?> 条<?php echo !empty($searchTerm) ? '搜索结果' : '代理'; ?>
+                    显示第 <?php echo (($page - 1) * $perPage + 1); ?> - <?php echo min($page * $perPage, $totalProxies); ?> 条，共 <?php echo $totalProxies; ?> 条
+                    <?php 
+                    if (!empty($searchTerm) && !empty($statusFilter)) {
+                        echo '搜索和筛选结果';
+                    } elseif (!empty($searchTerm)) {
+                        echo '搜索结果';
+                    } elseif (!empty($statusFilter)) {
+                        echo '筛选结果';
+                    } else {
+                        echo '代理';
+                    }
+                    ?>
                 </div>
                 <div class="pagination">
                     <?php if ($page > 1): ?>
@@ -2041,6 +2177,57 @@ $recentLogs = $monitor->getRecentLogs(20);
                     btn.disabled = false;
                 }
             }
+        }
+        
+        // 状态筛选功能
+        function filterByStatus(status) {
+            const currentUrl = new URL(window.location);
+            const searchParams = currentUrl.searchParams;
+            
+            if (status) {
+                searchParams.set('status', status);
+            } else {
+                searchParams.delete('status');
+            }
+            
+            // 重置到第一页
+            searchParams.delete('page');
+            
+            window.location.href = currentUrl.toString();
+        }
+        
+        // 搜索功能
+        function performSearch() {
+            const searchTerm = document.getElementById('search-input').value.trim();
+            const currentUrl = new URL(window.location);
+            const searchParams = currentUrl.searchParams;
+            
+            if (searchTerm) {
+                searchParams.set('search', searchTerm);
+            } else {
+                searchParams.delete('search');
+            }
+            
+            // 重置到第一页
+            searchParams.delete('page');
+            
+            window.location.href = currentUrl.toString();
+        }
+        
+        // 清除搜索和筛选
+        function clearSearch() {
+            const currentUrl = new URL(window.location);
+            const searchParams = currentUrl.searchParams;
+            
+            searchParams.delete('search');
+            searchParams.delete('status');
+            searchParams.delete('page');
+            
+            window.location.href = currentUrl.toString();
+        }
+        
+        function refreshAll() {
+            location.reload();
         }
         
         // 监听搜索框的回车键

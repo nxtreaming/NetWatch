@@ -270,32 +270,50 @@ class Database {
      * @param string $searchTerm 搜索词，支持IP地址或网段
      * @param int $page 页码
      * @param int $perPage 每页数量
+     * @param string $statusFilter 状态筛选
      * @return array 搜索结果
      */
-    public function searchProxies($searchTerm, $page = 1, $perPage = 200) {
+    public function searchProxies($searchTerm, $page = 1, $perPage = 200, $statusFilter = '') {
         $offset = ($page - 1) * $perPage;
         
+        // 构建查询条件
+        $conditions = [];
+        $params = [];
+        
         // 处理搜索条件
-        if (empty($searchTerm)) {
-            // 如果搜索词为空，返回所有代理
-            return $this->getProxiesPaginated($page, $perPage);
+        if (!empty($searchTerm)) {
+            // 检查是否是网段搜索（如 1.2.3.x 或 1.2.3.）
+            if (strpos($searchTerm, '.x') !== false || substr($searchTerm, -1) === '.') {
+                // 网段搜索
+                $networkPrefix = str_replace(['.x', 'x'], ['', ''], $searchTerm);
+                $networkPrefix = rtrim($networkPrefix, '.');
+                $conditions[] = "ip LIKE ?";
+                $params[] = $networkPrefix . '.%';
+            } else {
+                // 精确IP搜索或部分匹配
+                $conditions[] = "ip LIKE ?";
+                $params[] = '%' . $searchTerm . '%';
+            }
         }
         
-        // 检查是否是网段搜索（如 1.2.3.x 或 1.2.3.）
-        if (strpos($searchTerm, '.x') !== false || substr($searchTerm, -1) === '.') {
-            // 网段搜索
-            $networkPrefix = str_replace(['.x', 'x'], ['', ''], $searchTerm);
-            $networkPrefix = rtrim($networkPrefix, '.');
-            
-            $sql = "SELECT * FROM proxies WHERE ip LIKE ? ORDER BY ip, port LIMIT ? OFFSET ?";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$networkPrefix . '.%', $perPage, $offset]);
-        } else {
-            // 精确IP搜索或部分匹配
-            $sql = "SELECT * FROM proxies WHERE ip LIKE ? ORDER BY ip, port LIMIT ? OFFSET ?";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(['%' . $searchTerm . '%', $perPage, $offset]);
+        // 处理状态筛选
+        if (!empty($statusFilter)) {
+            $conditions[] = "status = ?";
+            $params[] = $statusFilter;
         }
+        
+        // 构建 SQL 查询
+        $sql = "SELECT * FROM proxies";
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(' AND ', $conditions);
+        }
+        $sql .= " ORDER BY ip, port LIMIT ? OFFSET ?";
+        
+        $params[] = $perPage;
+        $params[] = $offset;
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -303,28 +321,44 @@ class Database {
     /**
      * 获取搜索结果总数
      * @param string $searchTerm 搜索词
+     * @param string $statusFilter 状态筛选
      * @return int 搜索结果总数
      */
-    public function getSearchCount($searchTerm) {
-        if (empty($searchTerm)) {
-            return $this->getProxyCount();
+    public function getSearchCount($searchTerm, $statusFilter = '') {
+        // 构建查询条件
+        $conditions = [];
+        $params = [];
+        
+        // 处理搜索条件
+        if (!empty($searchTerm)) {
+            // 检查是否是网段搜索
+            if (strpos($searchTerm, '.x') !== false || substr($searchTerm, -1) === '.') {
+                // 网段搜索
+                $networkPrefix = str_replace(['.x', 'x'], ['', ''], $searchTerm);
+                $networkPrefix = rtrim($networkPrefix, '.');
+                $conditions[] = "ip LIKE ?";
+                $params[] = $networkPrefix . '.%';
+            } else {
+                // 精确IP搜索或部分匹配
+                $conditions[] = "ip LIKE ?";
+                $params[] = '%' . $searchTerm . '%';
+            }
         }
         
-        // 检查是否是网段搜索
-        if (strpos($searchTerm, '.x') !== false || substr($searchTerm, -1) === '.') {
-            // 网段搜索
-            $networkPrefix = str_replace(['.x', 'x'], ['', ''], $searchTerm);
-            $networkPrefix = rtrim($networkPrefix, '.');
-            
-            $sql = "SELECT COUNT(*) as count FROM proxies WHERE ip LIKE ?";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$networkPrefix . '.%']);
-        } else {
-            // 精确IP搜索或部分匹配
-            $sql = "SELECT COUNT(*) as count FROM proxies WHERE ip LIKE ?";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(['%' . $searchTerm . '%']);
+        // 处理状态筛选
+        if (!empty($statusFilter)) {
+            $conditions[] = "status = ?";
+            $params[] = $statusFilter;
         }
+        
+        // 构建 SQL 查询
+        $sql = "SELECT COUNT(*) as count FROM proxies";
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(' AND ', $conditions);
+        }
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)$result['count'];

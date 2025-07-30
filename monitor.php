@@ -381,19 +381,21 @@ class NetworkMonitor {
      * @param string $searchTerm 搜索词
      * @param int $page 页码
      * @param int $perPage 每页数量
+     * @param string $statusFilter 状态筛选
      * @return array 搜索结果
      */
-    public function searchProxiesSafe($searchTerm, $page = 1, $perPage = 200) {
-        $proxies = $this->db->searchProxies($searchTerm, $page, $perPage);
+    public function searchProxiesSafe($searchTerm, $page = 1, $perPage = 200, $statusFilter = '') {
+        $proxies = $this->db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
         return array_map([$this, 'filterSensitiveData'], $proxies);
     }
     
     /**
      * 获取搜索结果总数
      * @param string $searchTerm 搜索词
+     * @param string $statusFilter 状态筛选
      * @return int 搜索结果总数
      */
-    public function getSearchCount($searchTerm) {
-        return $this->db->getSearchCount($searchTerm);
+    public function getSearchCount($searchTerm, $statusFilter = '') {
+        return $this->db->getSearchCount($searchTerm, $statusFilter);
     }
 }
