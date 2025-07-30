@@ -391,8 +391,16 @@ if (isset($_GET['ajax'])) {
                 $page = max(1, intval($_GET['page'] ?? 1));
                 $perPage = 200;
                 
-                $proxies = $monitor->searchProxiesSafe($searchTerm, $page, $perPage, $statusFilter);
-                $totalCount = $monitor->getSearchCount($searchTerm, $statusFilter);
+                // 直接使用数据库对象实现搜索和筛选
+                $db = new Database();
+                $proxies = $db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
+                // 过滤敏感信息
+                $proxies = array_map(function($proxy) {
+                    unset($proxy['username']);
+                    unset($proxy['password']);
+                    return $proxy;
+                }, $proxies);
+                $totalCount = $db->getSearchCount($searchTerm, $statusFilter);
                 $totalPages = ceil($totalCount / $perPage);
                 
                 echo json_encode([
@@ -429,9 +437,16 @@ $statusFilter = $_GET['status'] ?? '';
 $stats = $monitor->getStats();
 
 if (!empty($searchTerm) || !empty($statusFilter)) {
-    // 搜索或筛选模式
-    $proxies = $monitor->searchProxiesSafe($searchTerm, $page, $perPage, $statusFilter);
-    $totalProxies = $monitor->getSearchCount($searchTerm, $statusFilter);
+    // 搜索或筛选模式 - 直接使用数据库对象实现筛选
+    $db = new Database();
+    $proxies = $db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
+    // 过滤敏感信息
+    $proxies = array_map(function($proxy) {
+        unset($proxy['username']);
+        unset($proxy['password']);
+        return $proxy;
+    }, $proxies);
+    $totalProxies = $db->getSearchCount($searchTerm, $statusFilter);
     $totalPages = ceil($totalProxies / $perPage);
 } else {
     // 正常分页模式
