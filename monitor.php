@@ -23,6 +23,25 @@ class NetworkMonitor {
      * 检查单个代理
      */
     public function checkProxy($proxy) {
+        return $this->executeProxyCheck($proxy, TIMEOUT, TIMEOUT, '逐个检查');
+    }
+    
+    /**
+     * 快速检查单个代理（用于批量检查，更短的超时时间）
+     */
+    public function checkProxyFast($proxy) {
+        return $this->executeProxyCheck($proxy, 3, 2, '快速检查');
+    }
+    
+    /**
+     * 执行代理检查的核心逻辑
+     * @param array $proxy 代理信息
+     * @param int $timeout 请求超时时间
+     * @param int $connectTimeout 连接超时时间
+     * @param string $logPrefix 日志前缀
+     * @return array 检查结果
+     */
+    private function executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix) {
         $startTime = microtime(true);
         $status = 'offline';
         $errorMessage = null;
@@ -40,8 +59,8 @@ class NetworkMonitor {
             curl_setopt_array($ch, [
                 CURLOPT_URL => TEST_URL,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => TIMEOUT,
-                CURLOPT_CONNECTTIMEOUT => TIMEOUT,
+                CURLOPT_TIMEOUT => $timeout,
+                CURLOPT_CONNECTTIMEOUT => $connectTimeout,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_SSL_VERIFYHOST => false,
@@ -72,10 +91,10 @@ class NetworkMonitor {
             
             if ($response !== false && $httpCode === 200) {
                 $status = 'online';
-                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} 检查成功");
+                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功");
             } else {
                 $errorMessage = $curlError ?: "HTTP Code: $httpCode";
-                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} 检查失败: $errorMessage");
+                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败: $errorMessage");
             }
             
         } catch (Exception $e) {
@@ -85,88 +104,7 @@ class NetworkMonitor {
                 $ch = null;
             }
             $errorMessage = $e->getMessage();
-            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} 检查异常: $errorMessage");
-        }
-        
-        $responseTime = (microtime(true) - $startTime) * 1000; // 转换为毫秒
-        
-        // 更新数据库
-        $this->db->updateProxyStatus($proxy['id'], $status, $responseTime, $errorMessage);
-        
-        return [
-            'status' => $status,
-            'response_time' => $responseTime,
-            'error_message' => $errorMessage
-        ];
-    }
-    
-    /**
-     * 快速检查单个代理（用于批量检查，更短的超时时间）
-     */
-    public function checkProxyFast($proxy) {
-        $startTime = microtime(true);
-        $status = 'offline';
-        $errorMessage = null;
-        $ch = null;
-        
-        try {
-            $ch = curl_init();
-            
-            // 检查curl_init是否成功
-            if ($ch === false) {
-                throw new Exception('curl_init() 失败');
-            }
-            
-            // 基本curl设置，使用更短的超时时间
-            curl_setopt_array($ch, [
-                CURLOPT_URL => TEST_URL,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 3, // 批量检查时使用3秒超时
-                CURLOPT_CONNECTTIMEOUT => 2, // 连接超时2秒
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_USERAGENT => 'NetWatch Monitor/1.0'
-            ]);
-            
-            // 设置代理
-            if ($proxy['type'] === 'socks5') {
-                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
-            } else {
-                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-            }
-            
-            $proxyUrl = $proxy['ip'] . ':' . $proxy['port'];
-            curl_setopt($ch, CURLOPT_PROXY, $proxyUrl);
-            
-            // 如果有认证信息
-            if (!empty($proxy['username']) && !empty($proxy['password'])) {
-                curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxy['username'] . ':' . $proxy['password']);
-            }
-            
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($ch);
-            
-            curl_close($ch);
-            $ch = null; // 标记已关闭
-            
-            if ($response !== false && $httpCode === 200) {
-                $status = 'online';
-                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} 快速检查成功");
-            } else {
-                $errorMessage = $curlError ?: "HTTP Code: $httpCode";
-                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} 快速检查失败: $errorMessage");
-            }
-            
-        } catch (Exception $e) {
-            // 确保在异常情况下也关闭curl句柄
-            if ($ch !== null) {
-                curl_close($ch);
-                $ch = null;
-            }
-            $errorMessage = $e->getMessage();
-            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} 快速检查异常: $errorMessage");
+            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常: $errorMessage");
         }
         
         $responseTime = (microtime(true) - $startTime) * 1000; // 转换为毫秒
