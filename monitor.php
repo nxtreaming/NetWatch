@@ -26,9 +26,15 @@ class NetworkMonitor {
         $startTime = microtime(true);
         $status = 'offline';
         $errorMessage = null;
+        $ch = null;
         
         try {
             $ch = curl_init();
+            
+            // 检查curl_init是否成功
+            if ($ch === false) {
+                throw new Exception('curl_init() 失败');
+            }
             
             // 基本curl设置
             curl_setopt_array($ch, [
@@ -62,6 +68,7 @@ class NetworkMonitor {
             $curlError = curl_error($ch);
             
             curl_close($ch);
+            $ch = null; // 标记已关闭
             
             if ($response !== false && $httpCode === 200) {
                 $status = 'online';
@@ -72,6 +79,11 @@ class NetworkMonitor {
             }
             
         } catch (Exception $e) {
+            // 确保在异常情况下也关闭curl句柄
+            if ($ch !== null) {
+                curl_close($ch);
+                $ch = null;
+            }
             $errorMessage = $e->getMessage();
             $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} 检查异常: $errorMessage");
         }
@@ -95,9 +107,15 @@ class NetworkMonitor {
         $startTime = microtime(true);
         $status = 'offline';
         $errorMessage = null;
+        $ch = null;
         
         try {
             $ch = curl_init();
+            
+            // 检查curl_init是否成功
+            if ($ch === false) {
+                throw new Exception('curl_init() 失败');
+            }
             
             // 基本curl设置，使用更短的超时时间
             curl_setopt_array($ch, [
@@ -131,6 +149,7 @@ class NetworkMonitor {
             $curlError = curl_error($ch);
             
             curl_close($ch);
+            $ch = null; // 标记已关闭
             
             if ($response !== false && $httpCode === 200) {
                 $status = 'online';
@@ -141,6 +160,11 @@ class NetworkMonitor {
             }
             
         } catch (Exception $e) {
+            // 确保在异常情况下也关闭curl句柄
+            if ($ch !== null) {
+                curl_close($ch);
+                $ch = null;
+            }
             $errorMessage = $e->getMessage();
             $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} 快速检查异常: $errorMessage");
         }
