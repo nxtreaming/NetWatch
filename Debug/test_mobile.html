@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>移动端AJAX测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            width: 100%;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .error {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #d32f2f;
+        }
+        .success {
+            background: #e8f5e8;
+            border-color: #4CAF50;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>NetWatch 移动端AJAX测试</h1>
+        <p>这个页面用于测试移动端AJAX请求是否正常工作，以及是否会出现JSON数据直接显示的问题。</p>
+        
+        <button class="test-button" onclick="testValidAjax()">测试有效的AJAX请求</button>
+        <button class="test-button" onclick="testInvalidAjax()">测试无效的AJAX请求（直接访问）</button>
+        <button class="test-button" onclick="testPageLoad()">测试页面加载（带ajax参数）</button>
+        <button class="test-button" onclick="clearResults()">清除结果</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function addResult(title, content, isError = false) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'result ' + (isError ? 'error' : 'success');
+            resultDiv.innerHTML = `<strong>${title}</strong>\n${content}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testValidAjax() {
+            try {
+                const response = await fetch('index.php?ajax=1&action=stats');
+                const data = await response.json();
+                addResult('有效AJAX请求测试', `成功！返回数据：\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                addResult('有效AJAX请求测试', `失败：${error.message}`, true);
+            }
+        }
+
+        function testInvalidAjax() {
+            // 直接在新窗口中打开带ajax参数的URL
+            const url = 'index.php?ajax=1&action=getProxyCount';
+            window.open(url, '_blank');
+            addResult('无效AJAX请求测试', `已在新窗口中打开：${url}\n如果修复成功，应该会重定向到正常页面而不是显示JSON数据。`);
+        }
+
+        function testPageLoad() {
+            // 测试页面加载时带ajax参数的情况
+            const url = 'index.php?ajax=1&page=1';
+            window.open(url, '_blank');
+            addResult('页面加载测试', `已在新窗口中打开：${url}\n如果修复成功，应该会重定向到正常页面。`);
+        }
+
+        // 页面加载时显示设备信息
+        window.onload = function() {
+            const deviceInfo = {
+                userAgent: navigator.userAgent,
+                viewport: `${window.innerWidth}x${window.innerHeight}`,
+                isMobile: window.innerWidth <= 768,
+                timestamp: new Date().toLocaleString()
+            };
+            
+            addResult('设备信息', JSON.stringify(deviceInfo, null, 2));
+        };
+    </script>
+</body>
+</html>
