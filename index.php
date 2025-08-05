@@ -16,6 +16,41 @@ define('PARALLEL_BATCH_SIZE', 400);     // 每批次代理数量
 date_default_timezone_set('Asia/Shanghai');
 
 /**
+ * 验证是否为真正的AJAX请求
+ * 防止移动端浏览器错误地将页面请求误认为AJAX请求
+ */
+function isValidAjaxRequest() {
+    // 检查是否有XMLHttpRequest标头
+    $isXmlHttpRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                       strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    
+    // 检查Accept标头是否包含json
+    $acceptsJson = isset($_SERVER['HTTP_ACCEPT']) && 
+                   strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+    
+    // 检查Content-Type是否为json相关
+    $contentTypeJson = isset($_SERVER['CONTENT_TYPE']) && 
+                      strpos($_SERVER['CONTENT_TYPE'], 'json') !== false;
+    
+    // 检查Referer是否来自同一页面（防止直接访问）
+    $hasValidReferer = isset($_SERVER['HTTP_REFERER']) && 
+                      strpos($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST']) !== false;
+    
+    // 额外检查：防止移动端浏览器的特殊行为
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $isMobileBrowser = preg_match('/Mobile|Android|iPhone|iPad/i', $userAgent);
+    
+    // 对于移动端浏览器，需要更严格的检查
+    if ($isMobileBrowser) {
+        // 移动端必须有明确的AJAX标志才能通过
+        return $isXmlHttpRequest && $hasValidReferer;
+    }
+    
+    // 只有同时满足多个条件才认为是真正的AJAX请求
+    return ($isXmlHttpRequest || $acceptsJson || $contentTypeJson) && $hasValidReferer;
+}
+
+/**
  * 格式化时间显示
  * @param string $timeString 时间字符串
  * @param string $format 时间格式，默认'm-d H:i'
@@ -57,96 +92,134 @@ if ($action === 'logout') {
 }
 
 // 处理AJAX请求
+// 添加更严格的AJAX请求检查，防止移动端浏览器错误处理URL参数
 if (isset($_GET['ajax'])) {
-    header('Content-Type: application/json');
+    $isValidAjax = isValidAjaxRequest();
     
-    // 统一检查登录状态（除了sessionCheck操作）
-    if ($action !== 'sessionCheck' && !Auth::isLoggedIn()) {
-        echo json_encode([
-            'success' => false,
-            'error' => 'unauthorized',
-            'message' => '登录已过期，请重新登录'
-        ]);
+    // 如果有ajax参数但不是真正的AJAX请求，记录日志并重定向
+    if (!$isValidAjax) {
+        // 记录调试信息
+        $debugInfo = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+            'referer' => $_SERVER['HTTP_REFERER'] ?? 'none',
+            'accept' => $_SERVER['HTTP_ACCEPT'] ?? 'none',
+            'x_requested_with' => $_SERVER['HTTP_X_REQUESTED_WITH'] ?? 'none',
+            'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
+            'action' => $action
+        ];
+        
+        // 将调试信息写入日志文件
+        file_put_contents('debug_ajax_mobile.log', json_encode($debugInfo) . "\n", FILE_APPEND | LOCK_EX);
+        
+        // 重定向到主页，清除ajax参数
+        $redirectUrl = strtok($_SERVER['REQUEST_URI'], '?');
+        $params = $_GET;
+        unset($params['ajax']);
+        if (!empty($params)) {
+            $redirectUrl .= '?' . http_build_query($params);
+        }
+        
+        // 使用JavaScript重定向作为备用方案（防止header重定向失败）
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>重定向中...</title></head><body>';
+        echo '<script>window.location.href="' . htmlspecialchars($redirectUrl) . '";</script>';
+        echo '<p>正在重定向到正确页面...</p>';
+        echo '<p><a href="' . htmlspecialchars($redirectUrl) . '">如果没有自动跳转，请点击这里</a></p>';
+        echo '</body></html>';
         exit;
     }
     
-    switch ($action) {
-        case 'stats':
-            echo json_encode($monitor->getStats());
-            break;
+    // 只有真正的AJAX请求才返回JSON
+    if ($isValidAjax) {
+        header('Content-Type: application/json');
+        
+        // 统一检查登录状态（除了sessionCheck操作）
+        if ($action !== 'sessionCheck' && !Auth::isLoggedIn()) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'unauthorized',
+                'message' => '登录已过期，请重新登录'
+            ]);
+            exit;
+        }
+        
+        switch ($action) {
+            case 'stats':
+                echo json_encode($monitor->getStats());
+                break;
             
-        case 'check':
-            $proxyId = $_GET['proxy_id'] ?? null;
-            if ($proxyId) {
-                $proxy = $monitor->getProxyById($proxyId);
-                if ($proxy) {
-                    $result = $monitor->checkProxy($proxy);
-                    echo json_encode($result);
-                } else {
-                    echo json_encode(['error' => '代理不存在']);
-                }
-            } else {
-                echo json_encode(['error' => '缺少代理ID']);
-            }
-            break;
-            
-        case 'logs':
-            $logs = $monitor->getRecentLogs(50);
-            echo json_encode($logs);
-            break;
-            
-        case 'checkAll':
-            try {
-                $results = $monitor->checkAllProxies();
-                
-                // 检查是否有需要发送警报的代理
-                $failedProxies = $monitor->getFailedProxies();
-                $emailSent = false;
-                
-                if (!empty($failedProxies)) {
-                    try {
-                        // 初始化邮件发送器
-                        if (file_exists('vendor/autoload.php')) {
-                            require_once 'mailer.php';
-                            $mailer = new Mailer();
-                        } else {
-                            require_once 'mailer_simple.php';
-                            $mailer = new SimpleMailer();
-                        }
-                        
-                        $mailer->sendProxyAlert($failedProxies);
-                        $emailSent = true;
-                        
-                        // 记录警报
-                        foreach ($failedProxies as $proxy) {
-                            $monitor->addAlert(
-                                $proxy['id'],
-                                'proxy_failure',
-                                "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
-                            );
-                        }
-                    } catch (Exception $mailError) {
-                        error_log('发送邮件失败: ' . $mailError->getMessage());
+            case 'check':
+                $proxyId = $_GET['proxy_id'] ?? null;
+                if ($proxyId) {
+                    $proxy = $monitor->getProxyById($proxyId);
+                    if ($proxy) {
+                        $result = $monitor->checkProxy($proxy);
+                        echo json_encode($result);
+                    } else {
+                        echo json_encode(['error' => '代理不存在']);
                     }
+                } else {
+                    echo json_encode(['error' => '缺少代理ID']);
                 }
+                break;
                 
-                echo json_encode([
-                    'success' => true,
-                    'message' => '所有代理检查完成',
-                    'results' => $results,
-                    'failed_proxies' => count($failedProxies),
-                    'email_sent' => $emailSent
-                ]);
-            } catch (Exception $e) {
-                echo json_encode([
-                    'success' => false,
-                    'error' => '检查失败: ' . $e->getMessage()
-                ]);
-            }
-            break;
+            case 'logs':
+                $logs = $monitor->getRecentLogs(50);
+                echo json_encode($logs);
+                break;
             
-        case 'getProxyCount':
-            try {
+            case 'checkAll':
+                try {
+                    $results = $monitor->checkAllProxies();
+                    
+                    // 检查是否有需要发送警报的代理
+                    $failedProxies = $monitor->getFailedProxies();
+                    $emailSent = false;
+                    
+                    if (!empty($failedProxies)) {
+                        try {
+                            // 初始化邮件发送器
+                            if (file_exists('vendor/autoload.php')) {
+                                require_once 'mailer.php';
+                                $mailer = new Mailer();
+                            } else {
+                                require_once 'mailer_simple.php';
+                                $mailer = new SimpleMailer();
+                            }
+                            
+                            $mailer->sendProxyAlert($failedProxies);
+                            $emailSent = true;
+                            
+                            // 记录警报
+                            foreach ($failedProxies as $proxy) {
+                                $monitor->addAlert(
+                                    $proxy['id'],
+                                    'proxy_failure',
+                                    "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
+                                );
+                            }
+                        } catch (Exception $mailError) {
+                            error_log('发送邮件失败: ' . $mailError->getMessage());
+                        }
+                    }
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'message' => '所有代理检查完成',
+                        'results' => $results,
+                        'failed_proxies' => count($failedProxies),
+                        'email_sent' => $emailSent
+                    ]);
+                } catch (Exception $e) {
+                    echo json_encode([
+                        'success' => false,
+                        'error' => '检查失败: ' . $e->getMessage()
+                    ]);
+                }
+                break;
+            
+            case 'getProxyCount':
+                try {
                 // 记录开始时间
                 $startTime = microtime(true);
                 
@@ -421,10 +494,11 @@ if (isset($_GET['ajax'])) {
             }
             break;
             
-        default:
-            echo json_encode(['error' => '未知操作']);
+            default:
+                echo json_encode(['error' => '未知操作']);
+        }
+        exit;
     }
-    exit;
 }
 
 // 获取分页参数、搜索参数和状态筛选参数
