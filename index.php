@@ -24,9 +24,10 @@ function isValidAjaxRequest() {
     $isXmlHttpRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     
-    // 检查Accept标头是否包含json
+    // 检查Accept标头是否包含json或任意类型
     $acceptsJson = isset($_SERVER['HTTP_ACCEPT']) && 
-                   strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+                   (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false ||
+                    strpos($_SERVER['HTTP_ACCEPT'], '*/*') !== false);
     
     // 检查Content-Type是否为json相关
     $contentTypeJson = isset($_SERVER['CONTENT_TYPE']) && 
@@ -36,18 +37,28 @@ function isValidAjaxRequest() {
     $hasValidReferer = isset($_SERVER['HTTP_REFERER']) && 
                       strpos($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST']) !== false;
     
-    // 额外检查：防止移动端浏览器的特殊行为
+    // 检查是否为浏览器发起的请求（而不是直接访问）
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-    $isMobileBrowser = preg_match('/Mobile|Android|iPhone|iPad/i', $userAgent);
+    $isBrowserRequest = !empty($userAgent) && 
+                       (strpos($userAgent, 'Mozilla') !== false || 
+                        strpos($userAgent, 'Chrome') !== false ||
+                        strpos($userAgent, 'Safari') !== false ||
+                        strpos($userAgent, 'Edge') !== false);
     
-    // 对于移动端浏览器，需要更严格的检查
-    if ($isMobileBrowser) {
-        // 移动端必须有明确的AJAX标志才能通过
-        return $isXmlHttpRequest && $hasValidReferer;
+    // 特殊情况：如果是浏览器直接访问且没有Referer，则可能是问题请求
+    if (!$hasValidReferer && $isBrowserRequest) {
+        // 检查是否是直接在地址栏输入或书签访问
+        $isDirectAccess = !isset($_SERVER['HTTP_REFERER']) || empty($_SERVER['HTTP_REFERER']);
+        if ($isDirectAccess) {
+            return false; // 直接访问带ajax参数的URL，很可能是问题
+        }
     }
     
-    // 只有同时满足多个条件才认为是真正的AJAX请求
-    return ($isXmlHttpRequest || $acceptsJson || $contentTypeJson) && $hasValidReferer;
+    // 对于正常的AJAX请求，只要满足以下任一条件即可：
+    // 1. 有XMLHttpRequest标头
+    // 2. Accept头包含json或*/*
+    // 3. 有有效的Referer且是浏览器请求
+    return $isXmlHttpRequest || $acceptsJson || ($hasValidReferer && $isBrowserRequest);
 }
 
 /**
