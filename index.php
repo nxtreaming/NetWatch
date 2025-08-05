@@ -2357,6 +2357,12 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         // 预加载代理数量
         async function preloadProxyCount() {
+            // 检查页面是否正确加载了HTML内容
+            if (!document.getElementById('proxies-table') || !document.querySelector('.stats-grid')) {
+                console.log('页面HTML未正确加载，跳过预加载代理数量');
+                return;
+            }
+            
             try {
                 const response = await fetch('?ajax=1&action=getProxyCount');
                 const data = await response.json();
@@ -2383,7 +2389,10 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         // 页面加载完成后预加载代理数量
         document.addEventListener('DOMContentLoaded', function() {
-            preloadProxyCount();
+            // 延迟执行预加载，确保页面完全渲染完成
+            setTimeout(() => {
+                preloadProxyCount();
+            }, 1000); // 1秒延迟
         });
     </script>
 </body>
