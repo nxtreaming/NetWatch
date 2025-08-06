@@ -2471,12 +2471,11 @@ $recentLogs = $monitor->getRecentLogs(20);
         let cachedProxyCount = null;
         let cacheTimestamp = null;
         
-        // 预加载代理数量
-        async function preloadProxyCount() {
-            // 检查页面是否正确加载了HTML内容
-            if (!document.getElementById('proxies-table') || !document.querySelector('.stats-grid')) {
-                console.log('页面HTML未正确加载，跳过预加载代理数量');
-                return;
+        // 按需获取代理数量（带缓存）
+        async function getProxyCount() {
+            // 检查缓存是否有效（5分钟）
+            if (cachedProxyCount !== null && cacheTimestamp && (Date.now() - cacheTimestamp) < 300000) {
+                return cachedProxyCount;
             }
             
             try {
@@ -2486,12 +2485,13 @@ $recentLogs = $monitor->getRecentLogs(20);
                 if (data.success) {
                     cachedProxyCount = data.count;
                     cacheTimestamp = Date.now();
-                    
-                    console.log(`预加载代理数量: ${data.count} (查询时间: ${data.execution_time}ms, 缓存: ${data.cached ? '是' : '否'})`);
+                    console.log(`获取代理数量: ${data.count} (查询时间: ${data.execution_time}ms, 缓存: ${data.cached ? '是' : '否'})`);
+                    return data.count;
                 }
             } catch (error) {
-                console.log('预加载代理数量失败:', error);
+                console.log('获取代理数量失败:', error);
             }
+            return null;
         }
         
         // 获取缓存的代理数量（如果有效）
@@ -2502,14 +2502,6 @@ $recentLogs = $monitor->getRecentLogs(20);
             }
             return null;
         }
-        
-        // 页面加载完成后预加载代理数量
-        document.addEventListener('DOMContentLoaded', function() {
-            // 延迟执行预加载，确保页面完全渲染完成
-            setTimeout(() => {
-                preloadProxyCount();
-            }, 1000); // 1秒延迟
-        });
     </script>
 </body>
 </html>
