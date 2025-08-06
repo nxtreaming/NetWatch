@@ -45,8 +45,19 @@ function isValidAjaxRequest() {
                         strpos($userAgent, 'Safari') !== false ||
                         strpos($userAgent, 'Edge') !== false);
     
+    // 移动端特殊处理：对于移动端浏览器，放宽验证条件
+    $isMobile = strpos($userAgent, 'Mobile') !== false || 
+                strpos($userAgent, 'Android') !== false || 
+                strpos($userAgent, 'iPhone') !== false || 
+                strpos($userAgent, 'iPad') !== false;
+    
+    // 如果是移动端且是浏览器请求，只要有Accept头就认为是有效的AJAX请求
+    if ($isMobile && $isBrowserRequest && $acceptsJson) {
+        return true;
+    }
+    
     // 特殊情况：如果是浏览器直接访问且没有Referer，则可能是问题请求
-    if (!$hasValidReferer && $isBrowserRequest) {
+    if (!$hasValidReferer && $isBrowserRequest && !$isMobile) {
         // 检查是否是直接在地址栏输入或书签访问
         $isDirectAccess = !isset($_SERVER['HTTP_REFERER']) || empty($_SERVER['HTTP_REFERER']);
         if ($isDirectAccess) {
@@ -109,15 +120,23 @@ if (isset($_GET['ajax'])) {
     
     // 如果有ajax参数但不是真正的AJAX请求，记录日志并重定向
     if (!$isValidAjax) {
+        // 检查是否为移动端
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $isMobile = strpos($userAgent, 'Mobile') !== false || 
+                    strpos($userAgent, 'Android') !== false || 
+                    strpos($userAgent, 'iPhone') !== false || 
+                    strpos($userAgent, 'iPad') !== false;
+        
         // 记录调试信息
         $debugInfo = [
             'timestamp' => date('Y-m-d H:i:s'),
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+            'user_agent' => $userAgent,
             'referer' => $_SERVER['HTTP_REFERER'] ?? 'none',
             'accept' => $_SERVER['HTTP_ACCEPT'] ?? 'none',
             'x_requested_with' => $_SERVER['HTTP_X_REQUESTED_WITH'] ?? 'none',
             'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
-            'action' => $action
+            'action' => $action,
+            'is_mobile' => $isMobile
         ];
         
         // 将调试信息写入日志文件
@@ -131,9 +150,21 @@ if (isset($_GET['ajax'])) {
             $redirectUrl .= '?' . http_build_query($params);
         }
         
+        // 对于移动端，使用更强的重定向方式
+        if ($isMobile) {
+            // 先尝试header重定向
+            header('Location: ' . $redirectUrl, true, 302);
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+        }
+        
         // 使用JavaScript重定向作为备用方案（防止header重定向失败）
-        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>重定向中...</title></head><body>';
-        echo '<script>window.location.href="' . htmlspecialchars($redirectUrl) . '";</script>';
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>重定向中...</title>';
+        echo '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
+        echo '<meta http-equiv="refresh" content="0;url=' . htmlspecialchars($redirectUrl) . '">';
+        echo '</head><body>';
+        echo '<script>window.location.replace("' . htmlspecialchars($redirectUrl) . '");</script>';
         echo '<p>正在重定向到正确页面...</p>';
         echo '<p><a href="' . htmlspecialchars($redirectUrl) . '">如果没有自动跳转，请点击这里</a></p>';
         echo '</body></html>';
