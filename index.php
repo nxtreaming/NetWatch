@@ -2128,12 +2128,9 @@ $recentLogs = $monitor->getRecentLogs(20);
                 
                 // 保存会话ID用于后续的进度查询和取消操作
                 currentSessionId = startData.session_id;
-                console.log('并行检测已启动，会话ID:', currentSessionId);
-                console.log('完整响应数据:', startData);
                 
                 // 检查会话ID是否有效
                 if (!currentSessionId) {
-                    console.error('警告：未获取到有效的会话ID！');
                     throw new Error('未获取到有效的会话ID');
                 }
                 
@@ -2154,11 +2151,8 @@ $recentLogs = $monitor->getRecentLogs(20);
                     
                     try {
                         // 传递会话ID查询对应的检测进度
-                        const progressUrl = `?ajax=1&action=getParallelProgress&session_id=${encodeURIComponent(currentSessionId)}`;
-                        console.log('查询进度URL:', progressUrl);
-                        const progressResponse = await fetch(progressUrl);
+                        const progressResponse = await fetch(`?ajax=1&action=getParallelProgress&session_id=${encodeURIComponent(currentSessionId)}`);
                         const progressData = await progressResponse.json();
-                        console.log('进度查询响应:', progressData);
                         
                         // 检查是否是登录过期
                         if (!progressData.success && progressData.error === 'unauthorized') {
