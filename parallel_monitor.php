@@ -284,12 +284,20 @@ class ParallelMonitor {
      */
     public function getParallelProgress() {
         $tempDir = $this->getSessionTempDir();
+        $this->logger->info("查询并行检测进度 (会话: {$this->sessionId}, 临时目录: {$tempDir})");
+        
         if (!is_dir($tempDir)) {
+            $this->logger->warning("临时目录不存在: {$tempDir}");
             return ['success' => false, 'error' => '没有正在进行的并行检测'];
         }
         
         $statusFiles = glob($tempDir . '/batch_*.json');
+        $this->logger->info("查找状态文件: " . $tempDir . '/batch_*.json, 找到 ' . count($statusFiles) . ' 个文件');
+        
         if (empty($statusFiles)) {
+            // 列出目录中的所有文件进行调试
+            $allFiles = glob($tempDir . '/*');
+            $this->logger->warning("没有找到批次状态文件，目录中的所有文件: " . implode(', ', $allFiles));
             return ['success' => false, 'error' => '没有找到批次状态文件'];
         }
         
