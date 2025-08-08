@@ -2,6 +2,7 @@
 /**
  * 并行代理检测管理器
  * 将大量代理分组并行检测，提高检测效率
+ * 修复版本：支持会话隔离，避免多设备/多用户之间的干扰
  */
 
 // 设置时区为中国标准时间
@@ -18,13 +19,30 @@ class ParallelMonitor {
     private $monitor;
     private $maxProcesses;
     private $batchSize;
+    private $sessionId;
     
-    public function __construct($maxProcesses = 6, $batchSize = 400) {
+    public function __construct($maxProcesses = 6, $batchSize = 400, $sessionId = null) {
         $this->db = new Database();
         $this->logger = new Logger();
         $this->monitor = new NetworkMonitor();
         $this->maxProcesses = $maxProcesses; // 最大并行进程数
         $this->batchSize = $batchSize; // 每组代理数量
+        
+        // 生成或使用提供的会话ID，确保每个检测任务独立
+        if ($sessionId === null) {
+            // 使用会话ID + 时间戳 + 随机数确保唯一性
+            $this->sessionId = session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
+        } else {
+            $this->sessionId = $sessionId;
+        }
+    }
+    
+    /**
+     * 获取会话独立的临时目录路径
+     * @return string 临时目录路径
+     */
+    private function getSessionTempDir() {
+        return sys_get_temp_dir() . '/netwatch_parallel_' . $this->sessionId;
     }
     
     /**
@@ -33,7 +51,7 @@ class ParallelMonitor {
      */
     public function startParallelCheck() {
         $startTime = microtime(true);
-        $this->logger->info("启动并行检查所有代理");
+        $this->logger->info("启动并行检查所有代理 (会话: {$this->sessionId})");
         
         // 获取所有代理总数
         $totalProxies = $this->db->getProxyCount();
@@ -43,10 +61,10 @@ class ParallelMonitor {
         
         // 计算需要的批次数
         $totalBatches = ceil($totalProxies / $this->batchSize);
-        $this->logger->info("总计 {$totalProxies} 个代理，分为 {$totalBatches} 个批次，每批 {$this->batchSize} 个");
+        $this->logger->info("总计 {$totalProxies} 个代理，分为 {$totalBatches} 个批次，每批 {$this->batchSize} 个 (会话: {$this->sessionId})");
         
-        // 创建临时状态文件目录
-        $tempDir = sys_get_temp_dir() . '/netwatch_parallel';
+        // 创建会话独立的临时状态文件目录
+        $tempDir = $this->getSessionTempDir();
         if (!is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
@@ -59,7 +77,8 @@ class ParallelMonitor {
             'start_time' => time(),
             'total_proxies' => $totalProxies,
             'total_batches' => $totalBatches,
-            'status' => 'starting'
+            'status' => 'starting',
+            'session_id' => $this->sessionId
         ];
         file_put_contents($tempDir . '/main_status.json', json_encode($mainStatus));
         
@@ -70,6 +89,7 @@ class ParallelMonitor {
             'success' => true,
             'total_proxies' => $totalProxies,
             'total_batches' => $totalBatches,
+            'session_id' => $this->sessionId,
             'message' => '并行检测已启动'
         ];
     }
@@ -108,7 +128,7 @@ class ParallelMonitor {
      */
     public function checkAllProxiesParallel() {
         $startTime = microtime(true);
-        $this->logger->info("开始并行检查所有代理");
+        $this->logger->info("开始并行检查所有代理 (会话: {$this->sessionId})");
         
         // 获取所有代理总数
         $totalProxies = $this->db->getProxyCount();
@@ -118,10 +138,10 @@ class ParallelMonitor {
         
         // 计算需要的批次数
         $totalBatches = ceil($totalProxies / $this->batchSize);
-        $this->logger->info("总计 {$totalProxies} 个代理，分为 {$totalBatches} 个批次，每批 {$this->batchSize} 个");
+        $this->logger->info("总计 {$totalProxies} 个代理，分为 {$totalBatches} 个批次，每批 {$this->batchSize} 个 (会话: {$this->sessionId})");
         
-        // 创建临时状态文件目录
-        $tempDir = sys_get_temp_dir() . '/netwatch_parallel';
+        // 创建会话独立的临时状态文件目录
+        $tempDir = $this->getSessionTempDir();
         if (!is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
@@ -129,84 +149,57 @@ class ParallelMonitor {
         // 清理旧的状态文件
         $this->cleanupTempFiles($tempDir);
         
-        // 启动并行检测进程
         $processes = [];
-        $batchIndex = 0;
+        $batchResults = [];
         
-        for ($offset = 0; $offset < $totalProxies; $offset += $this->batchSize) {
-            $batchId = 'batch_' . $batchIndex;
+        // 启动所有批次
+        for ($i = 0; $i < $totalBatches; $i++) {
+            $offset = $i * $this->batchSize;
+            $limit = min($this->batchSize, $totalProxies - $offset);
+            $batchId = 'batch_' . $i;
             $statusFile = $tempDir . '/' . $batchId . '.json';
             
-            // 计算当前批次的实际大小
-            $currentBatchSize = min($this->batchSize, $totalProxies - $offset);
+            // 检查是否被取消
+            if ($this->isCancelled()) {
+                $this->logger->info("检测到取消信号，停止启动新批次 (会话: {$this->sessionId})");
+                break;
+            }
             
-            // 创建批次状态文件
-            $batchStatus = [
-                'batch_id' => $batchId,
-                'offset' => $offset,
-                'limit' => $currentBatchSize,
-                'status' => 'pending',
-                'progress' => 0,
-                'checked' => 0,
-                'online' => 0,
-                'offline' => 0,
-                'start_time' => time(),
-                'end_time' => null,
-                'error' => null
-            ];
-            file_put_contents($statusFile, json_encode($batchStatus));
+            // 启动批次进程
+            $process = $this->startBatchProcess($batchId, $offset, $limit, $statusFile);
+            if ($process) {
+                $processes[] = $process;
+            }
             
-            // 如果达到最大进程数，等待一些进程完成
+            // 控制并发数量
             if (count($processes) >= $this->maxProcesses) {
                 $this->waitForProcesses($processes, $this->maxProcesses - 1);
             }
-            
-            // 启动新的检测进程
-            $process = $this->startBatchProcess($batchId, $offset, $currentBatchSize, $statusFile);
-            if ($process) {
-                $processes[$batchId] = $process;
-                $this->logger->info("启动批次 {$batchId}: offset={$offset}, limit={$currentBatchSize}");
-            }
-            
-            $batchIndex++;
-            
-            // 短暂延迟避免同时启动过多进程
-            usleep(100000); // 0.1秒
         }
         
         // 等待所有进程完成
-        $this->logger->info("等待所有批次完成...");
         $this->waitForAllProcesses($processes);
         
-        // 收集所有批次的结果
+        // 收集结果
         $results = $this->collectResults($tempDir, $totalBatches);
         
-        // 清理临时文件
-        $this->cleanupTempFiles($tempDir);
+        $executionTime = microtime(true) - $startTime;
+        $this->logger->info("并行检查完成，耗时: " . round($executionTime, 2) . "秒 (会话: {$this->sessionId})");
         
-        $totalTime = round((microtime(true) - $startTime) * 1000);
-        $this->logger->info("并行检查完成，总用时: {$totalTime}ms");
-        
-        return [
+        return array_merge($results, [
             'success' => true,
-            'total_proxies' => $totalProxies,
-            'total_batches' => $totalBatches,
-            'checked' => $results['total_checked'],
-            'online' => $results['total_online'],
-            'offline' => $results['total_offline'],
-            'execution_time' => $totalTime,
-            'batch_results' => $results['batches']
-        ];
+            'execution_time' => round($executionTime, 2),
+            'session_id' => $this->sessionId
+        ]);
     }
     
     /**
      * 启动单个批次检测进程
      */
     private function startBatchProcess($batchId, $offset, $limit, $statusFile) {
-        // 构建命令行参数
         $scriptPath = __DIR__ . '/parallel_worker.php';
         $command = sprintf(
-            'php "%s" "%s" %d %d "%s" > /dev/null 2>&1 &',
+            'php "%s" "%s" %d %d "%s"',
             $scriptPath,
             $batchId,
             $offset,
@@ -216,19 +209,19 @@ class ParallelMonitor {
         
         // 在Windows系统上使用不同的命令
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $command = sprintf(
-                'start /B php "%s" "%s" %d %d "%s"',
-                $scriptPath,
-                $batchId,
-                $offset,
-                $limit,
-                $statusFile
-            );
+            $command = 'start /B ' . $command;
+        } else {
+            $command .= ' > /dev/null 2>&1 &';
         }
         
-        // 启动进程
         $process = popen($command, 'r');
-        return $process;
+        if ($process) {
+            $this->logger->info("启动批次 {$batchId}，偏移: {$offset}，数量: {$limit} (会话: {$this->sessionId})");
+            return $process;
+        } else {
+            $this->logger->error("启动批次 {$batchId} 失败 (会话: {$this->sessionId})");
+            return false;
+        }
     }
     
     /**
@@ -236,14 +229,12 @@ class ParallelMonitor {
      */
     private function waitForProcesses(&$processes, $maxRemaining) {
         while (count($processes) > $maxRemaining) {
-            foreach ($processes as $batchId => $process) {
-                // 检查进程是否完成
+            foreach ($processes as $key => $process) {
                 $status = pclose($process);
-                unset($processes[$batchId]);
-                $this->logger->info("批次 {$batchId} 完成");
-                break; // 只等待一个进程完成
+                unset($processes[$key]);
+                break;
             }
-            usleep(500000); // 0.5秒检查间隔
+            usleep(100000); // 100ms
         }
     }
     
@@ -251,9 +242,8 @@ class ParallelMonitor {
      * 等待所有进程完成
      */
     private function waitForAllProcesses($processes) {
-        foreach ($processes as $batchId => $process) {
+        foreach ($processes as $process) {
             pclose($process);
-            $this->logger->info("批次 {$batchId} 完成");
         }
     }
     
@@ -293,7 +283,7 @@ class ParallelMonitor {
      * 获取并行检测进度
      */
     public function getParallelProgress() {
-        $tempDir = sys_get_temp_dir() . '/netwatch_parallel';
+        $tempDir = $this->getSessionTempDir();
         if (!is_dir($tempDir)) {
             return ['success' => false, 'error' => '没有正在进行的并行检测'];
         }
@@ -339,7 +329,8 @@ class ParallelMonitor {
             'total_checked' => $totalChecked,
             'total_online' => $totalOnline,
             'total_offline' => $totalOffline,
-            'batch_statuses' => $batchStatuses
+            'batch_statuses' => $batchStatuses,
+            'session_id' => $this->sessionId
         ];
     }
     
@@ -361,22 +352,22 @@ class ParallelMonitor {
      * 取消并行检测
      */
     public function cancelParallelCheck() {
-        $tempDir = sys_get_temp_dir() . '/netwatch_parallel';
+        $tempDir = $this->getSessionTempDir();
         
         // 创建取消标志文件
         $cancelFile = $tempDir . '/cancel.flag';
         file_put_contents($cancelFile, time());
         
-        $this->logger->info("并行检测已被取消");
+        $this->logger->info("并行检测已被取消 (会话: {$this->sessionId})");
         
-        return ['success' => true, 'message' => '并行检测已取消'];
+        return ['success' => true, 'message' => '并行检测已取消', 'session_id' => $this->sessionId];
     }
     
     /**
      * 检查是否被取消
      */
     public function isCancelled() {
-        $tempDir = sys_get_temp_dir() . '/netwatch_parallel';
+        $tempDir = $this->getSessionTempDir();
         $cancelFile = $tempDir . '/cancel.flag';
         return file_exists($cancelFile);
     }

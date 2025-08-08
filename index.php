@@ -392,8 +392,9 @@ if (isset($_GET['ajax'])) {
         case 'startParallelCheck':
             try {
                 require_once 'parallel_monitor.php';
-                // 创建并行监控器：使用配置常量
-                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE);
+                // 创建会话独立的并行监控器：使用配置常量和会话ID
+                $sessionId = session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
+                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
                 
                 // 启动并行检测（异步）
                 $result = $parallelMonitor->startParallelCheck();
@@ -410,8 +411,13 @@ if (isset($_GET['ajax'])) {
         case 'getParallelProgress':
             try {
                 require_once 'parallel_monitor.php';
-                // 创建并行监控器：使用配置常量
-                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE);
+                // 获取会话ID，用于查询对应的检测进度
+                $sessionId = $_GET['session_id'] ?? null;
+                if (!$sessionId) {
+                    echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
+                    break;
+                }
+                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
                 
                 $progress = $parallelMonitor->getParallelProgress();
                 echo json_encode($progress);
@@ -426,8 +432,13 @@ if (isset($_GET['ajax'])) {
         case 'cancelParallelCheck':
             try {
                 require_once 'parallel_monitor.php';
-                // 创建并行监控器：使用配置常量
-                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE);
+                // 获取会话ID，用于取消对应的检测任务
+                $sessionId = $_GET['session_id'] ?? null;
+                if (!$sessionId) {
+                    echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
+                    break;
+                }
+                $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
                 
                 $result = $parallelMonitor->cancelParallelCheck();
                 echo json_encode($result);
@@ -2074,13 +2085,16 @@ $recentLogs = $monitor->getRecentLogs(20);
             
             let cancelled = false;
             let progressInterval = null;
+            let currentSessionId = null; // 存储当前检测任务的会话ID
             
             document.getElementById('cancel-parallel-check').onclick = async () => {
                 cancelled = true;
                 
-                // 发送取消请求
+                // 发送取消请求，包含会话ID
                 try {
-                    await fetch('?ajax=1&action=cancelParallelCheck');
+                    if (currentSessionId) {
+                        await fetch(`?ajax=1&action=cancelParallelCheck&session_id=${encodeURIComponent(currentSessionId)}`);
+                    }
                 } catch (e) {
                     console.error('取消请求失败:', e);
                 }
@@ -2112,6 +2126,10 @@ $recentLogs = $monitor->getRecentLogs(20);
                     throw new Error(startData.error || '启动并行检测失败');
                 }
                 
+                // 保存会话ID用于后续的进度查询和取消操作
+                currentSessionId = startData.session_id;
+                console.log('并行检测已启动，会话ID:', currentSessionId);
+                
                 // 显示启动信息
                 document.getElementById('parallel-progress-info').textContent = 
                     `并行检测已启动！总计 ${startData.total_proxies} 个代理，分为 ${startData.total_batches} 个批次`;
@@ -2128,7 +2146,8 @@ $recentLogs = $monitor->getRecentLogs(20);
                     if (cancelled) return;
                     
                     try {
-                        const progressResponse = await fetch('?ajax=1&action=getParallelProgress');
+                        // 传递会话ID查询对应的检测进度
+                        const progressResponse = await fetch(`?ajax=1&action=getParallelProgress&session_id=${encodeURIComponent(currentSessionId)}`);
                         const progressData = await progressResponse.json();
                         
                         // 检查是否是登录过期
