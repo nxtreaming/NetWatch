@@ -146,7 +146,7 @@ $recentLogs = $monitor->getRecentLogs(20);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NetWatch - 网络监控系统</title>
-    <link rel="stylesheet" href="includes/style.css">
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
 </head>
 <body>
     <div class="header">
