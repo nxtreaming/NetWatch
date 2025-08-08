@@ -439,6 +439,29 @@ table {
     font-weight: bold;
 }
 
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-badge.status-online {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.status-offline {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-badge.status-unknown {
+    background: #fff3cd;
+    color: #856404;
+}
+
 .response-time {
     font-family: monospace;
 }
@@ -620,8 +643,6 @@ table {
     }
     
     /* 移动端隐藏部分列 */
-    #proxies-table th:nth-child(1),
-    #proxies-table td:nth-child(1), /* ID */
     #proxies-table th:nth-child(3),
     #proxies-table td:nth-child(3), /* 类型 */
     #proxies-table th:nth-child(5),
@@ -634,6 +655,10 @@ table {
     }
     
     /* 调整剩余列的宽度 */
+    #proxies-table th:nth-child(1),
+    #proxies-table td:nth-child(1) { /* ID */
+        width: 20%;
+    }
     #proxies-table th:nth-child(2),
     #proxies-table td:nth-child(2) { /* 地址 */
         width: 40%;
@@ -647,7 +672,7 @@ table {
     
     #proxies-table th:nth-child(8),
     #proxies-table td:nth-child(8) { /* 操作 */
-        width: 30%;
+        width: 10%;
         text-align: center;
     }
     
