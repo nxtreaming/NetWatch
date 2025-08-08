@@ -89,6 +89,8 @@ class ParallelMonitor {
             'success' => true,
             'total_proxies' => $totalProxies,
             'total_batches' => $totalBatches,
+            'batch_size' => $this->batchSize,
+            'max_processes' => $this->maxProcesses,
             'session_id' => $this->sessionId,
             'message' => '并行检测已启动'
         ];
