@@ -179,7 +179,9 @@ function updateBatchStatus($statusFile, $updates) {
  * 检查是否被取消
  */
 function isCancelled() {
-    $tempDir = sys_get_temp_dir() . '/netwatch_parallel';
+    global $statusFile;
+    // 从状态文件路径推导出临时目录
+    $tempDir = dirname($statusFile);
     $cancelFile = $tempDir . '/cancel.flag';
     return file_exists($cancelFile);
 }

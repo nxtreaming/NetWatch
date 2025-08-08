@@ -311,17 +311,21 @@ class ParallelMonitor {
         
         foreach ($statusFiles as $statusFile) {
             $batchStatus = json_decode(file_get_contents($statusFile), true);
+            $this->logger->info("读取状态文件: " . basename($statusFile) . ", 内容: " . json_encode($batchStatus));
+            
             if ($batchStatus) {
-                $totalChecked += $batchStatus['checked'];
-                $totalOnline += $batchStatus['online'];
-                $totalOffline += $batchStatus['offline'];
-                $totalProxies += $batchStatus['limit']; // 累加每个批次的总数
+                $totalChecked += $batchStatus['checked'] ?? 0;
+                $totalOnline += $batchStatus['online'] ?? 0;
+                $totalOffline += $batchStatus['offline'] ?? 0;
+                $totalProxies += $batchStatus['limit'] ?? 0; // 累加每个批次的总数
                 
                 if ($batchStatus['status'] === 'completed') {
                     $completedBatches++;
                 }
                 
                 $batchStatuses[] = $batchStatus;
+            } else {
+                $this->logger->warning("无法解析状态文件: " . basename($statusFile));
             }
         }
         
