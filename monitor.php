@@ -42,9 +42,9 @@ class NetworkMonitor {
      * @return array 检查结果
      */
     private function executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix) {
-        $startTime = microtime(true);
         $status = 'offline';
         $errorMessage = null;
+        $responseTime = 0;
         $ch = null;
         
         try {
@@ -83,18 +83,42 @@ class NetworkMonitor {
             }
             
             $response = curl_exec($ch);
+            
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlError = curl_error($ch);
+            
+            // 获取代理服务器到目标网站的纯网络响应时间
+            // CURLINFO_STARTTRANSFER_TIME: 从请求开始到接收到第一个字节的时间
+            // 这个时间反映的是通过代理到达目标服务器的网络延迟
+            $transferTime = curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME);
+            
+            // 获取连接建立时间（包括通过代理建立连接的时间）
+            $connectTime = curl_getinfo($ch, CURLINFO_CONNECT_TIME);
+            
+            // 代理响应时间 = 数据传输时间 - 连接建立时间
+            // 这样得到的是纯粹的网络响应时间，不包括连接建立的开销
+            $responseTime = max(0, ($transferTime - $connectTime)) * 1000; // 转换为毫秒
+            
+            // 如果计算结果异常，使用传输时间作为备选
+            if ($responseTime <= 0 || $transferTime <= 0) {
+                $responseTime = $transferTime * 1000;
+            }
             
             curl_close($ch);
             $ch = null; // 标记已关闭
             
             if ($response !== false && $httpCode === 200) {
                 $status = 'online';
-                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功");
+                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功，网络响应时间: {$responseTime}ms");
             } else {
                 $errorMessage = $curlError ?: "HTTP Code: $httpCode";
-                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败: $errorMessage");
+                // 对于失败的请求，如果有传输时间数据则使用，否则设为0
+                if ($transferTime > 0) {
+                    $responseTime = $transferTime * 1000;
+                } else {
+                    $responseTime = 0;
+                }
+                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败: $errorMessage，尝试时间: {$responseTime}ms");
             }
             
         } catch (Exception $e) {
@@ -104,10 +128,9 @@ class NetworkMonitor {
                 $ch = null;
             }
             $errorMessage = $e->getMessage();
+            $responseTime = 0; // 异常情况下设为0
             $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常: $errorMessage");
         }
-        
-        $responseTime = (microtime(true) - $startTime) * 1000; // 转换为毫秒
         
         // 更新数据库
         $this->db->updateProxyStatus($proxy['id'], $status, $responseTime, $errorMessage);
