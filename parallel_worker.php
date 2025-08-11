@@ -92,10 +92,10 @@ try {
         ]);
         
         // 短暂延迟避免过于频繁的请求
-        usleep(5000); // 0.005秒
+        usleep(3000); // 0.005秒
         
-        // 每检查10个代理记录一次日志
-        if ($checkedCount % 10 == 0) {
+        // 每检查20个代理记录一次日志
+        if ($checkedCount % 20 == 0) {
             $logger->info("批次 {$batchId} 进度: {$checkedCount}/{$totalProxies} (在线: {$onlineCount}, 离线: {$offlineCount})");
         }
     }

@@ -606,7 +606,7 @@ async function checkAllProxiesParallel() {
                     location.reload();
                 }
             }
-        }, 1000); // 每秒更新一次进度
+        }, 2000); // 每2秒更新一次进度
         
     } catch (error) {
         if (!cancelled) {

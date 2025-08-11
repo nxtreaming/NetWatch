@@ -21,7 +21,7 @@ class ParallelMonitor {
     private $batchSize;
     private $sessionId;
     
-    public function __construct($maxProcesses = 6, $batchSize = 400, $sessionId = null) {
+    public function __construct($maxProcesses = 12, $batchSize = 200, $sessionId = null) {
         $this->db = new Database();
         $this->logger = new Logger();
         $this->monitor = new NetworkMonitor();

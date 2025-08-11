@@ -11,8 +11,8 @@ require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
 
 // 并行检测配置常量
-define('PARALLEL_MAX_PROCESSES', 12);   // 最大并行进程数
-define('PARALLEL_BATCH_SIZE', 400);     // 每批次代理数量
+define('PARALLEL_MAX_PROCESSES', 24);   // 最大并行进程数
+define('PARALLEL_BATCH_SIZE', 200);     // 每批次代理数量
 
 // 设置时区为中国标准时间
 date_default_timezone_set('Asia/Shanghai');

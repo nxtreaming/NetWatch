@@ -27,7 +27,7 @@ $tempDir = $argv[3];
 
 // 初始化组件
 $logger = new Logger();
-$maxProcesses = 12; // 最大并行进程数
+$maxProcesses = 24; // 最大并行进程数
 
 $logger->info("批次管理器启动: 总代理={$totalProxies}, 批次大小={$batchSize}, 最大进程={$maxProcesses}");
 
@@ -90,7 +90,7 @@ try {
         $batchIndex++;
         
         // 短暂延迟避免同时启动过多进程
-        usleep(100000); // 0.1秒
+        usleep(50000); // 0.05秒
     }
     
     // 等待所有进程完成
