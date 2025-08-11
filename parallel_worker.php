@@ -82,18 +82,17 @@ try {
             $offlineCount++;
         }
         
-        // 更新进度
-        $progress = ($checkedCount / $totalProxies) * 100;
-        updateBatchStatus($statusFile, [
-            'progress' => round($progress, 2),
-            'checked' => $checkedCount,
-            'online' => $onlineCount,
-            'offline' => $offlineCount
-        ]);
-        
-        // 短暂延迟避免过于频繁的请求
-        usleep(3000); // 0.005秒
-        
+        // 减少状态文件更新频率，每10个代理更新一次
+        if ($checkedCount % 10 == 0 || $checkedCount == $totalProxies) {
+            $progress = ($checkedCount / $totalProxies) * 100;
+            updateBatchStatus($statusFile, [
+                'progress' => round($progress, 2),
+                'checked' => $checkedCount,
+                'online' => $onlineCount,
+                'offline' => $offlineCount
+            ]);
+        }
+
         // 每检查20个代理记录一次日志
         if ($checkedCount % 20 == 0) {
             $logger->info("批次 {$batchId} 进度: {$checkedCount}/{$totalProxies} (在线: {$onlineCount}, 离线: {$offlineCount})");
