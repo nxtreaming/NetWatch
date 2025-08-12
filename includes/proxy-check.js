@@ -552,7 +552,7 @@ async function checkAllProxiesParallel() {
                     location.reload();
                 }
             }
-        }, 2000); // 每2秒更新一次进度
+        }, 500); // 每0.5秒更新一次进度
     } catch (error) {
         if (!cancelled) {
             document.body.removeChild(progressDiv);
