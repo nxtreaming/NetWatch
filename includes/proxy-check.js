@@ -15,7 +15,6 @@ function checkProxy(proxyId) {
             }
         })
         .catch(error => {
-            console.error('检查代理失败:', error);
             alert('检查失败，请稍后重试');
         })
         .finally(() => {
@@ -253,7 +252,6 @@ async function checkAllProxies() {
             // 刷新页面显示最新状态
             location.reload();
         }
-        
     } catch (error) {
         if (!cancelled) {
             document.body.removeChild(progressDiv);
@@ -358,7 +356,7 @@ async function checkAllProxiesParallel() {
                 await fetch(`?ajax=1&action=cancelParallelCheck&session_id=${encodeURIComponent(currentSessionId)}`);
             }
         } catch (e) {
-            console.error('取消请求失败:', e);
+            // 取消请求失败，忽略错误
         }
         
         if (progressInterval) {
@@ -457,45 +455,7 @@ async function checkAllProxiesParallel() {
                     
                     // 绝对严格的完成条件：所有批次完成 且 没有正在运行的批次 且 所有代理都检测完成
                     const shouldComplete = allBatchesCompleted && !hasRunningBatches && allProxiesChecked;
-                    
-                    // 特别调试：如果条件不满足但仍然触发了完成，记录警告
-                    if (!shouldComplete) {
-                        console.warn('⚠️ 完成条件不满足，不应该显示完成对话框:', {
-                            completedBatches,
-                            totalBatches: progressData.total_batches,
-                            allBatchesCompleted,
-                            runningBatches,
-                            hasRunningBatches,
-                            allProxiesChecked,
-                            totalChecked: progressData.total_checked,
-                            totalProxies: progressData.total_proxies
-                        });
-                    }
-                    
-                    // 调试日志：记录完成条件检查
-                    console.log('完成条件检查:', {
-                        completedBatches,
-                        totalBatches: progressData.total_batches,
-                        allBatchesCompleted,
-                        runningBatches,
-                        hasRunningBatches,
-                        progressComplete,
-                        allProxiesChecked,
-                        shouldComplete,
-                        totalChecked: progressData.total_checked,
-                        totalProxies: progressData.total_proxies,
-                        batchStatuses: progressData.batch_statuses.map(b => ({
-                            id: b.batch_id,
-                            status: b.status,
-                            progress: b.progress,
-                            checked: b.checked,
-                            limit: b.limit
-                        }))
-                    });
-                    
                     if (shouldComplete) {
-                        console.log('✅ 所有完成条件都满足，先同步更新UI再显示完成对话框');
-                        
                         // 立即停止轮询，防止更多UI更新
                         clearInterval(progressInterval);
                         
@@ -518,7 +478,6 @@ async function checkAllProxiesParallel() {
                                 const finalAllProxiesChecked = progressData.total_checked >= progressData.total_proxies;
                                 
                                 if (finalAllBatchesCompleted && finalNoRunningBatches && finalAllProxiesChecked) {
-                                    console.log('✅ 最终安全检查通过，显示完成对话框');
                                     document.body.removeChild(progressDiv);
                                     document.body.removeChild(overlay);
                                     
@@ -527,17 +486,7 @@ async function checkAllProxiesParallel() {
                                     // 刷新页面显示最新状态
                                     location.reload();
                                 } else {
-                                    console.error('❌ 最终安全检查失败！阻止显示完成对话框:', {
-                                        finalCompletedBatches,
-                                        totalBatches: progressData.total_batches,
-                                        finalAllBatchesCompleted,
-                                        finalRunningBatches,
-                                        finalNoRunningBatches,
-                                        finalAllProxiesChecked,
-                                        totalChecked: progressData.total_checked,
-                                        totalProxies: progressData.total_proxies
-                                    });
-                                    // 不显示对话框，继续等待
+                                    // 最终安全检查失败，不显示对话框，继续等待
                                     return;
                                 }
                             }
@@ -547,7 +496,6 @@ async function checkAllProxiesParallel() {
                         // 只有在检测真正完成且所有代理都检测完后才开始超时计时
                         if (progressComplete && allProxiesChecked && !hasRunningBatches && waitingForBatchesTime === 0) {
                             waitingForBatchesTime = Date.now(); // 记录开始等待的时间
-                            console.log('开始等待批次状态更新计时');
                         }
                         
                         const waitingDuration = waitingForBatchesTime > 0 ? Date.now() - waitingForBatchesTime : 0;
@@ -564,7 +512,6 @@ async function checkAllProxiesParallel() {
                         
                         // 超时检查：只有在真正开始等待批次状态更新后才检查超时
                         if (waitingForBatchesTime > 0 && waitingDuration > 30000 && progressComplete && allProxiesChecked && !hasRunningBatches) { // 30秒
-                            console.warn('批次进程超时，强制完成检测');
                             
                             // 更新UI显示为完成状态
                             document.getElementById('parallel-progress-bar').style.width = '100%';
@@ -588,13 +535,12 @@ async function checkAllProxiesParallel() {
                     }
                 }
             } catch (error) {
-                console.error('获取进度失败:', error);
+                // 获取进度失败，忽略错误继续尝试
             }
             
             // 整体超时检查：如果总时间超过30分钟，强制停止
             const totalDuration = Date.now() - startTime;
             if (totalDuration > maxWaitTime) {
-                console.warn('并行检测总体超时，强制停止');
                 clearInterval(progressInterval);
                 
                 if (!cancelled) {
@@ -607,12 +553,11 @@ async function checkAllProxiesParallel() {
                 }
             }
         }, 2000); // 每2秒更新一次进度
-        
     } catch (error) {
         if (!cancelled) {
             document.body.removeChild(progressDiv);
             document.body.removeChild(overlay);
-            console.error('并行检测失败:', error);
+            // 并行检测失败
             alert('❌ 并行检测失败: ' + error.message);
         }
     } finally {
