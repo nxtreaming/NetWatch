@@ -158,7 +158,7 @@ class NetworkMonitor {
             $results[] = array_merge($filteredProxy, $result);
             
             // 避免过于频繁的请求
-            usleep(100000); // 0.1秒延迟
+            usleep(10000); // 0.01秒延迟
         }
         
         $this->logger->info("代理检查完成");
