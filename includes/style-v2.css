@@ -310,11 +310,10 @@ body {
 
 /* 三个检测按钮的宽度调整 */
 .action-buttons .btn {
-    max-width: 80px;
     text-align: center;
     white-space: nowrap;
     font-size: 12px;
-    padding: 6px 8px;
+    padding: 6px 6px;
 }
 
 #search-input {
