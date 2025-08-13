@@ -17,13 +17,14 @@ require_once 'logger.php';
 
 // 检查命令行参数
 if ($argc < 4) {
-    echo "Usage: php parallel_batch_manager.php <total_proxies> <batch_size> <temp_dir>\n";
+    echo "Usage: php parallel_batch_manager.php <total_proxies> <batch_size> <temp_dir> [offline_only]\n";
     exit(1);
 }
 
-$totalProxies = (int)$argv[1];
-$batchSize = (int)$argv[2];
+$totalProxies = intval($argv[1]);
+$batchSize = intval($argv[2]);
 $tempDir = $argv[3];
+$offlineOnly = isset($argv[4]) && $argv[4] === '1';
 
 // 初始化组件
 $logger = new Logger();
@@ -81,10 +82,11 @@ try {
         }
         
         // 启动新的检测进程
-        $process = startBatchProcess($batchId, $offset, $currentBatchSize, $statusFile);
+        $process = startBatchProcess($batchId, $offset, $currentBatchSize, $statusFile, $offlineOnly);
         if ($process) {
             $processes[$batchId] = $process;
-            $logger->info("启动批次 {$batchId}: offset={$offset}, limit={$currentBatchSize}");
+            $checkType = $offlineOnly ? "离线代理" : "所有代理";
+            $logger->info("启动批次 {$batchId} ({$checkType}): offset={$offset}, limit={$currentBatchSize}");
         }
         
         $batchIndex++;
@@ -122,27 +124,30 @@ try {
 /**
  * 启动单个批次检测进程
  */
-function startBatchProcess($batchId, $offset, $limit, $statusFile) {
+function startBatchProcess($batchId, $offset, $limit, $statusFile, $offlineOnly = false) {
     // 构建命令行参数
     $scriptPath = __DIR__ . '/parallel_worker.php';
+    $offlineFlag = $offlineOnly ? '1' : '0';
     $command = sprintf(
-        'php "%s" "%s" %d %d "%s" > /dev/null 2>&1 &',
+        'php "%s" "%s" %d %d "%s" %s > /dev/null 2>&1 &',
         $scriptPath,
         $batchId,
         $offset,
         $limit,
-        $statusFile
+        $statusFile,
+        $offlineFlag
     );
     
     // 在Windows系统上使用不同的命令
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
         $command = sprintf(
-            'start /B php "%s" "%s" %d %d "%s"',
+            'start /B php "%s" "%s" %d %d "%s" %s',
             $scriptPath,
             $batchId,
             $offset,
             $limit,
-            $statusFile
+            $statusFile,
+            $offlineFlag
         );
     }
     

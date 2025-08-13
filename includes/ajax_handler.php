@@ -74,6 +74,16 @@ class AjaxHandler {
                 $this->handleSearch();
                 break;
                 
+            case 'startOfflineParallelCheck':
+                $this->handleStartParallelCheck(true); // 传入true表示只检测离线代理
+                break;
+            case 'getOfflineParallelProgress':
+                $this->handleGetParallelProgress(); // 复用现有的进度查询
+                break;
+            case 'cancelOfflineParallelCheck':
+                $this->handleCancelParallelCheck(); // 复用现有的取消逻辑
+                break;
+                
             default:
                 echo json_encode(['error' => '未知操作']);
         }
@@ -282,21 +292,32 @@ class AjaxHandler {
         }
     }
     
-    private function handleStartParallelCheck() {
+    private function handleStartParallelCheck($offlineOnly = false) {
         try {
             require_once 'parallel_monitor.php';
             // 创建会话独立的并行监控器：使用配置常量和会话ID
             $sessionId = session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
-            $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
+            
+            // 如果是离线代理检测，使用更小的批次大小和更少的进程数
+            if ($offlineOnly) {
+                $maxProcesses = 8; // 离线检测使用较少的进程
+                $batchSize = 50;   // 离线检测使用较小的批次
+            } else {
+                $maxProcesses = PARALLEL_MAX_PROCESSES;
+                $batchSize = PARALLEL_BATCH_SIZE;
+            }
+            
+            $parallelMonitor = new ParallelMonitor($maxProcesses, $batchSize, $sessionId, $offlineOnly);
             
             // 启动并行检测（异步）
             $result = $parallelMonitor->startParallelCheck();
             
             echo json_encode($result);
         } catch (Exception $e) {
+            $checkType = $offlineOnly ? '离线代理' : '并行';
             echo json_encode([
                 'success' => false,
-                'error' => '启动并行检测失败: ' . $e->getMessage()
+                'error' => "启动{$checkType}检测失败: " . $e->getMessage()
             ]);
         }
     }
@@ -439,4 +460,5 @@ class AjaxHandler {
             ]);
         }
     }
+
 }

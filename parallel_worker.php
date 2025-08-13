@@ -18,14 +18,15 @@ require_once 'logger.php';
 
 // 检查命令行参数
 if ($argc < 5) {
-    echo "Usage: php parallel_worker.php <batch_id> <offset> <limit> <status_file>\n";
+    echo "Usage: php parallel_worker.php <batch_id> <offset> <limit> <status_file> [offline_only]\n";
     exit(1);
 }
 
 $batchId = $argv[1];
-$offset = (int)$argv[2];
-$limit = (int)$argv[3];
+$offset = intval($argv[2]);
+$limit = intval($argv[3]);
 $statusFile = $argv[4];
+$offlineOnly = isset($argv[5]) && $argv[5] === '1';
 
 // 初始化组件
 $db = new Database();
@@ -42,19 +43,21 @@ try {
     ]);
     
     // 获取当前批次的代理列表
-    $proxies = $db->getProxiesBatch($offset, $limit);
+    $proxies = $offlineOnly ? $db->getOfflineProxiesBatch($offset, $limit) : $db->getProxiesBatch($offset, $limit);
     $totalProxies = count($proxies);
     
     if ($totalProxies == 0) {
+        $errorMsg = $offlineOnly ? '没有找到离线代理数据' : '没有找到代理数据';
         updateBatchStatus($statusFile, [
             'status' => 'completed',
             'end_time' => time(),
-            'error' => '没有找到代理数据'
+            'error' => $errorMsg
         ]);
         exit(0);
     }
     
-    $logger->info("批次 {$batchId} 获取到 {$totalProxies} 个代理");
+    $checkType = $offlineOnly ? "离线代理" : "代理";
+    $logger->info("批次 {$batchId} 获取到 {$totalProxies} 个{$checkType}");
     
     // 检测每个代理
     $checkedCount = 0;

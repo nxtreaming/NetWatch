@@ -368,6 +368,42 @@ class Database {
     }
     
     /**
+     * 获取离线代理列表
+     * @return array 离线代理列表
+     */
+    public function getOfflineProxies() {
+        $sql = "SELECT * FROM proxies WHERE status = 'offline' ORDER BY failure_count DESC, last_check ASC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * 获取离线代理总数
+     * @return int 离线代理数量
+     */
+    public function getOfflineProxyCount() {
+        $sql = "SELECT COUNT(*) as count FROM proxies WHERE status = 'offline'";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)$result['count'];
+    }
+    
+    /**
+     * 分批获取离线代理列表
+     * @param int $offset 偏移量
+     * @param int $limit 限制数量
+     * @return array 离线代理列表
+     */
+    public function getOfflineProxiesBatch($offset = 0, $limit = 20) {
+        $sql = "SELECT * FROM proxies WHERE status = 'offline' ORDER BY failure_count DESC, last_check ASC LIMIT ? OFFSET ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$limit, $offset]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * 清理代理数量缓存
      */
     private function clearProxyCountCache() {

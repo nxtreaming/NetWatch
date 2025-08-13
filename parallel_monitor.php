@@ -20,13 +20,15 @@ class ParallelMonitor {
     private $maxProcesses;
     private $batchSize;
     private $sessionId;
+    private $offlineOnly;
     
-    public function __construct($maxProcesses = 12, $batchSize = 200, $sessionId = null) {
+    public function __construct($maxProcesses = 12, $batchSize = 200, $sessionId = null, $offlineOnly = false) {
         $this->db = new Database();
         $this->logger = new Logger();
         $this->monitor = new NetworkMonitor();
         $this->maxProcesses = $maxProcesses; // 最大并行进程数
         $this->batchSize = $batchSize; // 每组代理数量
+        $this->offlineOnly = $offlineOnly; // 是否只检测离线代理
         
         // 生成或使用提供的会话ID，确保每个检测任务独立
         if ($sessionId === null) {
@@ -51,12 +53,14 @@ class ParallelMonitor {
      */
     public function startParallelCheck() {
         $startTime = microtime(true);
-        $this->logger->info("启动并行检查所有代理 (会话: {$this->sessionId})");
+        $checkType = $this->offlineOnly ? "离线代理" : "所有代理";
+        $this->logger->info("启动并行检查{$checkType} (会话: {$this->sessionId})");
         
-        // 获取所有代理总数
-        $totalProxies = $this->db->getProxyCount();
+        // 获取代理总数
+        $totalProxies = $this->offlineOnly ? $this->db->getOfflineProxyCount() : $this->db->getProxyCount();
         if ($totalProxies == 0) {
-            return ['success' => false, 'error' => '没有找到代理数据'];
+            $errorMsg = $this->offlineOnly ? '没有找到离线代理数据' : '没有找到代理数据';
+            return ['success' => false, 'error' => $errorMsg];
         }
         
         // 计算需要的批次数
@@ -102,22 +106,25 @@ class ParallelMonitor {
     private function startBatchesAsync($totalProxies, $tempDir) {
         // 在后台启动批次管理器
         $managerScript = __DIR__ . '/parallel_batch_manager.php';
+        $offlineFlag = $this->offlineOnly ? '1' : '0';
         $command = sprintf(
-            'php "%s" %d %d "%s" > /dev/null 2>&1 &',
+            'php "%s" %d %d "%s" %s > /dev/null 2>&1 &',
             $managerScript,
             $totalProxies,
             $this->batchSize,
-            $tempDir
+            $tempDir,
+            $offlineFlag
         );
         
         // 在Windows系统上使用不同的命令
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             $command = sprintf(
-                'start /B php "%s" %d %d "%s"',
+                'start /B php "%s" %d %d "%s" %s',
                 $managerScript,
                 $totalProxies,
                 $this->batchSize,
-                $tempDir
+                $tempDir,
+                $offlineFlag
             );
         }
         
