@@ -1,11 +1,15 @@
 <?php
 /**
- * 代理认证修复工具
+ * 修复代理认证问题的脚本
  */
 
-require_once 'config.php';
-require_once 'monitor.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../database.php';
+require_once '../monitor.php';
 
+// 检查登录状态
+Auth::requireLogin();
 $monitor = new NetworkMonitor();
 
 echo "<h2>代理认证修复工具</h2>";

@@ -10,7 +10,11 @@ error_reporting(E_ALL);
 
 try {
     require_once 'config.php';
+    require_once 'auth.php';
     require_once 'monitor.php';
+    
+    // 检查登录状态
+    Auth::requireLogin();
 } catch (Exception $e) {
     die("<h2>加载文件失败</h2><p>错误: " . htmlspecialchars($e->getMessage()) . "</p>");
 }

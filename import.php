@@ -4,7 +4,11 @@
  */
 
 require_once 'config.php';
+require_once 'auth.php';
 require_once 'monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 $monitor = new NetworkMonitor();
 

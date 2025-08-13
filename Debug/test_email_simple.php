@@ -7,10 +7,14 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
-require_once 'mailer.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../database.php';
+require_once '../monitor.php';
+require_once '../mailer.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 // 处理AJAX请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {

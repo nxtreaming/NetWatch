@@ -3,8 +3,12 @@
  * 代理调试工具
  */
 
-require_once 'config.php';
-require_once 'monitor.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 if (isset($_GET['proxy_id'])) {
     $proxyId = $_GET['proxy_id'];

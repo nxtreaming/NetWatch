@@ -3,10 +3,14 @@
  * 检查失败代理和邮件通知状态
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
-require_once 'logger.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../database.php';
+require_once '../monitor.php';
+require_once '../logger.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "=== NetWatch 失败代理检查 ===\n\n";
 

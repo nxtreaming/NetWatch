@@ -3,8 +3,12 @@
  * 快速诊断脚本
  */
 
-require_once 'config.php';
-require_once 'monitor.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "<h2>NetWatch 诊断报告</h2>";
 

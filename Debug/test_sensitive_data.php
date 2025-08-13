@@ -3,10 +3,14 @@
  * 测试敏感数据过滤功能
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
-require_once 'logger.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../database.php';
+require_once '../monitor.php';
+require_once '../logger.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "=== NetWatch 敏感数据过滤测试 ===\n\n";
 

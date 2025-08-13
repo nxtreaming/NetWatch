@@ -4,8 +4,12 @@
  * 用于诊断邮件发送问题
  */
 
-require_once 'config.php';
-require_once 'logger.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../logger.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "<h2>📧 邮件发送调试工具</h2>\n";
 

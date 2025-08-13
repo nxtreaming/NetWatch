@@ -3,15 +3,19 @@
  * 测试脚本
  */
 
-require_once 'config.php';
-require_once 'monitor.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 // 选择邮件发送方式
-if (file_exists('vendor/autoload.php')) {
-    require_once 'mailer.php';
+if (file_exists('../vendor/autoload.php')) {
+    require_once '../mailer.php';
     define('USE_PHPMAILER', true);
 } else {
-    require_once 'mailer_simple.php';
+    require_once '../mailer_simple.php';
     define('USE_PHPMAILER', false);
 }
 

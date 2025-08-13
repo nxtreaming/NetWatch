@@ -3,12 +3,16 @@
  * 邮件发送功能测试工具
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../database.php';
+require_once '../monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 // 使用PHPMailer发送邮件
-require_once 'mailer.php';
+require_once '../mailer.php';
 $mailer = new Mailer();
 $mailerType = 'PHPMailer (SMTP)';
 
@@ -147,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // 加载配置用于页面显示
-require_once 'config.php';
+// 配置已在开头加载
 $mailerType = 'PHPMailer (SMTP)';
 ?>
 

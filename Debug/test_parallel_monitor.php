@@ -3,10 +3,14 @@
  * 并行代理检测功能测试脚本
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
-require_once 'parallel_monitor.php';
+require_once '../config.php';
+require_once '../auth.php';
+require_once '../database.php';
+require_once '../monitor.php';
+require_once '../parallel_monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 // 并行检测配置常量
 define('PARALLEL_MAX_PROCESSES', 6);    // 最大并行进程数
