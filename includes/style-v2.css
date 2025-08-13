@@ -308,6 +308,13 @@ body {
     gap: 12px;
 }
 
+/* 三个检测按钮的宽度调整 */
+.action-buttons .btn {
+    min-width: 110px;
+    text-align: center;
+    white-space: nowrap;
+}
+
 #search-input {
     padding: 8px 12px;
     border: 1px solid #ddd;
