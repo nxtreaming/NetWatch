@@ -60,7 +60,7 @@ class ParallelMonitor {
         $totalProxies = $this->offlineOnly ? $this->db->getOfflineProxyCount() : $this->db->getProxyCount();
         if ($totalProxies == 0) {
             if ($this->offlineOnly) {
-                $errorMsg = '🎉 太好了！当前没有离线代理需要检测。\n\n这意味着您的所有代理服务器都处于正常工作状态。如果您想检测所有代理的最新状态，可以使用"🚀 并行检测"功能。';
+                $errorMsg = '🎉 太好了！当前没有离线代理需要检测。<br><br>这意味着您的所有代理服务器都处于正常工作状态。如果您想检测所有代理的最新状态，可以使用"🚀 并行检测"功能。';
             } else {
                 $errorMsg = '没有找到代理数据，请先添加代理服务器。';
             }

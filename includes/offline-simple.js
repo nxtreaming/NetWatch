@@ -21,14 +21,17 @@ async function checkOfflineProxiesParallel() {
         }
         
         if (!data.success) {
-            throw new Error(data.error || '启动离线代理检测失败');
+            btn.textContent = originalText;
+            btn.disabled = false;
+            showCustomAlert(data.error || '启动离线代理检测失败');
+            return;
         }
         
         // 如果没有离线代理，直接提示
         if (data.total_proxies === 0) {
             btn.textContent = originalText;
             btn.disabled = false;
-            alert('🎉 太好了！当前没有离线的代理需要检测。');
+            showCustomAlert(data.error || '🎉 太好了！当前没有离线的代理需要检测。');
             return;
         }
         
@@ -40,10 +43,87 @@ async function checkOfflineProxiesParallel() {
         showParallelProgress(data);
         
     } catch (error) {
-        alert('❌ 离线代理检测失败: ' + error.message);
+        showCustomAlert('❌ 离线代理检测失败: ' + error.message);
         btn.textContent = originalText;
         btn.disabled = false;
     }
+}
+
+// 自定义提示框函数，支持HTML内容和居中按钮
+function showCustomAlert(message) {
+    // 创建遮罩层
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    // 创建提示框
+    const alertBox = document.createElement('div');
+    alertBox.style.cssText = `
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        min-width: 300px;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1.5;
+    `;
+    
+    // 创建消息内容
+    const messageDiv = document.createElement('div');
+    messageDiv.innerHTML = message;
+    messageDiv.style.cssText = `
+        margin-bottom: 20px;
+        color: #333;
+    `;
+    
+    // 创建确定按钮
+    const okButton = document.createElement('button');
+    okButton.textContent = '确定';
+    okButton.style.cssText = `
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        margin: 0 auto;
+        display: block;
+    `;
+    
+    // 按钮悬停效果
+    okButton.onmouseover = () => okButton.style.background = '#5a6fd8';
+    okButton.onmouseout = () => okButton.style.background = '#667eea';
+    
+    // 点击确定关闭提示框
+    okButton.onclick = () => document.body.removeChild(overlay);
+    
+    // 组装提示框
+    alertBox.appendChild(messageDiv);
+    alertBox.appendChild(okButton);
+    overlay.appendChild(alertBox);
+    
+    // 添加到页面
+    document.body.appendChild(overlay);
+    
+    // 点击遮罩层也可以关闭
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+        }
+    };
 }
 
 // 简化的进度显示，基于现有代码
