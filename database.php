@@ -92,7 +92,8 @@ class Database {
     
     public function getAllProxies() {
         $sql = "SELECT * FROM proxies ORDER BY id";
-        $stmt = $this->pdo->query($sql);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
@@ -152,7 +153,8 @@ class Database {
             AVG(response_time) as avg_response_time
         FROM proxies
         ";
-        $stmt = $this->pdo->query($sql);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
     
@@ -245,7 +247,8 @@ class Database {
         $startTime = microtime(true);
         
         $sql = "SELECT COUNT(*) as count FROM proxies";
-        $stmt = $this->pdo->query($sql);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
         // 记录执行时间
