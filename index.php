@@ -202,7 +202,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         <!-- 检测功能 -->
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">代理检测功能</h2>
+                <h2 class="section-title">检测</h2>
                 <div class="header-actions">
                     <div class="search-container">
                         <input type="text" id="search-input" placeholder="搜索IP地址或网段（如: 1.2.3.4 或 1.2.3.x）" value="<?php echo htmlspecialchars($searchTerm); ?>">
