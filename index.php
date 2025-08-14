@@ -199,10 +199,10 @@ $recentLogs = $monitor->getRecentLogs(20);
             </div>
         </div>
         
-        <!-- 代理列表 -->
+        <!-- 检测功能 -->
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">代理服务器列表</h2>
+                <h2 class="section-title">代理检测功能</h2>
                 <div class="header-actions">
                     <div class="search-container">
                         <input type="text" id="search-input" placeholder="搜索IP地址或网段（如: 1.2.3.4 或 1.2.3.x）" value="<?php echo htmlspecialchars($searchTerm); ?>">
@@ -241,6 +241,13 @@ $recentLogs = $monitor->getRecentLogs(20);
                 </span>
             </div>
             <?php endif; ?>
+        </div>
+        
+        <!-- 代理服务器列表 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">代理服务器列表</h2>
+            </div>
             <div class="table-container">
                 <table id="proxies-table">
                     <thead>
