@@ -246,7 +246,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         <!-- 代理服务器列表 -->
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">代理服务器列表</h2>
+                <h2 class="section-title">代理IP列表</h2>
             </div>
             <div class="table-container">
                 <table id="proxies-table">
