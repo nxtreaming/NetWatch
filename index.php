@@ -191,7 +191,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             </div>
             <div class="stat-card">
                 <div class="stat-number unknown"><?php echo $stats['unknown']; ?></div>
-                <div class="stat-label">未知</div>
+                <div class="stat-label">未知数量</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number total"><?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>

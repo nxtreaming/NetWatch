@@ -95,7 +95,7 @@ body {
 
 .stat-card {
     background: white;
-    padding: 10px 5px;
+    padding: 5px 5px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     text-align: center;
@@ -312,8 +312,8 @@ body {
 .action-buttons .btn {
     text-align: center;
     white-space: nowrap;
-    font-size: 12px;
-    padding: 6px 6px;
+    font-size: 14px;
+    padding: 8px 8px;
 }
 
 #search-input {
