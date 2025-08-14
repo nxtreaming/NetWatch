@@ -222,7 +222,6 @@ $recentLogs = $monitor->getRecentLogs(20);
                     <button class="btn" onclick="checkAllProxies()">🔍 逐个检测</button>
                     <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
                     <button class="btn btn-offline" onclick="checkOfflineProxiesParallel()" title="专门检测离线代理，快速发现恢复的代理">🔧 离线检测</button>
-                    <button class="btn btn-refresh" onclick="refreshAll()">🔄 刷新所有</button>
                 </div>
             </div>
             
