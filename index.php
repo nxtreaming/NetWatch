@@ -240,7 +240,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             <?php endif; ?>
         </div>
         
-        <!-- 代理服务器列表 -->
+        <!-- 代理IP列表 -->
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">代理IP列表</h2>
