@@ -195,7 +195,7 @@ $recentLogs = $monitor->getRecentLogs(20);
             </div>
             <div class="stat-card">
                 <div class="stat-number total"><?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>
-                <div class="stat-label">平均响应时间</div>
+                <div class="stat-label">平均时间</div>
             </div>
         </div>
         
@@ -253,7 +253,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>地址</th>
+                            <th>IP</th>
                             <th>类型</th>
                             <th>状态</th>
                             <th>响应时间</th>
