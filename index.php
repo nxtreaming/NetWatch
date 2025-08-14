@@ -201,9 +201,7 @@ $recentLogs = $monitor->getRecentLogs(20);
         
         <!-- 检测功能 -->
         <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">检测</h2>
-                <div class="header-actions">
+            <div class="header-actions">
                     <div class="search-container">
                         <input type="text" id="search-input" placeholder="搜索IP地址或网段（如: 1.2.3.4 或 1.2.3.x）" value="<?php echo htmlspecialchars($searchTerm); ?>">
                         <button class="btn search-btn" onclick="performSearch()">搜索</button>
@@ -223,9 +221,9 @@ $recentLogs = $monitor->getRecentLogs(20);
                             <button class="btn" onclick="checkAllProxies()">🔍 逐个检测</button>
                             <button class="btn btn-parallel" onclick="checkAllProxiesParallel()" title="使用并行检测，速度更快！每400个IP一组并行执行">🚀 并行检测</button>
                             <button class="btn btn-offline" onclick="checkOfflineProxiesParallel()" title="专门检测离线代理，快速发现恢复的代理">🔧 离线检测</button>
+                            <button class="btn btn-refresh" onclick="refreshAll()">🔄 刷新所有</button>
                         </div>
                     </div>
-                </div>
             </div>
             
             <?php if (!empty($searchTerm) || !empty($statusFilter)): ?>
