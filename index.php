@@ -156,7 +156,8 @@ $recentLogs = $monitor->getRecentLogs(20);
                     <h1>🌐 NetWatch</h1>
                     <p>网络代理监控系统</p>
                 </div>
-                <?php if (Auth::isLoginEnabled()): ?><div class="header-right">
+                <?php if (Auth::isLoginEnabled()): ?>
+                <div class="header-right">
                     <div class="user-info">
                         <div class="user-row">
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
