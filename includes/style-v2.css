@@ -24,7 +24,7 @@ body {
 }
 
 .header h1 {
-    font-size: 26px;
+    font-size: 24px;
     margin-bottom: 5px;
 }
 
@@ -73,7 +73,7 @@ body {
 .header-right {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 10px;
 }
 
 .user-info {
@@ -122,12 +122,12 @@ body {
 
 .stat-card {
     background: white;
-    padding: 15px 10px;
+    padding: 10px 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     text-align: center;
     transition: transform 0.2s;
-    min-height: 60px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
