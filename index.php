@@ -155,6 +155,11 @@ $recentLogs = $monitor->getRecentLogs(20);
                 <div class="header-left">
                     <h1>🌐 NetWatch</h1>
                     <p>网络代理监控系统</p>
+                    <div class="nav-menu">
+                        <a href="index.php" class="nav-link active">代理监控</a>
+                        <a href="token_manager.php" class="nav-link">🔑 API Token</a>
+                        <a href="import.php" class="nav-link">导入代理</a>
+                    </div>
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
