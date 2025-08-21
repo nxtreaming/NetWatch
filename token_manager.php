@@ -348,7 +348,7 @@ $tokens = $db->getAllTokens();
     <div class="container">
         <header>
             <div class="token-manager">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
                     <h1>🔑 API Token 管理</h1>
                     <div class="header-right">
                         <a href="api_demo.php" class="btn btn-primary">API示例</a>
