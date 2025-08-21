@@ -132,7 +132,7 @@ $tokens = $db->getAllTokens();
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            margin: 0 20px;
+            margin: 0 20px 20px 20px;
         }
         
         .form-row {
@@ -166,7 +166,7 @@ $tokens = $db->getAllTokens();
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 0 20px;
+            margin: 0 20px 20px 20px;
         }
         
         .token-table {
