@@ -178,24 +178,19 @@ $recentLogs = $monitor->getRecentLogs(20);
         <!-- 统计信息 -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number total"><?php echo $stats['total']; ?></div>
-                <div class="stat-label">总数</div>
+                <div class="stat-inline total">总数: <?php echo $stats['total']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-number online"><?php echo $stats['online']; ?></div>
-                <div class="stat-label">在线</div>
+                <div class="stat-inline online">在线: <?php echo $stats['online']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-number offline"><?php echo $stats['offline']; ?></div>
-                <div class="stat-label">离线</div>
+                <div class="stat-inline offline">离线: <?php echo $stats['offline']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-number unknown"><?php echo $stats['unknown']; ?></div>
-                <div class="stat-label">未知</div>
+                <div class="stat-inline unknown">未知: <?php echo $stats['unknown']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-number total"><?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>
-                <div class="stat-label">时间</div>
+                <div class="stat-inline total">时间: <?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>
             </div>
             <div class="stat-card nav-card">
                 <a href="token_manager.php" class="nav-btn">Token管理</a>
