@@ -132,13 +132,7 @@ $tokens = $db->getAllTokens();
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            margin: 0 20px 30px 20px;
-        }
-        
-        .create-token-form h3 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            padding: 0;
+            margin: 0 20px;
         }
         
         .form-row {
@@ -362,8 +356,9 @@ $tokens = $db->getAllTokens();
 
         <div class="token-manager">
             <!-- 创建Token表单 -->
-            <div class="create-token-form">
+            <div class="section">
                 <h3>创建新的API Token</h3>
+                <div class="create-token-form">
                 <form id="create-token-form">
                     <div class="form-row">
                         <div class="form-group">
@@ -388,6 +383,7 @@ $tokens = $db->getAllTokens();
                         </div>
                     </div>
                 </form>
+                </div>
             </div>
 
             <!-- Token列表 -->
