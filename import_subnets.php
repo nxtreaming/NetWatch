@@ -87,12 +87,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>子网代理导入 - NetWatch</title>
-    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        .import-container {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
             max-width: 1000px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 0 20px;
         }
         
         .header h1 {
@@ -106,54 +124,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .nav {
-            background: white;
-            padding: 15px 0;
             margin: 20px 0;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .nav-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
         }
         
         .nav a {
             color: #667eea;
             text-decoration: none;
+            margin-right: 20px;
             font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 5px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
         
         .nav a:hover {
-            background: #f8f9fa;
-            color: #5a6fd8;
-        }
-        
-        .nav a.active {
-            background: #667eea;
-            color: white;
-        }
-        
-        .nav-title {
-            font-weight: 600;
-            color: #333;
-            font-size: 16px;
+            text-decoration: underline;
         }
         
         .section {
@@ -321,47 +303,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="header">
         <div class="container">
-            <div class="header-content">
-                <div class="header-left">
-                    <h1>🌐 子网代理导入</h1>
-                    <p>批量导入多个子网的代理服务器配置</p>
-                </div>
-                <?php if (Auth::isLoginEnabled()): ?>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-row">
-                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="?action=logout" class="btn btn-logout">退出</a>
-                        </div>
-                        <div class="session-time">
-                            登录时间：<?php echo formatTime(Auth::getLoginTime()); ?>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-            </div>
+            <h1>🌐 子网代理导入</h1>
+            <p>批量导入多个子网的代理服务器配置</p>
         </div>
     </div>
     
     <div class="container">
         <div class="nav">
-            <div class="nav-content">
-                <div class="nav-title">代理管理</div>
-                <div class="nav-links">
-                    <a href="index.php">
-                        <span>🏠</span>
-                        监控面板
-                    </a>
-                    <a href="import.php">
-                        <span>📤</span>
-                        单个导入
-                    </a>
-                    <a href="import_subnets.php" class="active">
-                        <span>🌐</span>
-                        子网导入
-                    </a>
-                </div>
-            </div>
+            <a href="index.php">← 返回监控面板</a>
+            <a href="import.php">单个代理导入</a>
         </div>
         
         <?php if (isset($result)): ?>
@@ -406,7 +356,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <form method="post" id="subnetForm">
-            <div class="import-section">
+            <div class="section">
                 <h2>公共配置</h2>
                 <div class="form-row">
                     <div class="form-group">
@@ -445,7 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
             
-            <div class="import-section">
+            <div class="section">
                 <h2>子网配置</h2>
                 <div id="subnets-container">
                     <?php
@@ -481,14 +431,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="button" class="btn btn-add" onclick="addSubnet()">+ 添加新子网</button>
             </div>
             
-            <div class="import-section">
+            <div class="section">
                 <button type="submit" class="btn">开始导入</button>
                 <button type="button" class="btn btn-secondary" onclick="clearForm()">清空表单</button>
                 <button type="button" class="btn btn-secondary" onclick="previewProxies()">预览代理数量</button>
             </div>
         </form>
         
-        <div class="import-section">
+        <div class="section">
             <h2>使用说明</h2>
             <ul style="line-height: 1.6; margin-left: 20px;">
                 <li><strong>公共配置:</strong> 所有子网使用相同的端口、类型、用户名和密码</li>
