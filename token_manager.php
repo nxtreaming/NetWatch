@@ -353,7 +353,7 @@ $tokens = $db->getAllTokens();
                 </div>
                 <div class="header-right">
                     <a href="index.php" class="btn btn-secondary">返回主页</a>
-                    <a href="api_demo.php" class="btn btn-primary">API示例</a>
+                    <a href="api_demo.php" class="btn btn-secondary">API示例</a>
                 </div>
             </div>
         </div>
