@@ -124,18 +124,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .nav {
+            background: white;
+            padding: 15px 0;
             margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
         
         .nav a {
             color: #667eea;
             text-decoration: none;
-            margin-right: 20px;
             font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .nav a:hover {
-            text-decoration: underline;
+            background: #f8f9fa;
+            color: #5a6fd8;
+        }
+        
+        .nav a.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .nav-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
         }
         
         .section {
@@ -310,8 +346,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     <div class="container">
         <div class="nav">
-            <a href="index.php">← 返回监控面板</a>
-            <a href="import.php">单个代理导入</a>
+            <div class="nav-content">
+                <div class="nav-title">代理管理</div>
+                <div class="nav-links">
+                    <a href="index.php">
+                        <span>🏠</span>
+                        监控面板
+                    </a>
+                    <a href="import.php">
+                        <span>📤</span>
+                        单个导入
+                    </a>
+                    <a href="import_subnets.php" class="active">
+                        <span>🌐</span>
+                        子网导入
+                    </a>
+                </div>
+            </div>
         </div>
         
         <?php if (isset($result)): ?>
