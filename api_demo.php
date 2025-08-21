@@ -8,6 +8,8 @@ Auth::requireLogin();
 
 $db = new Database();
 $tokens = $db->getAllTokens();
+
+$baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -156,7 +158,7 @@ $tokens = $db->getAllTokens();
             <div class="header-content">
                 <div class="header-left">
                     <h1>🔧 API 使用示例</h1>
-                    <p>测试和学习NetWatch API接口</p>
+                    <p>测试NetWatch API接口</p>
                 </div>
                 <div class="header-right">
                     <a href="index.php" class="btn btn-secondary">返回主页</a>
@@ -174,7 +176,7 @@ $tokens = $db->getAllTokens();
             
             <div class="endpoint-box">
                 <strong>基础URL:</strong>
-                <div class="endpoint-url"><?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php</div>
+                <div class="endpoint-url"><?php echo $baseUrl; ?>/api.php</div>
             </div>
         </div>
 
@@ -190,18 +192,18 @@ $tokens = $db->getAllTokens();
             
             <div class="endpoint-box">
                 <strong>2. POST参数:</strong>
-                <div class="code-block">curl -X POST -d "token=YOUR_TOKEN" "<?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php?action=proxies"</div>
+                <div class="code-block">curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"</div>
             </div>
             
             <div class="endpoint-box">
                 <strong>3. Authorization头:</strong>
-                <div class="code-block">curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php?action=proxies"</div>
+                <div class="code-block">curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"</div>
             </div>
         </div>
 
         <!-- 在线测试工具 -->
         <div class="demo-section">
-            <h3>🧪 在线测试工具</h3>
+            <h3>🧪 测试工具</h3>
             
             <div class="test-form">
                 <div class="form-group">
@@ -259,7 +261,7 @@ $tokens = $db->getAllTokens();
             <div class="code-block">
 <?php echo htmlspecialchars('<?php
 $token = "YOUR_TOKEN_HERE";
-$url = "' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . '/api.php?action=proxies&token=" . $token;
+$url = "' . $baseUrl . '/api.php?action=proxies&token=" . $token;
 
 $response = file_get_contents($url);
 $data = json_decode($response, true);
@@ -280,7 +282,7 @@ import requests
 import json
 
 token = "YOUR_TOKEN_HERE"
-url = "<?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php"
+url = "<?php echo $baseUrl; ?>/api.php"
 
 # 方式1: URL参数
 response = requests.get(url, params={"action": "proxies", "token": token})
@@ -303,7 +305,7 @@ else:
             <h4>JavaScript示例:</h4>
             <div class="code-block">
 const token = "YOUR_TOKEN_HERE";
-const url = "<?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php";
+const url = "<?php echo $baseUrl; ?>/api.php";
 
 // 使用fetch API
 fetch(`${url}?action=proxies&token=${token}`)
@@ -323,13 +325,13 @@ fetch(`${url}?action=proxies&token=${token}`)
             <h4>curl示例:</h4>
             <div class="code-block">
 # JSON格式
-curl "<?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php?action=proxies&token=YOUR_TOKEN"
+curl "<?php echo $baseUrl; ?>/api.php?action=proxies&token=YOUR_TOKEN"
 
 # 文本格式
-curl "<?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php?action=proxies&token=YOUR_TOKEN&format=txt"
+curl "<?php echo $baseUrl; ?>/api.php?action=proxies&token=YOUR_TOKEN&format=txt"
 
 # 使用Authorization头
-curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php?action=proxies"
+curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"
             </div>
         </div>
 
@@ -410,7 +412,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $_SERVER['HTTP_HOST'] . d
         // 更新请求URL显示
         function updateRequestUrl() {
             const token = document.getElementById('test-token').value;
-            const baseUrl = '<?php echo $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']); ?>/api.php';
+            const baseUrl = '<?php echo $baseUrl; ?>/api.php';
             
             if (!token) {
                 document.getElementById('request-url').textContent = '请先选择Token';
