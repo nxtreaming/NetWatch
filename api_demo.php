@@ -158,7 +158,6 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
             <div class="header-content">
                 <div class="header-left">
                     <h1>🔧 API 使用示例</h1>
-                    <p>测试NetWatch API接口</p>
                 </div>
                 <div class="header-right">
                     <a href="index.php" class="btn btn-secondary">返回主页</a>
