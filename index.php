@@ -178,19 +178,19 @@ $recentLogs = $monitor->getRecentLogs(20);
         <!-- 统计信息 -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-inline total">总数: <?php echo $stats['total']; ?></div>
+                <div class="stat-inline total">代理总数: <?php echo $stats['total']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-inline online">在线: <?php echo $stats['online']; ?></div>
+                <div class="stat-inline online">在线数量: <?php echo $stats['online']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-inline offline">离线: <?php echo $stats['offline']; ?></div>
+                <div class="stat-inline offline">离线数量: <?php echo $stats['offline']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-inline unknown">未知: <?php echo $stats['unknown']; ?></div>
+                <div class="stat-inline unknown">未知数量: <?php echo $stats['unknown']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-inline total">时间: <?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>
+                <div class="stat-inline total">平均时间: <?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>
             </div>
             <div class="stat-card nav-card">
                 <a href="token_manager.php" class="nav-btn">Token管理</a>

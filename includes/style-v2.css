@@ -117,7 +117,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 18px;
-    margin: 30px 0;
+    margin: 15px 0;
 }
 
 .stat-card {
@@ -155,7 +155,7 @@ body {
     text-decoration: none;
     color: #667eea;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     border-radius: 8px;
     transition: all 0.3s ease;
 }
