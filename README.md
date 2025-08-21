@@ -1,106 +1,106 @@
-# NetWatch - 网络代理监控系统
+# NetWatch - Network Proxy Monitoring System
 
-NetWatch 是一个基于PHP的高性能网络代理监控系统，专门用于监控大量SOCKS5和HTTP代理的可用性状态。支持并行处理，能够高效地监控数千个代理服务器。
+NetWatch is a high-performance PHP-based network proxy monitoring system designed specifically for monitoring the availability status of large numbers of SOCKS5 and HTTP proxies. It supports parallel processing and can efficiently monitor thousands of proxy servers.
 
-## 功能特性
+## Features
 
-- 🌐 **多协议支持**: 支持SOCKS5和HTTP代理监控
-- 🚀 **高性能并行处理**: 支持多进程并行检测，最高可同时处理12个进程，每批次500个代理
-- 📊 **实时监控**: 实时检测代理服务器状态和响应时间
-- 📧 **邮件通知**: 代理故障时自动发送邮件通知
-- 📈 **Web界面**: 简洁美观的Web管理界面
-- 📝 **日志记录**: 详细的监控日志和历史记录
-- 🔄 **自动调度**: 后台定时任务自动执行监控
-- 📥 **批量导入**: 支持批量导入代理配置
-- 💾 **SQLite数据库**: 轻量级数据库，无需额外配置
-- ⏱️ **时区支持**: 自动处理时区转换，支持北京时间显示
+- 🌐 **Multi-Protocol Support**: Supports SOCKS5 and HTTP proxy monitoring
+- 🚀 **High-Performance Parallel Processing**: Supports multi-process parallel detection, up to 12 concurrent processes, 500 proxies per batch
+- 📊 **Real-Time Monitoring**: Real-time detection of proxy server status and response times
+- 📧 **Email Notifications**: Automatic email notifications when proxy failures occur
+- 📈 **Web Interface**: Clean and beautiful web management interface
+- 📝 **Logging**: Detailed monitoring logs and historical records
+- 🔄 **Automatic Scheduling**: Background scheduled tasks for automatic monitoring
+- 📥 **Batch Import**: Support for batch importing proxy configurations
+- 💾 **SQLite Database**: Lightweight database with no additional configuration required
+- ⏱️ **Timezone Support**: Automatic timezone conversion with Beijing time display support
 
-## 系统要求
+## System Requirements
 
 - PHP 8.0+
-- cURL扩展
-- SQLite扩展
-- PCNTL扩展（用于并行处理）
-- POSIX扩展
-- 已配置的Web服务器 (Nginx + PHP-FPM 或 Apache)
+- cURL extension
+- SQLite extension
+- PCNTL extension (for parallel processing)
+- POSIX extension
+- Configured web server (Nginx + PHP-FPM or Apache)
 
-## 性能配置
+## Performance Configuration
 
-系统默认配置了以下性能参数，您可以根据服务器配置进行调整（在`index.php`中修改）：
+The system has the following default performance parameters configured, which you can adjust according to your server configuration (modify in `index.php`):
 
 ```php
-define('PARALLEL_MAX_PROCESSES', 12);   // 最大并行进程数
-define('PARALLEL_BATCH_SIZE', 500);     // 每批次处理的代理数量
+define('PARALLEL_MAX_PROCESSES', 12);   // Maximum number of parallel processes
+define('PARALLEL_BATCH_SIZE', 500);     // Number of proxies processed per batch
 ```
 
-> 💡 **性能建议**：
-> - 对于4核8G服务器，建议保持默认配置
-> - 对于更高配置的服务器，可以适当增加`PARALLEL_MAX_PROCESSES`
-> - 如果网络延迟较高，可以适当减少`PARALLEL_BATCH_SIZE`
+> 💡 **Performance Recommendations**:
+> - For 4-core 8GB servers, it's recommended to keep the default configuration
+> - For higher-spec servers, you can appropriately increase `PARALLEL_MAX_PROCESSES`
+> - If network latency is high, you can appropriately reduce `PARALLEL_BATCH_SIZE`
 
-## 安装步骤
+## Installation Steps
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
 ```bash
-# 安装Composer依赖
+# Install Composer dependencies
 composer install
 ```
 
-### 2. 配置系统
+### 2. Configure System
 
-编辑 `config.php` 文件，修改以下配置：
+Edit the `config.php` file and modify the following configurations:
 
 ```php
-// 邮件配置
+// Email configuration
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_USERNAME', 'your-email@gmail.com');
 define('SMTP_PASSWORD', 'your-password');
 define('SMTP_TO_EMAIL', 'admin@example.com');
 
-// 监控配置
-define('CHECK_INTERVAL', 300);  // 检查间隔（秒）
-define('TIMEOUT', 10);          // 超时时间（秒）
-define('ALERT_THRESHOLD', 3);   // 连续失败次数阈值
+// Monitoring configuration
+define('CHECK_INTERVAL', 300);  // Check interval (seconds)
+define('TIMEOUT', 10);          // Timeout (seconds)
+define('ALERT_THRESHOLD', 3);   // Consecutive failure threshold
 ```
 
-### 3. 测试系统
+### 3. Test System
 
 ```bash
 php test.php
 ```
 
-### 4. 导入代理
+### 4. Import Proxies
 
-访问 `http://your-domain/netwatch/import.php` 或使用命令行：
+Visit `http://your-domain/netwatch/import.php` or use command line:
 
 ```bash
-# 从文件导入
+# Import from file
 php import.php
 ```
 
-代理格式示例：
+Proxy format examples:
 ```
 192.168.1.100:1080:socks5
 192.168.1.101:8080:http:username:password
 10.0.0.1:1080:socks5:user:pass
 ```
 
-### 5. 启动监控
+### 5. Start Monitoring
 
 ```bash
-# 启动后台监控服务
+# Start background monitoring service
 php scheduler.php
 ```
 
-或者使用systemd服务：
+Or use systemd service:
 
 ```bash
-# 创建服务文件
+# Create service file
 sudo nano /etc/systemd/system/netwatch.service
 ```
 
-服务文件内容：
+Service file content:
 ```ini
 [Unit]
 Description=NetWatch Monitor Service
@@ -118,162 +118,162 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-启动服务：
+Start service:
 ```bash
 sudo systemctl enable netwatch
 sudo systemctl start netwatch
 ```
 
-## 使用说明
+## Usage Instructions
 
-### Web界面
+### Web Interface
 
-访问 `http://your-domain/netwatch/` 查看监控面板：
+Visit `http://your-domain/netwatch/` to view the monitoring dashboard:
 
-![NetWatch 演示界面](Docs/demo_site.png)
+![NetWatch Demo Interface](Docs/demo_site.png)
 
-- **统计概览**: 显示代理总数、在线/离线状态、平均响应时间
-- **代理列表**: 显示所有代理的详细状态信息
-- **检查日志**: 显示最近的监控检查记录
-- **手动检查**: 可以手动触发单个或全部代理检查
+- **Statistics Overview**: Shows total proxy count, online/offline status, average response time
+- **Proxy List**: Shows detailed status information for all proxies
+- **Check Logs**: Shows recent monitoring check records
+- **Manual Check**: Allows manual triggering of individual or all proxy checks
 
-### 代理导入
+### Proxy Import
 
-#### 单个代理导入
+#### Individual Proxy Import
 
-访问 `http://your-domain/netwatch/import.php` 进行批量导入：
+Visit `http://your-domain/netwatch/import.php` for batch import:
 
-- 支持文本粘贴导入
-- 支持文件上传导入
-- 自动跳过格式错误的行
-- 显示导入结果统计
+- Supports text paste import
+- Supports file upload import
+- Automatically skips incorrectly formatted lines
+- Shows import result statistics
 
-#### 子网批量导入
+#### Subnet Batch Import
 
-访问 `http://your-domain/netwatch/import_subnets.php` 进行子网批量导入：
+Visit `http://your-domain/netwatch/import_subnets.php` for subnet batch import:
 
-- **批量生成**: 支持多个子网使用相同的端口/用户名/密码配置
-- **IP范围**: 通过起始IP和结束IP定义子网范围
-- **多子网支持**: 最多可同时配置20个不同的子网
-- **预览功能**: 导入前可预览将生成的代理数量
-- **导入模式**: 支持跳过重复、覆盖更新等模式
+- **Batch Generation**: Supports multiple subnets using the same port/username/password configuration
+- **IP Range**: Define subnet ranges through start IP and end IP
+- **Multi-Subnet Support**: Up to 20 different subnets can be configured simultaneously
+- **Preview Function**: Preview the number of proxies to be generated before import
+- **Import Modes**: Supports skip duplicates, overwrite updates, and other modes
 
-使用示例：
-- 子网1: 192.168.1.2 到 192.168.1.30 (29个代理)
-- 子网2: 10.0.0.10 到 10.0.0.50 (41个代理)
-- 统一配置: 端口1080, SOCKS5协议, 用户名/密码
+Usage examples:
+- Subnet 1: 192.168.1.2 to 192.168.1.30 (29 proxies)
+- Subnet 2: 10.0.0.10 to 10.0.0.50 (41 proxies)
+- Unified configuration: Port 1080, SOCKS5 protocol, username/password
 
-### 邮件通知
+### Email Notifications
 
-系统会在以下情况发送邮件：
+The system sends emails in the following situations:
 
-- **故障通知**: 代理连续失败达到阈值时
-- **每日报告**: 每天上午9点发送系统状态报告
+- **Failure Notifications**: When proxies fail consecutively reaching the threshold
+- **Daily Reports**: System status reports sent daily at 9 AM
 
-## 配置文件说明
+## Configuration File Description
 
 ### config.php
 
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| `DB_PATH` | SQLite数据库文件路径 | `./data/netwatch.db` |
-| `SMTP_HOST` | SMTP服务器地址 | `smtp.gmail.com` |
-| `SMTP_PORT` | SMTP端口 | `587` |
-| `CHECK_INTERVAL` | 检查间隔（秒） | `300` |
-| `TIMEOUT` | 连接超时时间（秒） | `10` |
-| `ALERT_THRESHOLD` | 故障通知阈值 | `3` |
-| `TEST_URL` | 测试URL | `http://httpbin.org/ip` |
+| Configuration Item | Description | Default Value |
+|-------------------|-------------|---------------|
+| `DB_PATH` | SQLite database file path | `./data/netwatch.db` |
+| `SMTP_HOST` | SMTP server address | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP port | `587` |
+| `CHECK_INTERVAL` | Check interval (seconds) | `300` |
+| `TIMEOUT` | Connection timeout (seconds) | `10` |
+| `ALERT_THRESHOLD` | Failure notification threshold | `3` |
+| `TEST_URL` | Test URL | `http://httpbin.org/ip` |
 
-## 目录结构
+## Directory Structure
 
 ```
 NetWatch/
-├── config.php                # 主配置文件
-├── index.php                # 主入口文件，Web界面
-├── auth.php                 # 用户认证模块
-├── database.php             # 数据库操作类
-├── monitor.php              # 单进程监控实现
-├── parallel_monitor.php      # 并行监控实现
-├── parallel_worker.php       # 并行工作进程
-├── parallel_batch_manager.php # 批量任务管理
-├── import.php               # 代理导入脚本
-├── import_subnets.php        # 子网批量导入工具
-├── mailer.php               # 邮件通知模块
-├── logger.php               # 日志记录模块
-├── scheduler.php            # 定时任务调度器
-├── clear_proxies.php        # 代理清理工具
-├── login.php                # 登录页面
-├── config.example.php       # 配置文件示例
-├── composer.json            # Composer依赖配置
-├── data/                    # 数据目录
-│   └── netwatch.db         # SQLite数据库
-├── logs/                    # 日志目录
-│   └── netwatch_*.log      # 日志文件
-├── Debug/                   # 调试相关文件
-└── Docs/                    # 文档目录
+├── config.php                # Main configuration file
+├── index.php                # Main entry file, Web interface
+├── auth.php                 # User authentication module
+├── database.php             # Database operation class
+├── monitor.php              # Single-process monitoring implementation
+├── parallel_monitor.php      # Parallel monitoring implementation
+├── parallel_worker.php       # Parallel worker process
+├── parallel_batch_manager.php # Batch task management
+├── import.php               # Proxy import script
+├── import_subnets.php        # Subnet batch import tool
+├── mailer.php               # Email notification module
+├── logger.php               # Logging module
+├── scheduler.php            # Scheduled task scheduler
+├── clear_proxies.php        # Proxy cleanup tool
+├── login.php                # Login page
+├── config.example.php       # Configuration file example
+├── composer.json            # Composer dependency configuration
+├── data/                    # Data directory
+│   └── netwatch.db         # SQLite database
+├── logs/                    # Log directory
+│   └── netwatch_*.log      # Log files
+├── Debug/                   # Debug-related files
+└── Docs/                    # Documentation directory
 ```
 
-### 主要文件说明
+### Main File Descriptions
 
-- **config.php** - 系统配置文件，包含数据库连接、邮件设置等
-- **index.php** - 主入口文件，提供Web管理界面
-- **monitor.php** - 单进程代理监控实现
-- **parallel_*.php** - 并行监控相关文件，支持高性能批量检测
-- **import*.php** - 代理导入工具，支持单个代理和子网批量导入
-- **mailer.php** - 邮件通知模块，用于发送告警
-- **logger.php** - 日志记录模块，记录系统运行状态
-- **scheduler.php** - 定时任务调度器，用于定期执行监控
+- **config.php** - System configuration file containing database connections, email settings, etc.
+- **index.php** - Main entry file providing web management interface
+- **monitor.php** - Single-process proxy monitoring implementation
+- **parallel_*.php** - Parallel monitoring related files supporting high-performance batch detection
+- **import*.php** - Proxy import tools supporting individual proxy and subnet batch import
+- **mailer.php** - Email notification module for sending alerts
+- **logger.php** - Logging module for recording system runtime status
+- **scheduler.php** - Scheduled task scheduler for periodic monitoring execution
 
-## API接口
+## API Interface
 
-系统提供简单的AJAX API：
+The system provides simple AJAX APIs:
 
-- `GET /?ajax=1&action=stats` - 获取统计信息
-- `GET /?ajax=1&action=check&proxy_id=1` - 检查指定代理
-- `GET /?ajax=1&action=logs` - 获取最近日志
+- `GET /?ajax=1&action=stats` - Get statistics information
+- `GET /?ajax=1&action=check&proxy_id=1` - Check specified proxy
+- `GET /?ajax=1&action=logs` - Get recent logs
 
-## 故障排除
+## Troubleshooting
 
-### 常见问题
+### Common Issues
 
-1. **数据库连接失败**
-   - 检查data目录权限
-   - 确保PHP有SQLite扩展
+1. **Database Connection Failed**
+   - Check data directory permissions
+   - Ensure PHP has SQLite extension
 
-2. **邮件发送失败**
-   - 检查SMTP配置
-   - 确认邮箱密码正确
-   - 可能需要使用应用专用密码
+2. **Email Sending Failed**
+   - Check SMTP configuration
+   - Confirm email password is correct
+   - May need to use app-specific password
 
-3. **代理检查失败**
-   - 检查网络连接
-   - 确认curl扩展已安装
-   - 检查防火墙设置
+3. **Proxy Check Failed**
+   - Check network connection
+   - Confirm curl extension is installed
+   - Check firewall settings
 
-4. **权限问题**
-   - 确保Web服务器对data和logs目录有写权限
-   - 检查文件所有者和权限设置
+4. **Permission Issues**
+   - Ensure web server has write permissions to data and logs directories
+   - Check file ownership and permission settings
 
-### 日志查看
+### Log Viewing
 
 ```bash
-# 查看最新日志
+# View latest logs
 tail -f logs/netwatch_$(date +%Y-%m-%d).log
 
-# 查看错误日志
+# View error logs
 grep ERROR logs/netwatch_*.log
 ```
 
-## 性能优化
+## Performance Optimization
 
-对于大量代理（5000+）的监控：
+For monitoring large numbers of proxies (5000+):
 
-1. **调整检查间隔**: 根据需要调整`CHECK_INTERVAL`
-2. **并发检查**: 可以修改代码实现多线程检查
-3. **数据库优化**: 定期清理旧日志数据
-4. **缓存机制**: 可以添加Redis缓存提高性能
+1. **Adjust Check Interval**: Adjust `CHECK_INTERVAL` as needed
+2. **Concurrent Checking**: Can modify code to implement multi-threaded checking
+3. **Database Optimization**: Regularly clean old log data
+4. **Caching Mechanism**: Can add Redis caching to improve performance
 
-## 许可证
+## License
 
 MIT License
 
