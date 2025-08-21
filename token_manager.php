@@ -245,6 +245,89 @@ $tokens = $db->getAllTokens();
                 gap: 4px;
             }
         }
+        
+        /* Token显示模态框 */
+        .token-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .token-modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .token-modal h3 {
+            color: #28a745;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .token-display {
+            background: #f8f9fa;
+            border: 2px solid #28a745;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            position: relative;
+        }
+        
+        .token-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .btn-copy-token {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-copy-token:hover {
+            background: #0056b3;
+        }
+        
+        .btn-close-modal {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-close-modal:hover {
+            background: #545b62;
+        }
+        
+        .copy-success {
+            color: #28a745;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -339,6 +422,22 @@ $tokens = $db->getAllTokens();
         </div>
     </div>
 
+    <!-- Token显示模态框 -->
+    <div id="token-modal" class="token-modal">
+        <div class="token-modal-content">
+            <h3>🎉 Token创建成功！</h3>
+            <p>请妥善保存以下Token，它不会再次显示：</p>
+            <div class="token-display" id="token-display-text">
+                <!-- Token值将在这里显示 -->
+            </div>
+            <div class="copy-success" id="copy-success">✅ Token已复制到剪贴板</div>
+            <div class="token-actions">
+                <button class="btn-copy-token" onclick="copyTokenFromModal()">📋 复制Token</button>
+                <button class="btn-close-modal" onclick="closeTokenModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 创建Token
         document.getElementById('create-token-form').addEventListener('submit', async function(e) {
@@ -355,8 +454,7 @@ $tokens = $db->getAllTokens();
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('Token创建成功！\n\nToken值：' + result.token + '\n\n请妥善保存此Token，它不会再次显示。');
-                    location.reload();
+                    showTokenModal(result.token);
                 } else {
                     alert('创建失败：' + result.message);
                 }
@@ -464,6 +562,59 @@ $tokens = $db->getAllTokens();
                 alert('操作失败：' + error.message);
             }
         }
+
+        // 显示Token模态框
+        let currentToken = '';
+        function showTokenModal(token) {
+            currentToken = token;
+            document.getElementById('token-display-text').textContent = token;
+            document.getElementById('token-modal').style.display = 'block';
+            document.getElementById('copy-success').style.display = 'none';
+        }
+
+        // 关闭Token模态框
+        function closeTokenModal() {
+            document.getElementById('token-modal').style.display = 'none';
+            location.reload(); // 刷新页面显示新创建的Token
+        }
+
+        // 从模态框复制Token
+        function copyTokenFromModal() {
+            if (!currentToken) return;
+            
+            navigator.clipboard.writeText(currentToken).then(function() {
+                document.getElementById('copy-success').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('copy-success').style.display = 'none';
+                }, 3000);
+            }, function() {
+                // 降级方案
+                const textArea = document.createElement('textarea');
+                textArea.value = currentToken;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                document.getElementById('copy-success').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('copy-success').style.display = 'none';
+                }, 3000);
+            });
+        }
+
+        // 点击模态框背景关闭
+        document.getElementById('token-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTokenModal();
+            }
+        });
+
+        // ESC键关闭模态框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('token-modal').style.display === 'block') {
+                closeTokenModal();
+            }
+        });
     </script>
 </body>
 </html>
