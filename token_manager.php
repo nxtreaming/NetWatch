@@ -112,12 +112,6 @@ $tokens = $db->getAllTokens();
     <title>API Token 管理 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        .token-manager-header {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 10px;
-        }
-
         .token-manager {
             max-width: 1200px;
             margin: 0 auto;
@@ -351,18 +345,36 @@ $tokens = $db->getAllTokens();
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="token-manager-header">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-left">
                     <h1>🔑 Token 管理</h1>
-                    <div class="header-right">
-                        <a href="api_demo.php" class="btn btn-primary">API示例</a>
-                        <a href="index.php" class="btn btn-secondary">返回主页</a>
+                    <p>API Token 创建和管理系统</p>
+                </div>
+                <?php if (Auth::isLoginEnabled()): ?>
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="?action=logout" class="btn btn-logout">退出</a>
+                        </div>
+                        <div class="session-time">
+                            登录时间：<?php echo formatTime(Auth::getLoginTime()); ?>
+                        </div>
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
-        </header>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="nav-links">
+            <a href="index.php" class="nav-link">🏠 主页</a>
+            <a href="api_demo.php" class="nav-link">📖 API示例</a>
+            <a href="token_manager.php" class="nav-link active">🔑 Token管理</a>
+        </div>
 
         <div class="token-manager">
             <!-- 创建Token表单 -->

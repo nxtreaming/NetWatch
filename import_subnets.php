@@ -87,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>子网代理导入 - NetWatch</title>
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
         * {
             margin: 0;
@@ -100,42 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #333;
         }
         
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .container {
+        .import-container {
             max-width: 1000px;
             margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-        
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-        
-        .nav {
-            margin: 20px 0;
-        }
-        
-        .nav a {
-            color: #667eea;
-            text-decoration: none;
-            margin-right: 20px;
-            font-weight: 500;
-        }
-        
-        .nav a:hover {
-            text-decoration: underline;
+            padding: 20px;
         }
         
         .section {
@@ -298,20 +267,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 10px;
             border-left: 4px solid #667eea;
         }
+        
+        .header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-info {
+            margin-right: 20px;
+        }
+        
+        .username {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .session-time {
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .btn-logout {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .btn-logout:hover {
+            background-color: #c82333;
+        }
+        
+        .nav-links {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .nav-link {
+            color: #333;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        
+        .nav-link.active {
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="container">
-            <h1>🌐 子网代理导入</h1>
-            <p>批量导入多个子网的代理服务器配置</p>
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🌐 子网代理导入</h1>
+                    <p>批量导入多个子网的代理服务器配置</p>
+                </div>
+                <?php if (Auth::isLoginEnabled()): ?>
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="?action=logout" class="btn btn-logout">退出</a>
+                        </div>
+                        <div class="session-time">
+                            登录时间：<?php echo formatTime(Auth::getLoginTime()); ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
     
     <div class="container">
-        <div class="nav">
-            <a href="index.php">← 返回监控面板</a>
-            <a href="import.php">单个代理导入</a>
+        <div class="nav-links">
+            <a href="index.php" class="nav-link">🏠 主页</a>
+            <a href="import.php" class="nav-link">📥 代理导入</a>
+            <a href="import_subnets.php" class="nav-link active">🌐 子网导入</a>
+            <a href="token_manager.php" class="nav-link">🔑 Token管理</a>
         </div>
         
         <?php if (isset($result)): ?>
