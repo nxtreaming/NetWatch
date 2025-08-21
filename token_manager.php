@@ -301,6 +301,10 @@ $tokens = $db->getAllTokens();
             /* 隐藏部分列以节省空间 */
             .token-table th:nth-child(2), /* Token值 */
             .token-table td:nth-child(2),
+            .token-table th:nth-child(3), /* 代理数量 */
+            .token-table td:nth-child(3),
+            .token-table th:nth-child(5), /* 状态 */
+            .token-table td:nth-child(5),
             .token-table th:nth-child(6), /* 创建时间 */
             .token-table td:nth-child(6),
             .token-table th:nth-child(7), /* 过期时间 */
@@ -316,20 +320,12 @@ $tokens = $db->getAllTokens();
                 word-break: break-word;
             }
             
-            .token-table th:nth-child(3), /* 代理数量 */
-            .token-table td:nth-child(3),
             .token-table th:nth-child(4), /* 已分配 */
             .token-table td:nth-child(4) {
                 width: 15%;
                 text-align: center;
             }
-            
-            .token-table th:nth-child(5), /* 状态 */
-            .token-table td:nth-child(5) {
-                width: 20%;
-                text-align: center;
-            }
-            
+
             .token-table th:nth-child(8), /* 操作 */
             .token-table td:nth-child(8) {
                 width: 25%;
