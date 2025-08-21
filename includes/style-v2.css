@@ -116,7 +116,7 @@ body {
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 25px;
+    gap: 18px;
     margin: 30px 0;
 }
 
