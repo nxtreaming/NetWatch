@@ -6,11 +6,17 @@ function refreshStats() {
     fetch('?ajax=1&action=stats')
         .then(response => response.json())
         .then(data => {
-            document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-number').textContent = data.total;
-            document.querySelector('.stats-grid .stat-card:nth-child(2) .stat-number').textContent = data.online;
-            document.querySelector('.stats-grid .stat-card:nth-child(3) .stat-number').textContent = data.offline;
-            document.querySelector('.stats-grid .stat-card:nth-child(4) .stat-number').textContent = data.unknown;
-            document.querySelector('.stats-grid .stat-card:nth-child(5) .stat-number').textContent = Math.round(data.avg_response_time) + 'ms';
+            const totalEl = document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-inline');
+            const onlineEl = document.querySelector('.stats-grid .stat-card:nth-child(2) .stat-inline');
+            const offlineEl = document.querySelector('.stats-grid .stat-card:nth-child(3) .stat-inline');
+            const unknownEl = document.querySelector('.stats-grid .stat-card:nth-child(4) .stat-inline');
+            const timeEl = document.querySelector('.stats-grid .stat-card:nth-child(5) .stat-inline');
+            
+            if (totalEl) totalEl.textContent = '总数: ' + data.total;
+            if (onlineEl) onlineEl.textContent = '在线: ' + data.online;
+            if (offlineEl) offlineEl.textContent = '离线: ' + data.offline;
+            if (unknownEl) unknownEl.textContent = '未知: ' + data.unknown;
+            if (timeEl) timeEl.textContent = '时间: ' + Math.round(data.avg_response_time) + 'ms';
         })
         .catch(error => console.error('刷新统计失败:', error));
 }
