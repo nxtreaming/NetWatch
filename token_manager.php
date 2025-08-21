@@ -112,27 +112,12 @@ $tokens = $db->getAllTokens();
     <title>API Token 管理 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        .token-manager {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .section {
-            margin-bottom: 30px;
-        }
-        
-        .section h3 {
-            margin-top: 20px;
-            margin-bottom: 20px;
-            padding: 0 20px;
-        }
         
         .create-token-form {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            margin: 0 20px 20px 20px;
+            margin-bottom: 20px;
         }
         
         .form-row {
@@ -166,7 +151,6 @@ $tokens = $db->getAllTokens();
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 0 20px 20px 20px;
         }
         
         .token-table {
@@ -376,11 +360,12 @@ $tokens = $db->getAllTokens();
             <a href="token_manager.php" class="nav-link active">🔑 Token管理</a>
         </div>
 
-        <div class="token-manager">
-            <!-- 创建Token表单 -->
-            <div class="section">
-                <h3>创建新的Token</h3>
-                <div class="create-token-form">
+        <!-- 创建Token表单 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">创建新的Token</h2>
+            </div>
+            <div class="create-token-form">
                 <form id="create-token-form">
                     <div class="form-row">
                         <div class="form-group">
@@ -408,10 +393,12 @@ $tokens = $db->getAllTokens();
                 </div>
             </div>
 
-            <!-- Token列表 -->
-            <div class="section">
-                <h3>现有Token列表</h3>
-                <div class="table-container">
+        <!-- Token列表 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">现有Token列表</h2>
+            </div>
+            <div class="table-container">
                     <table class="token-table">
                         <thead>
                             <tr>
