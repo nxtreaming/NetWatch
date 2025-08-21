@@ -24,7 +24,7 @@ body {
 }
 
 .header h1 {
-    font-size: 28px;
+    font-size: 26px;
     margin-bottom: 5px;
 }
 
@@ -212,7 +212,7 @@ body {
     background: #667eea;
     color: white;
     border: none;
-    padding: 8px 16px;
+    padding: 8px 8px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;

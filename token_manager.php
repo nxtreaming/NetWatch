@@ -241,22 +241,121 @@ $tokens = $db->getAllTokens();
         }
         
         @media (max-width: 768px) {
+            .token-manager {
+                padding: 10px;
+            }
+            
+            .section h3 {
+                padding: 0 10px;
+                font-size: 18px;
+            }
+            
+            .create-token-form,
+            .table-container {
+                margin: 0 10px 20px 10px;
+            }
+            
             .form-row {
                 flex-direction: column;
-                gap: 10px;
+                gap: 15px;
             }
             
+            .form-group {
+                width: 100%;
+            }
+            
+            .form-group input,
+            .form-group select {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px; /* 防止iOS缩放 */
+                border: 2px solid #ddd;
+                border-radius: 6px;
+            }
+            
+            .form-group label {
+                font-size: 14px;
+                margin-bottom: 8px;
+                display: block;
+            }
+            
+            .btn.btn-success {
+                width: 100%;
+                padding: 15px;
+                font-size: 16px;
+                margin-top: 10px;
+            }
+            
+            /* 移动端表格优化 */
             .token-table {
-                font-size: 12px;
+                font-size: 11px;
+                min-width: 100%;
             }
             
-            .token-value {
-                max-width: 120px;
+            .token-table th,
+            .token-table td {
+                padding: 8px 4px;
+                vertical-align: top;
+            }
+            
+            /* 隐藏部分列以节省空间 */
+            .token-table th:nth-child(2), /* Token值 */
+            .token-table td:nth-child(2),
+            .token-table th:nth-child(6), /* 创建时间 */
+            .token-table td:nth-child(6),
+            .token-table th:nth-child(7), /* 过期时间 */
+            .token-table td:nth-child(7) {
+                display: none;
+            }
+            
+            /* 调整剩余列的宽度 */
+            .token-table th:nth-child(1), /* 名称 */
+            .token-table td:nth-child(1) {
+                width: 25%;
+                max-width: 80px;
+                word-break: break-word;
+            }
+            
+            .token-table th:nth-child(3), /* 代理数量 */
+            .token-table td:nth-child(3),
+            .token-table th:nth-child(4), /* 已分配 */
+            .token-table td:nth-child(4) {
+                width: 15%;
+                text-align: center;
+            }
+            
+            .token-table th:nth-child(5), /* 状态 */
+            .token-table td:nth-child(5) {
+                width: 20%;
+                text-align: center;
+            }
+            
+            .token-table th:nth-child(8), /* 操作 */
+            .token-table td:nth-child(8) {
+                width: 25%;
             }
             
             .action-buttons {
                 flex-direction: column;
-                gap: 4px;
+                gap: 3px;
+            }
+            
+            .btn-small {
+                padding: 6px 8px;
+                font-size: 11px;
+                text-align: center;
+                white-space: nowrap;
+            }
+            
+            .status-badge {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+            
+            /* 表格容器水平滚动 */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
         }
         
