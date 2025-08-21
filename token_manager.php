@@ -123,7 +123,7 @@ $tokens = $db->getAllTokens();
         }
         
         .section h3 {
-            margin-top: 0;
+            margin-top: 20px;
             margin-bottom: 20px;
             padding: 0 20px;
         }
