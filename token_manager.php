@@ -451,7 +451,7 @@ $tokens = $db->getAllTokens();
                     <h1>🔑 Token 管理</h1>
                 </div>
                 <div class="header-right">
-                    <a href="index.php" class="btn btn-secondary">返回主页</a>
+                    <a href="index.php" class="btn btn-secondary">返回首页</a>
                     <a href="api_demo.php" class="btn btn-secondary">API示例</a>
                 </div>
             </div>

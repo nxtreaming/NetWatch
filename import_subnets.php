@@ -311,7 +311,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     <div class="container">
         <div class="nav">
-            <a href="index.php">← 返回监控面板</a>
+            <a href="index.php">← 返回首页</a>
             <a href="import.php">单个代理导入</a>
         </div>
         
