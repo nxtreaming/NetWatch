@@ -123,6 +123,7 @@ $tokens = $db->getAllTokens();
         }
         
         .section h3 {
+            margin-top: 0;
             margin-bottom: 20px;
             padding: 0 20px;
         }
@@ -132,6 +133,12 @@ $tokens = $db->getAllTokens();
             padding: 20px;
             border-radius: 8px;
             margin: 0 20px 30px 20px;
+        }
+        
+        .create-token-form h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding: 0;
         }
         
         .form-row {
