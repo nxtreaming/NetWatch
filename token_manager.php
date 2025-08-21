@@ -112,12 +112,6 @@ $tokens = $db->getAllTokens();
     <title>API Token 管理 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        .token-manager-header {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 10px;
-        }
-
         .token-manager {
             max-width: 1200px;
             margin: 0 auto;
@@ -351,24 +345,25 @@ $tokens = $db->getAllTokens();
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="token-manager-header">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-left">
                     <h1>🔑 Token 管理</h1>
-                    <div class="header-right">
-                        <a href="api_demo.php" class="btn btn-primary">API示例</a>
-                        <a href="index.php" class="btn btn-secondary">返回主页</a>
-                    </div>
+                </div>
+                <div class="header-right">
+                    <a href="index.php" class="btn btn-secondary">返回主页</a>
+                    <a href="api_demo.php" class="btn btn-primary">API示例</a>
                 </div>
             </div>
-        </header>
+        </div>
+    </div>
 
-        <div class="token-manager">
-            <!-- 创建Token表单 -->
-            <div class="section">
-                <h3>创建新的Token</h3>
-                <div class="create-token-form">
+    <div class="token-manager">
+        <!-- 创建Token表单 -->
+        <div class="section">
+            <h3>创建新Token</h3>
+            <div class="create-token-form">
                 <form id="create-token-form">
                     <div class="form-row">
                         <div class="form-group">
@@ -393,8 +388,8 @@ $tokens = $db->getAllTokens();
                         </div>
                     </div>
                 </form>
-                </div>
             </div>
+        </div>
 
             <!-- Token列表 -->
             <div class="section">
