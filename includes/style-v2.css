@@ -115,8 +115,8 @@ body {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
     margin: 30px 0;
 }
 
@@ -134,6 +134,13 @@ body {
     align-items: center;
     justify-content: center;
     padding: 0;
+}
+
+.nav-card .nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .nav-btn {
@@ -160,12 +167,13 @@ body {
 }
 
 .stat-inline {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
+    white-space: nowrap;
 }
 
 .online { color: #4CAF50; }
