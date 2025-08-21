@@ -118,11 +118,20 @@ $tokens = $db->getAllTokens();
             padding: 20px;
         }
         
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h3 {
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+        
         .create-token-form {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            margin-bottom: 30px;
+            margin: 0 20px 30px 20px;
         }
         
         .form-row {
@@ -151,13 +160,17 @@ $tokens = $db->getAllTokens();
             font-size: 14px;
         }
         
-        .token-table {
-            width: 100%;
-            border-collapse: collapse;
+        .table-container {
             background: white;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0 20px;
+        }
+        
+        .token-table {
+            width: 100%;
+            border-collapse: collapse;
         }
         
         .token-table th,
