@@ -161,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 8px;
             font-weight: 500;
             color: #555;
+            font-size: 14px;
         }
         
         .form-group input,
@@ -184,12 +185,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #667eea;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 12px 12px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            margin-right: 10px;
+            margin: 4px;
         }
         
         .btn:hover {
@@ -304,7 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="header">
         <div class="container">
             <h1>🌐 子网代理导入</h1>
-            <p>批量导入多个子网的代理服务器配置</p>
+            <p>批量导入子网的代理服务器配置</p>
         </div>
     </div>
     
@@ -371,11 +372,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="username">用户名 (可选)</label>
+                        <label for="username">用户名</label>
                         <input type="text" name="username" id="username" value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
                     </div>
                     <div class="form-group">
-                        <label for="password">密码 (可选)</label>
+                        <label for="password">密码</label>
                         <input type="password" name="password" id="password" value="<?php echo htmlspecialchars($_POST['password'] ?? ''); ?>">
                     </div>
                 </div>
