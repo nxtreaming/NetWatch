@@ -155,10 +155,6 @@ $recentLogs = $monitor->getRecentLogs(20);
                 <div class="header-left">
                     <h1>🌐 NetWatch</h1>
                     <p>网络代理监控系统</p>
-                    <div class="nav-menu">
-                        <a href="token_manager.php" class="nav-link">Token管理</a>
-                        <a href="import_subnets.php" class="nav-link">导入代理</a>
-                    </div>
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
@@ -183,23 +179,29 @@ $recentLogs = $monitor->getRecentLogs(20);
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number total"><?php echo $stats['total']; ?></div>
-                <div class="stat-label">总代理数</div>
+                <div class="stat-label">总数</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number online"><?php echo $stats['online']; ?></div>
-                <div class="stat-label">在线数量</div>
+                <div class="stat-label">在线</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number offline"><?php echo $stats['offline']; ?></div>
-                <div class="stat-label">离线数量</div>
+                <div class="stat-label">离线</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number unknown"><?php echo $stats['unknown']; ?></div>
-                <div class="stat-label">未知数量</div>
+                <div class="stat-label">未知</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number total"><?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>
-                <div class="stat-label">平均时间</div>
+                <div class="stat-label">时间</div>
+            </div>
+            <div class="stat-card nav-card">
+                <a href="token_manager.php" class="nav-btn">Token管理</a>
+            </div>
+            <div class="stat-card nav-card">
+                <a href="import_subnets.php" class="nav-btn">导入代理</a>
             </div>
         </div>
         
