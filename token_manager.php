@@ -445,6 +445,38 @@ $tokens = $db->getAllTokens();
                 </div>
             </div>
         </div>
+
+        <!-- API测试功能 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">API测试功能</h2>
+            </div>
+            <div class="create-token-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="test-token">测试Token</label>
+                        <input type="text" id="test-token" placeholder="输入要测试的Token" style="font-family: monospace;">
+                    </div>
+                    <div class="form-group">
+                        <label for="test-format">返回格式</label>
+                        <select id="test-format">
+                            <option value="json">JSON格式</option>
+                            <option value="txt">TXT格式</option>
+                            <option value="list">LIST格式</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" class="btn btn-primary" onclick="testToken()">🧪 测试Token</button>
+                        <button type="button" class="btn btn-secondary" onclick="getTokenInfo()">ℹ️ 获取信息</button>
+                    </div>
+                </div>
+                
+                <div id="test-result" style="margin-top: 20px; display: none;">
+                    <h4>测试结果：</h4>
+                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto;" id="test-output"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Token显示模态框 -->
@@ -640,6 +672,63 @@ $tokens = $db->getAllTokens();
                 closeTokenModal();
             }
         });
+
+        // 测试Token功能
+        async function testToken() {
+            const token = document.getElementById('test-token').value.trim();
+            const format = document.getElementById('test-format').value;
+            
+            if (!token) {
+                alert('请输入要测试的Token');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api.php?action=proxies&token=${encodeURIComponent(token)}&format=${format}`);
+                const responseText = await response.text();
+                
+                document.getElementById('test-output').textContent = responseText;
+                document.getElementById('test-result').style.display = 'block';
+                
+                if (!response.ok) {
+                    document.getElementById('test-output').style.color = '#dc3545';
+                } else {
+                    document.getElementById('test-output').style.color = '#28a745';
+                }
+            } catch (error) {
+                document.getElementById('test-output').textContent = '请求失败: ' + error.message;
+                document.getElementById('test-output').style.color = '#dc3545';
+                document.getElementById('test-result').style.display = 'block';
+            }
+        }
+
+        // 获取Token信息
+        async function getTokenInfo() {
+            const token = document.getElementById('test-token').value.trim();
+            
+            if (!token) {
+                alert('请输入要测试的Token');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api.php?action=info&token=${encodeURIComponent(token)}`);
+                const responseText = await response.text();
+                
+                document.getElementById('test-output').textContent = responseText;
+                document.getElementById('test-result').style.display = 'block';
+                
+                if (!response.ok) {
+                    document.getElementById('test-output').style.color = '#dc3545';
+                } else {
+                    document.getElementById('test-output').style.color = '#007bff';
+                }
+            } catch (error) {
+                document.getElementById('test-output').textContent = '请求失败: ' + error.message;
+                document.getElementById('test-output').style.color = '#dc3545';
+                document.getElementById('test-result').style.display = 'block';
+            }
+        }
     </script>
 </body>
 </html>

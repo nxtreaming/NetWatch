@@ -89,25 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>子网代理导入 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        
         .import-container {
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
         
-        .section {
+        .import-section {
             background: white;
             margin: 20px 0;
             border-radius: 10px;
@@ -301,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="import_subnets.php" class="nav-link active">🌐 子网导入</a>
             <a href="token_manager.php" class="nav-link">🔑 Token管理</a>
         </div>
-        
+
         <?php if (isset($result)): ?>
         <div class="alert alert-success">
             <h3>导入完成</h3>
@@ -344,7 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <form method="post" id="subnetForm">
-            <div class="section">
+            <div class="import-section">
                 <h2>公共配置</h2>
                 <div class="form-row">
                     <div class="form-group">
@@ -383,7 +371,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
             
-            <div class="section">
+            <div class="import-section">
                 <h2>子网配置</h2>
                 <div id="subnets-container">
                     <?php
@@ -419,14 +407,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="button" class="btn btn-add" onclick="addSubnet()">+ 添加新子网</button>
             </div>
             
-            <div class="section">
+            <div class="import-section">
                 <button type="submit" class="btn">开始导入</button>
                 <button type="button" class="btn btn-secondary" onclick="clearForm()">清空表单</button>
                 <button type="button" class="btn btn-secondary" onclick="previewProxies()">预览代理数量</button>
             </div>
         </form>
         
-        <div class="section">
+        <div class="import-section">
             <h2>使用说明</h2>
             <ul style="line-height: 1.6; margin-left: 20px;">
                 <li><strong>公共配置:</strong> 所有子网使用相同的端口、类型、用户名和密码</li>
