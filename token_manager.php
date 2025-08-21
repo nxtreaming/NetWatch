@@ -347,10 +347,14 @@ $tokens = $db->getAllTokens();
 <body>
     <div class="container">
         <header>
-            <h1>🔑 API Token 管理</h1>
-            <div class="header-right">
-                <a href="api_demo.php" class="btn btn-primary">API示例</a>
-                <a href="index.php" class="btn btn-secondary">返回主页</a>
+            <div class="token-manager">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
+                    <h1>🔑 API Token 管理</h1>
+                    <div class="header-right">
+                        <a href="api_demo.php" class="btn btn-primary">API示例</a>
+                        <a href="index.php" class="btn btn-secondary">返回主页</a>
+                    </div>
+                </div>
             </div>
         </header>
 
