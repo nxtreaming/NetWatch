@@ -112,33 +112,12 @@ $tokens = $db->getAllTokens();
     <title>API Token 管理 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        .token-manager-header {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 10px;
-        }
-
-        .token-manager {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .section {
-            margin-bottom: 30px;
-        }
-        
-        .section h3 {
-            margin-top: 20px;
-            margin-bottom: 20px;
-            padding: 0 20px;
-        }
         
         .create-token-form {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            margin: 0 20px 20px 20px;
+            margin-bottom: 20px;
         }
         
         .form-row {
@@ -172,7 +151,6 @@ $tokens = $db->getAllTokens();
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 0 20px 20px 20px;
         }
         
         .token-table {
@@ -351,24 +329,43 @@ $tokens = $db->getAllTokens();
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="token-manager-header">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-left">
                     <h1>🔑 Token 管理</h1>
-                    <div class="header-right">
-                        <a href="api_demo.php" class="btn btn-primary">API示例</a>
-                        <a href="index.php" class="btn btn-secondary">返回主页</a>
+                    <p>API Token 创建和管理系统</p>
+                </div>
+                <?php if (Auth::isLoginEnabled()): ?>
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="?action=logout" class="btn btn-logout">退出</a>
+                        </div>
+                        <div class="session-time">
+                            登录时间：<?php echo formatTime(Auth::getLoginTime()); ?>
+                        </div>
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
-        </header>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="nav-links">
+            <a href="index.php" class="nav-link">🏠 主页</a>
+            <a href="api_demo.php" class="nav-link">📖 API示例</a>
+            <a href="token_manager.php" class="nav-link active">🔑 Token管理</a>
+        </div>
 
-        <div class="token-manager">
-            <!-- 创建Token表单 -->
-            <div class="section">
-                <h3>创建新的Token</h3>
-                <div class="create-token-form">
+        <!-- 创建Token表单 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">创建新的Token</h2>
+            </div>
+            <div class="create-token-form">
                 <form id="create-token-form">
                     <div class="form-row">
                         <div class="form-group">
@@ -396,10 +393,12 @@ $tokens = $db->getAllTokens();
                 </div>
             </div>
 
-            <!-- Token列表 -->
-            <div class="section">
-                <h3>现有Token列表</h3>
-                <div class="table-container">
+        <!-- Token列表 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">现有Token列表</h2>
+            </div>
+            <div class="table-container">
                     <table class="token-table">
                         <thead>
                             <tr>
@@ -443,6 +442,38 @@ $tokens = $db->getAllTokens();
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- API测试功能 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">API测试功能</h2>
+            </div>
+            <div class="create-token-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="test-token">测试Token</label>
+                        <input type="text" id="test-token" placeholder="输入要测试的Token" style="font-family: monospace;">
+                    </div>
+                    <div class="form-group">
+                        <label for="test-format">返回格式</label>
+                        <select id="test-format">
+                            <option value="json">JSON格式</option>
+                            <option value="txt">TXT格式</option>
+                            <option value="list">LIST格式</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" class="btn btn-primary" onclick="testToken()">🧪 测试Token</button>
+                        <button type="button" class="btn btn-secondary" onclick="getTokenInfo()">ℹ️ 获取信息</button>
+                    </div>
+                </div>
+                
+                <div id="test-result" style="margin-top: 20px; display: none;">
+                    <h4>测试结果：</h4>
+                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto;" id="test-output"></div>
                 </div>
             </div>
         </div>
@@ -641,6 +672,63 @@ $tokens = $db->getAllTokens();
                 closeTokenModal();
             }
         });
+
+        // 测试Token功能
+        async function testToken() {
+            const token = document.getElementById('test-token').value.trim();
+            const format = document.getElementById('test-format').value;
+            
+            if (!token) {
+                alert('请输入要测试的Token');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api.php?action=proxies&token=${encodeURIComponent(token)}&format=${format}`);
+                const responseText = await response.text();
+                
+                document.getElementById('test-output').textContent = responseText;
+                document.getElementById('test-result').style.display = 'block';
+                
+                if (!response.ok) {
+                    document.getElementById('test-output').style.color = '#dc3545';
+                } else {
+                    document.getElementById('test-output').style.color = '#28a745';
+                }
+            } catch (error) {
+                document.getElementById('test-output').textContent = '请求失败: ' + error.message;
+                document.getElementById('test-output').style.color = '#dc3545';
+                document.getElementById('test-result').style.display = 'block';
+            }
+        }
+
+        // 获取Token信息
+        async function getTokenInfo() {
+            const token = document.getElementById('test-token').value.trim();
+            
+            if (!token) {
+                alert('请输入要测试的Token');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api.php?action=info&token=${encodeURIComponent(token)}`);
+                const responseText = await response.text();
+                
+                document.getElementById('test-output').textContent = responseText;
+                document.getElementById('test-result').style.display = 'block';
+                
+                if (!response.ok) {
+                    document.getElementById('test-output').style.color = '#dc3545';
+                } else {
+                    document.getElementById('test-output').style.color = '#007bff';
+                }
+            } catch (error) {
+                document.getElementById('test-output').textContent = '请求失败: ' + error.message;
+                document.getElementById('test-output').style.color = '#dc3545';
+                document.getElementById('test-result').style.display = 'block';
+            }
+        }
     </script>
 </body>
 </html>

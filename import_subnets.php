@@ -87,30 +87,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>子网代理导入 - NetWatch</title>
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .container {
+        .import-container {
             max-width: 1000px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 20px;
         }
         
         .header h1 {
@@ -339,8 +321,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="header">
         <div class="container">
-            <h1>🌐 子网代理导入</h1>
-            <p>批量导入多个子网的代理服务器配置</p>
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🌐 子网代理导入</h1>
+                    <p>批量导入多个子网的代理服务器配置</p>
+                </div>
+                <?php if (Auth::isLoginEnabled()): ?>
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="?action=logout" class="btn btn-logout">退出</a>
+                        </div>
+                        <div class="session-time">
+                            登录时间：<?php echo formatTime(Auth::getLoginTime()); ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
     
@@ -407,7 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <form method="post" id="subnetForm">
-            <div class="section">
+            <div class="import-section">
                 <h2>公共配置</h2>
                 <div class="form-row">
                     <div class="form-group">
@@ -446,7 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
             
-            <div class="section">
+            <div class="import-section">
                 <h2>子网配置</h2>
                 <div id="subnets-container">
                     <?php
@@ -482,14 +481,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="button" class="btn btn-add" onclick="addSubnet()">+ 添加新子网</button>
             </div>
             
-            <div class="section">
+            <div class="import-section">
                 <button type="submit" class="btn">开始导入</button>
                 <button type="button" class="btn btn-secondary" onclick="clearForm()">清空表单</button>
                 <button type="button" class="btn btn-secondary" onclick="previewProxies()">预览代理数量</button>
             </div>
         </form>
         
-        <div class="section">
+        <div class="import-section">
             <h2>使用说明</h2>
             <ul style="line-height: 1.6; margin-left: 20px;">
                 <li><strong>公共配置:</strong> 所有子网使用相同的端口、类型、用户名和密码</li>
