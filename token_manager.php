@@ -306,9 +306,7 @@ $tokens = $db->getAllTokens();
             .token-table th:nth-child(5), /* 状态 */
             .token-table td:nth-child(5),
             .token-table th:nth-child(6), /* 创建时间 */
-            .token-table td:nth-child(6),
-            .token-table th:nth-child(7), /* 过期时间 */
-            .token-table td:nth-child(7) {
+            .token-table td:nth-child(6) {
                 display: none;
             }
             
@@ -323,6 +321,12 @@ $tokens = $db->getAllTokens();
             .token-table th:nth-child(4), /* 已分配 */
             .token-table td:nth-child(4) {
                 width: 15%;
+                text-align: center;
+            }
+
+            .token-table th:nth-child(7), /* 过期时间 */
+            .token-table td:nth-child(7) {
+                width: 35%;
                 text-align: center;
             }
 
