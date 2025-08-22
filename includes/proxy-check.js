@@ -507,7 +507,7 @@ async function checkAllProxiesParallel() {
                                 `检测已完成，等待批次进程结束... (${completedBatches}/${progressData.total_batches} 个批次已完成, 已等待${waitingSeconds}秒)`;
                         } else {
                             document.getElementById('parallel-progress-info').textContent = 
-                                `并行检测进行中... (${progressData.total_checked}/${progressData.total_proxies} 个代理已检测, ${completedBatches}/${progressData.total_batches} 个批次已完成)`;
+                                `检测进行中... (${progressData.total_checked}/${progressData.total_proxies} 个代理已检测`;
                         }
                         
                         // 超时检查：只有在真正开始等待批次状态更新后才检查超时
