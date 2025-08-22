@@ -507,7 +507,7 @@ async function checkAllProxiesParallel() {
                                 `检测已完成，等待批次进程结束... (${completedBatches}/${progressData.total_batches} 个批次已完成, 已等待${waitingSeconds}秒)`;
                         } else {
                             document.getElementById('parallel-progress-info').textContent = 
-                                `检测进行中... (${progressData.total_checked}/${progressData.total_proxies} 个代理已检测`;
+                                `检测进行中... ${progressData.total_checked}/${progressData.total_proxies} 个代理已检测`;
                         }
                         
                         // 超时检查：只有在真正开始等待批次状态更新后才检查超时
@@ -527,7 +527,7 @@ async function checkAllProxiesParallel() {
                                 document.body.removeChild(progressDiv);
                                 document.body.removeChild(overlay);
                                 
-                                alert(`⚠️ 并行检测完成（部分批次超时）！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n注意：有 ${progressData.total_batches - completedBatches} 个批次可能未完全结束，但检测已完成\n\n页面将自动刷新显示最新状态`);
+                                alert(`⚠️ 检测完成（部分批次超时）！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n注意：有 ${progressData.total_batches - completedBatches} 个批次可能未完全结束，但检测已完成\n\n页面将自动刷新显示最新状态`);
                                 
                                 location.reload();
                             }
