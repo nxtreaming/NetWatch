@@ -86,6 +86,7 @@ class NetworkMonitor {
             
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlError = curl_error($ch);
+            $curlErrno = curl_errno($ch);
             
             // 获取代理服务器到目标网站的纯网络响应时间
             // CURLINFO_STARTTRANSFER_TIME: 从请求开始到接收到第一个字节的时间
@@ -107,9 +108,16 @@ class NetworkMonitor {
             curl_close($ch);
             $ch = null; // 标记已关闭
             
+            // cURL error 18: transfer closed with outstanding read data remaining
+            $isPartialFileError = ($curlErrno === 18);
             if ($response !== false && $httpCode === 200) {
                 $status = 'online';
                 $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功，网络响应时间: {$responseTime}ms");
+            } else if ($isPartialFileError && $httpCode === 200) {
+                // 这种情况是代理本身是通的，但与目标网站数据传输不完整，也视为在线
+                $status = 'online';
+                $errorMessage = "Partial transfer: " . $curlError;
+                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功 (但传输不完整): {$curlError}，网络响应时间: {$responseTime}ms");
             } else {
                 $errorMessage = $curlError ?: "HTTP Code: $httpCode";
                 // 对于失败的请求，如果有传输时间数据则使用，否则设为0
