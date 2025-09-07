@@ -6,14 +6,8 @@
 require_once 'config.php';
 require_once 'auth.php';
 
-// 如果未启用登录功能，重定向到主页
-if (!Auth::isLoginEnabled()) {
-    header('Location: index.php');
-    exit;
-}
-
-// 如果已经登录，重定向到主页
-if (Auth::isLoggedIn()) {
+// 如果未启用登录功能或已登录，重定向到主页
+if (!Auth::isLoginEnabled() || Auth::isLoggedIn()) {
     header('Location: index.php');
     exit;
 }
