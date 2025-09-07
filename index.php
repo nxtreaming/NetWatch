@@ -357,9 +357,6 @@ $recentLogs = $monitor->getRecentLogs(20);
         </div>
     </div>
     
-    <button class="refresh-btn" onclick="refreshAll()" title="刷新所有数据">
-        🔄
-    </button>
     
     <!-- JavaScript 文件引用 -->
     <script src="includes/utils.js?v=<?php echo time(); ?>"></script>

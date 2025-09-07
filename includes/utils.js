@@ -58,20 +58,6 @@ function refreshLogs() {
         .catch(error => console.error('刷新日志失败:', error));
 }
 
-function refreshAll() {
-    const btn = document.querySelector('.refresh-btn');
-    if (btn) {
-        btn.style.transform = 'rotate(360deg)';
-    }
-    
-    refreshStats();
-    refreshLogs();
-    
-    // 在分页模式下刷新当前页面
-    setTimeout(() => {
-        location.reload();
-    }, 1000);
-}
 
 // 调试函数：查看数据库中的实际状态值
 function debugStatuses() {
