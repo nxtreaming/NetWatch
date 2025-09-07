@@ -4,7 +4,11 @@
  */
 
 require_once 'config.php';
+require_once 'auth.php';
 require_once 'database.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "=== NetWatch API 功能测试 ===\n\n";
 
