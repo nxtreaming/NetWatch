@@ -30,7 +30,6 @@ if ($action === 'logout') {
     exit;
 }
 
-// 处理AJAX请求
 // 添加更严格的AJAX请求检查，防止移动端浏览器错误处理URL参数
 if (isset($_GET['ajax'])) {
     $isValidAjax = isValidAjaxRequest();
@@ -356,7 +355,6 @@ $recentLogs = $monitor->getRecentLogs(20);
             </div>
         </div>
     </div>
-    
     
     <!-- JavaScript 文件引用 -->
     <script src="includes/utils.js?v=<?php echo time(); ?>"></script>

@@ -7,7 +7,6 @@ class Logger {
     private $logFile;
     
     public function __construct() {
-        // 确保日志目录存在
         if (!is_dir(LOG_PATH)) {
             mkdir(LOG_PATH, 0755, true);
         }
