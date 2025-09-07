@@ -4,8 +4,12 @@
  * 确保批次状态更新的准确性和一致性
  */
 
-require_once 'config.php';
-require_once 'parallel_monitor.php';
+require_once '../auth.php';
+require_once '../config.php';
+require_once '../parallel_monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "=== 批次完成状态验证测试 ===\n\n";
 

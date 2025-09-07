@@ -3,6 +3,11 @@
  * AJAX验证逻辑测试脚本
  */
 
+require_once '../auth.php';
+
+// 检查登录状态
+Auth::requireLogin();
+
 // 模拟不同的请求环境来测试验证逻辑
 function testAjaxValidation($testName, $serverVars) {
     // 备份原始的$_SERVER变量

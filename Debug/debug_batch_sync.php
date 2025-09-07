@@ -4,7 +4,11 @@
  * 用于检查批次状态文件与前端显示不一致的问题
  */
 
-require_once 'parallel_monitor.php';
+require_once '../auth.php';
+require_once '../parallel_monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "=== NetWatch 批次状态同步诊断 ===\n\n";
 

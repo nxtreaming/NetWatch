@@ -3,8 +3,11 @@
  * 登录功能测试页面
  */
 
-require_once 'config.php';
-require_once 'auth.php';
+require_once '../config.php';
+require_once '../auth.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "=== NetWatch 登录功能测试 ===\n\n";
 

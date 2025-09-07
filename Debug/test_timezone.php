@@ -4,9 +4,13 @@
  * 用于诊断NetWatch系统的时间显示问题
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
+require_once '../auth.php';
+require_once '../config.php';
+require_once '../database.php';
+require_once '../monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 // 引入时间格式化函数
 /**

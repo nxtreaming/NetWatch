@@ -4,9 +4,13 @@
  * 专门测试获取代理数量等准备操作的性能
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
+require_once '../auth.php';
+require_once '../config.php';
+require_once '../database.php';
+require_once '../monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "<h2>🔍 NetWatch 准备阶段性能测试</h2>\n";
 echo "<pre>\n";

@@ -4,7 +4,11 @@
  * 验证状态更新的原子性和一致性
  */
 
-require_once 'config.php';
+require_once '../auth.php';
+require_once '../config.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "=== 批次状态文件测试 ===\n\n";
 

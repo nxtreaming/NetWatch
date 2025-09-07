@@ -4,9 +4,13 @@
  * 测试NetWatch系统的分页功能是否正常工作
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
+require_once '../auth.php';
+require_once '../config.php';
+require_once '../database.php';
+require_once '../monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "<h1>NetWatch 分页功能测试</h1>\n";
 

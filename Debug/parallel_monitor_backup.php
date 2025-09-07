@@ -7,10 +7,14 @@
 // 设置时区为中国标准时间
 date_default_timezone_set('Asia/Shanghai');
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
-require_once 'logger.php';
+require_once '../auth.php';
+require_once '../config.php';
+require_once '../database.php';
+require_once '../monitor.php';
+require_once '../logger.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 class ParallelMonitor {
     private $db;

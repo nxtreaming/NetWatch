@@ -4,9 +4,13 @@
  * 测试缓存机制和性能改进的效果
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
+require_once '../auth.php';
+require_once '../config.php';
+require_once '../database.php';
+require_once '../monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "<h2>🚀 NetWatch 准备阶段优化测试</h2>\n";
 echo "<pre>\n";

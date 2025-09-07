@@ -3,8 +3,12 @@
  * 并行检测进度计算测试脚本
  */
 
-require_once 'config.php';
-require_once 'parallel_monitor.php';
+require_once '../auth.php';
+require_once '../config.php';
+require_once '../parallel_monitor.php';
+
+// 检查登录状态
+Auth::requireLogin();
 
 echo "=== 并行检测进度计算测试 ===\n\n";
 

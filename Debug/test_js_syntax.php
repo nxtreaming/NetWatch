@@ -4,11 +4,16 @@
  * 检查index.php中的JavaScript代码是否有语法错误
  */
 
+require_once '../auth.php';
+
+// 检查登录状态
+Auth::requireLogin();
+
 echo "<h2>🔍 JavaScript语法检查</h2>\n";
 echo "<pre>\n";
 
 // 读取index.php文件
-$indexFile = 'index.php';
+$indexFile = '../index.php';
 if (!file_exists($indexFile)) {
     echo "❌ 文件不存在: $indexFile\n";
     exit;

@@ -4,6 +4,11 @@
  * 检查面向对象编程最佳实践
  */
 
+require_once '../auth.php';
+
+// 检查登录状态
+Auth::requireLogin();
+
 echo "<h2>🔍 NetWatch PHP 8+ 代码审查报告</h2>";
 
 // 检查的文件列表
