@@ -14,11 +14,15 @@ if (!Auth::isLoginEnabled() || Auth::isLoggedIn()) {
 
 $error = '';
 $success = '';
+// 初始化表单字段，默认空字符串，并进行trim处理
+$username = isset($_POST['username']) ? trim($_POST['username']) : '';
+$password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
 // 处理登录表单提交
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
+    // 对用户名和密码进行trim，避免首尾空格导致的登录失败
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
     
     if (empty($username) || empty($password)) {
         $error = '请输入用户名和密码';
@@ -182,7 +186,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
             <div class="form-group">
                 <label for="username">用户名</label>
                 <input type="text" id="username" name="username" 
-                       value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>" 
+                       value="<?php echo htmlspecialchars($username); ?>" 
                        required autocomplete="username">
             </div>
             
