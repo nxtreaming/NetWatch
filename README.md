@@ -29,8 +29,8 @@ NetWatch is a high-performance PHP-based network proxy monitoring system designe
 The system has the following default performance parameters configured, which you can adjust according to your server configuration (modify in `index.php`):
 
 ```php
-define('PARALLEL_MAX_PROCESSES', 12);   // Maximum number of parallel processes
-define('PARALLEL_BATCH_SIZE', 500);     // Number of proxies processed per batch
+define('PARALLEL_MAX_PROCESSES', 24);   // Maximum number of parallel processes
+define('PARALLEL_BATCH_SIZE', 200);     // Number of proxies processed per batch
 ```
 
 > 💡 **Performance Recommendations**:

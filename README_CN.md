@@ -29,8 +29,8 @@ NetWatch 是一个基于PHP的高性能网络代理监控系统，专门用于�
 系统默认配置了以下性能参数，您可以根据服务器配置进行调整（在`index.php`中修改）：
 
 ```php
-define('PARALLEL_MAX_PROCESSES', 12);   // 最大并行进程数
-define('PARALLEL_BATCH_SIZE', 500);     // 每批次处理的代理数量
+define('PARALLEL_MAX_PROCESSES', 24);   // 最大并行进程数
+define('PARALLEL_BATCH_SIZE', 200);     // 每批次处理的代理数量
 ```
 
 > 💡 **性能建议**：
