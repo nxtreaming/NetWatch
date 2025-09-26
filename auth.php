@@ -39,10 +39,26 @@ class Auth {
         self::startSession();
         
         if (self::validateCredentials($username, $password)) {
+            // 尝试设置session数据
             $_SESSION['logged_in'] = true;
             $_SESSION['username'] = $username;
             $_SESSION['login_time'] = time();
             $_SESSION['last_activity'] = time();
+            
+            // 强制写入session数据到存储
+            session_write_close();
+            
+            // 重新启动session并验证数据是否成功写入
+            self::startSession();
+            
+            // 检查session数据是否成功保存
+            if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || 
+                !isset($_SESSION['username']) || $_SESSION['username'] !== $username) {
+                
+                // Session写入失败，清理可能的残留数据
+                $_SESSION = array();
+                return 'session_write_failed';
+            }
             
             return true;
         }
@@ -189,6 +205,52 @@ class Auth {
         
         // Remove any leading slashes to prevent double slashes
         return '/' . ltrim($redirectUrl, '/');
+    }
+    
+    /**
+     * 检测存储空间是否足够
+     */
+    public static function checkStorageSpace() {
+        $sessionPath = session_save_path();
+        if (empty($sessionPath)) {
+            $sessionPath = sys_get_temp_dir();
+        }
+        
+        // 检查磁盘空间
+        $freeBytes = disk_free_space($sessionPath);
+        $totalBytes = disk_total_space($sessionPath);
+        
+        if ($freeBytes === false || $totalBytes === false) {
+            return [
+                'status' => 'unknown',
+                'message' => '无法检测存储空间'
+            ];
+        }
+        
+        $freePercent = ($freeBytes / $totalBytes) * 100;
+        
+        if ($freePercent < 1) {
+            return [
+                'status' => 'critical',
+                'message' => '存储空间严重不足（剩余 ' . round($freePercent, 2) . '%），可能导致登录失败',
+                'free_percent' => $freePercent,
+                'free_mb' => round($freeBytes / 1024 / 1024, 2)
+            ];
+        } elseif ($freePercent < 5) {
+            return [
+                'status' => 'warning',
+                'message' => '存储空间不足（剩余 ' . round($freePercent, 2) . '%）',
+                'free_percent' => $freePercent,
+                'free_mb' => round($freeBytes / 1024 / 1024, 2)
+            ];
+        }
+        
+        return [
+            'status' => 'ok',
+            'message' => '存储空间充足',
+            'free_percent' => $freePercent,
+            'free_mb' => round($freeBytes / 1024 / 1024, 2)
+        ];
     }
 }
 ?>

@@ -14,9 +14,18 @@ if (!Auth::isLoginEnabled() || Auth::isLoggedIn()) {
 
 $error = '';
 $success = '';
+$warning = '';
 // 初始化表单字段，默认空字符串，并进行trim处理
 $username = isset($_POST['username']) ? trim($_POST['username']) : '';
 $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+
+// 检查存储空间状态
+$storageStatus = Auth::checkStorageSpace();
+if ($storageStatus['status'] === 'critical') {
+    $error = $storageStatus['message'] . '。请联系系统管理员清理磁盘空间。';
+} elseif ($storageStatus['status'] === 'warning') {
+    $warning = $storageStatus['message'] . '。建议清理磁盘空间以确保系统正常运行。';
+}
 
 // 处理登录表单提交
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -27,12 +36,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($username) || empty($password)) {
         $error = '请输入用户名和密码';
     } else {
-        if (Auth::login($username, $password)) {
-            $success = '登录成功，正在跳转...';
-            $redirectUrl = Auth::getRedirectUrl();
-            header("refresh:1;url=$redirectUrl");
+        // 如果存储空间严重不足，阻止登录尝试
+        if ($storageStatus['status'] === 'critical') {
+            $error = '服务器存储空间不足，无法完成登录。请联系系统管理员清理磁盘空间。';
         } else {
-            $error = '用户名或密码错误';
+            $loginResult = Auth::login($username, $password);
+            
+            if ($loginResult === true) {
+                $success = '登录成功，正在跳转...';
+                $redirectUrl = Auth::getRedirectUrl();
+                header("refresh:1;url=$redirectUrl");
+            } elseif ($loginResult === 'session_write_failed') {
+                $error = '登录验证成功，但由于服务器存储空间不足，无法保存登录状态。请联系系统管理员清理磁盘空间后重试。';
+                // 重新检查存储空间状态
+                $storageStatus = Auth::checkStorageSpace();
+                if ($storageStatus['status'] !== 'unknown') {
+                    $error .= '<br><small>当前可用空间：' . $storageStatus['free_mb'] . ' MB (' . round($storageStatus['free_percent'], 2) . '%)</small>';
+                }
+            } else {
+                $error = '用户名或密码错误';
+            }
         }
     }
 }
@@ -154,6 +177,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
             border: 1px solid #cfc;
         }
         
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
         .footer {
             margin-top: 30px;
             padding-top: 20px;
@@ -172,7 +201,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         
         <?php if ($error): ?>
             <div class="alert alert-error">
-                ❌ <?php echo htmlspecialchars($error); ?>
+                ❌ <?php echo $error; ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($warning): ?>
+            <div class="alert alert-warning">
+                ⚠️ <?php echo htmlspecialchars($warning); ?>
             </div>
         <?php endif; ?>
         
