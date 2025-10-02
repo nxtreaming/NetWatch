@@ -28,9 +28,11 @@ class NetworkMonitor {
     
     /**
      * 快速检查单个代理（用于批量检查，更短的超时时间）
+     * @param array $proxy 代理信息
+     * @param bool $enableRetry 是否启用失败重试（默认启用）
      */
-    public function checkProxyFast($proxy) {
-        return $this->executeProxyCheck($proxy, 3, 2, '快速检查');
+    public function checkProxyFast($proxy, $enableRetry = true) {
+        return $this->executeProxyCheck($proxy, 3, 2, '快速检查', $enableRetry);
     }
     
     /**
@@ -39,9 +41,11 @@ class NetworkMonitor {
      * @param int $timeout 请求超时时间
      * @param int $connectTimeout 连接超时时间
      * @param string $logPrefix 日志前缀
+     * @param bool $enableRetry 是否启用失败重试
+     * @param int $retryCount 当前重试次数（内部使用）
      * @return array 检查结果
      */
-    private function executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix) {
+    private function executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry = false, $retryCount = 0) {
         $status = 'offline';
         $errorMessage = null;
         $responseTime = 0;
@@ -126,7 +130,17 @@ class NetworkMonitor {
                 } else {
                     $responseTime = 0;
                 }
-                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败: $errorMessage，尝试时间: {$responseTime}ms");
+                
+                // 如果启用了重试且这是第一次检测失败，进行第二次检测
+                if ($enableRetry && $retryCount === 0) {
+                    $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败，进行第二次检测...");
+                    // 短暂延迟后重试
+                    usleep(200000); // 0.2秒延迟
+                    return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
+                }
+                
+                $retryInfo = $retryCount > 0 ? "(第二次检测)" : "";
+                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败{$retryInfo}: $errorMessage，尝试时间: {$responseTime}ms");
             }
             
         } catch (Exception $e) {
@@ -137,7 +151,16 @@ class NetworkMonitor {
             }
             $errorMessage = $e->getMessage();
             $responseTime = 0; // 异常情况下设为0
-            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常: $errorMessage");
+            
+            // 如果启用了重试且这是第一次检测异常，进行第二次检测
+            if ($enableRetry && $retryCount === 0) {
+                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常，进行第二次检测...");
+                usleep(200000); // 0.2秒延迟
+                return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
+            }
+            
+            $retryInfo = $retryCount > 0 ? "(第二次检测)" : "";
+            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常{$retryInfo}: $errorMessage");
         }
         
         // 更新数据库
