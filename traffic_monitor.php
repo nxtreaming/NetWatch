@@ -121,8 +121,7 @@ class TrafficMonitor {
         // 转换为GB（1 GB = 1024^3 bytes）
         $rxGB = $rxBytes / (1024 * 1024 * 1024);
         $txGB = $txBytes / (1024 * 1024 * 1024);
-        // 只计算TX（发送流量）作为已用流量
-        $totalUsedGB = $txGB;
+        $totalUsedGB = $txGB + $rxGB;
         
         // 从配置获取总流量限制（如果有的话）
         $totalBandwidthGB = defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0;
