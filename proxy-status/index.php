@@ -262,7 +262,14 @@ if (!$realtimeData) {
     <div class="container">
         <div class="header">
             <h1>🌐 代理流量监控</h1>
-            <p>实时流量使用情况和统计数据</p>
+            <p>实时流量使用情况和统计数据<?php 
+                if ($realtimeData['updated_at']) {
+                    // 将UTC时间转换为北京时间（UTC+8）
+                    $utcTime = strtotime($realtimeData['updated_at']);
+                    $beijingTime = $utcTime + (8 * 3600);
+                    echo ' (更新时间: ' . date('Y-m-d H:i:s', $beijingTime) . ')';
+                }
+            ?></p>
         </div>
         
         <div class="stats-grid">
@@ -377,16 +384,6 @@ if (!$realtimeData) {
         </div>
         <?php endif; ?>
         
-        <?php if ($realtimeData['updated_at']): ?>
-        <div class="update-time">
-            最后更新时间: <?php 
-                // 将UTC时间转换为北京时间（UTC+8）
-                $utcTime = strtotime($realtimeData['updated_at']);
-                $beijingTime = $utcTime + (8 * 3600);
-                echo date('Y-m-d H:i:s', $beijingTime);
-            ?>
-        </div>
-        <?php endif; ?>
         
         <div class="auto-refresh">
             <span class="refresh-indicator"></span>
