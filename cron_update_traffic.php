@@ -3,18 +3,6 @@
  * 定时任务：更新流量数据
  * 建议每5分钟执行一次
  * 
- * Linux Cron设置示例：
- * 
- * 系统级crontab（/etc/crontab，需要指定用户）：
- * */5  *  * * *   root    /usr/local/bin/php /data/dev/NetWatch/cron_update_traffic.php >> /var/log/netwatch_traffic_cron.log 2>&1
- * 
- * 用户级crontab（crontab -e，不需要指定用户）：
- * */5  *  * * *   /usr/local/bin/php /data/dev/NetWatch/cron_update_traffic.php >> /var/log/netwatch_traffic_cron.log 2>&1
- * 
- * Windows任务计划程序：
- * 程序: C:\php\php.exe
- * 参数: D:\workspace\NetWatch\cron_update_traffic.php
- * 触发器: 每5分钟执行一次
  */
 
 require_once __DIR__ . '/config.php';
