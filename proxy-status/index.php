@@ -379,7 +379,12 @@ if (!$realtimeData) {
         
         <?php if ($realtimeData['updated_at']): ?>
         <div class="update-time">
-            最后更新时间: <?php echo date('Y-m-d H:i:s', strtotime($realtimeData['updated_at'])); ?>
+            最后更新时间: <?php 
+                // 将UTC时间转换为北京时间（UTC+8）
+                $utcTime = strtotime($realtimeData['updated_at']);
+                $beijingTime = $utcTime + (8 * 3600);
+                echo date('Y-m-d H:i:s', $beijingTime);
+            ?>
         </div>
         <?php endif; ?>
         
