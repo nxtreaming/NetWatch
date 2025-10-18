@@ -23,8 +23,15 @@ if ($realtimeResult) {
     // 显示当前数据
     $data = $trafficMonitor->getRealtimeTraffic();
     if ($data) {
-        echo "  - 总流量: " . $trafficMonitor->formatBandwidth($data['total_bandwidth']) . "\n";
-        echo "  - 已用流量: " . $trafficMonitor->formatBandwidth($data['used_bandwidth']) . "\n";
+        // 计算 RX + TX 总流量
+        $totalTraffic = 0;
+        if (isset($data['rx_bytes']) && isset($data['tx_bytes'])) {
+            $totalTraffic = ($data['rx_bytes'] + $data['tx_bytes']) / (1024*1024*1024);
+        }
+        
+        echo "  - 总流量限制: " . $trafficMonitor->formatBandwidth($data['total_bandwidth']) . "\n";
+        echo "  - 累计使用(RX+TX): " . $trafficMonitor->formatBandwidth($totalTraffic) . "\n";
+        echo "  - 计费流量(仅TX): " . $trafficMonitor->formatBandwidth($data['used_bandwidth']) . "\n";
         echo "  - 剩余流量: " . $trafficMonitor->formatBandwidth($data['remaining_bandwidth']) . "\n";
         echo "  - 使用率: " . $trafficMonitor->formatPercentage($data['usage_percentage']) . "\n";
     }

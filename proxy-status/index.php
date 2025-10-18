@@ -274,14 +274,21 @@ if (!$realtimeData) {
             </div>
             <?php endif; ?>
             
-            <div class="stat-card <?php 
-                $percentage = $realtimeData['usage_percentage'];
-                if ($percentage >= 90) echo 'danger';
-                elseif ($percentage >= 75) echo 'warning';
-                else echo 'success';
+            <div class="stat-card" style="background: linear-gradient(135deg, <?php 
+                $usagePercentage = $realtimeData['usage_percentage'];
+                echo $usagePercentage >= 90 ? '#f093fb 0%, #f5576c 100%' : 
+                     ($usagePercentage >= 70 ? '#fa709a 0%, #fee140 100%' : 
+                      '#4facfe 0%, #00f2fe 100%'); 
             ?>">
                 <h3>累计使用</h3>
-                <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['used_bandwidth']); ?></div>
+                <div class="value"><?php 
+                    // 显示 RX + TX 的总流量
+                    $totalTraffic = 0;
+                    if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes'])) {
+                        $totalTraffic = ($realtimeData['rx_bytes'] + $realtimeData['tx_bytes']) / (1024*1024*1024);
+                    }
+                    echo $trafficMonitor->formatBandwidth($totalTraffic);
+                ?></div>
                 <div class="label">Total Used (RX + TX)</div>
             </div>
             
