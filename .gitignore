@@ -37,3 +37,4 @@ Thumbs.db
 # 测试文件
 /tests/
 phpunit.xml
+/localdev/*

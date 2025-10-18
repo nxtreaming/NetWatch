@@ -83,12 +83,37 @@ class Database {
             UNIQUE(token_id, proxy_id)
         );
         
+        CREATE TABLE IF NOT EXISTS traffic_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            total_bandwidth REAL DEFAULT 0,
+            used_bandwidth REAL DEFAULT 0,
+            remaining_bandwidth REAL DEFAULT 0,
+            daily_usage REAL DEFAULT 0,
+            usage_date DATE NOT NULL,
+            recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(usage_date)
+        );
+        
+        CREATE TABLE IF NOT EXISTS traffic_realtime (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            total_bandwidth REAL DEFAULT 0,
+            used_bandwidth REAL DEFAULT 0,
+            remaining_bandwidth REAL DEFAULT 0,
+            usage_percentage REAL DEFAULT 0,
+            rx_bytes REAL DEFAULT 0,
+            tx_bytes REAL DEFAULT 0,
+            port INTEGER DEFAULT 0,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        
         CREATE INDEX IF NOT EXISTS idx_proxies_status ON proxies(status);
         CREATE INDEX IF NOT EXISTS idx_check_logs_proxy_id ON check_logs(proxy_id);
         CREATE INDEX IF NOT EXISTS idx_check_logs_checked_at ON check_logs(checked_at);
         CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);
         CREATE INDEX IF NOT EXISTS idx_api_tokens_expires ON api_tokens(expires_at);
         CREATE INDEX IF NOT EXISTS idx_token_assignments_token ON token_proxy_assignments(token_id);
+        CREATE INDEX IF NOT EXISTS idx_traffic_stats_date ON traffic_stats(usage_date);
+        CREATE INDEX IF NOT EXISTS idx_traffic_realtime_updated ON traffic_realtime(updated_at);
         ";
         
         $this->pdo->exec($sql);
@@ -594,5 +619,79 @@ class Database {
         $sql = "UPDATE api_tokens SET proxy_count = ?, updated_at = datetime('now') WHERE id = ?";
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute([$proxyCount, $tokenId]);
+    }
+    
+    /**
+     * 保存实时流量数据
+     */
+    public function saveRealtimeTraffic($totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes = 0, $txBytes = 0, $port = 0) {
+        // 删除旧数据，只保留最新的一条
+        $sql = "DELETE FROM traffic_realtime";
+        $this->pdo->exec($sql);
+        
+        // 插入新数据
+        $sql = "INSERT INTO traffic_realtime (total_bandwidth, used_bandwidth, remaining_bandwidth, usage_percentage, rx_bytes, tx_bytes, port, updated_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes, $txBytes, $port]);
+    }
+    
+    /**
+     * 获取最新的实时流量数据
+     */
+    public function getRealtimeTraffic() {
+        $sql = "SELECT * FROM traffic_realtime ORDER BY updated_at DESC LIMIT 1";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * 保存每日流量统计
+     */
+    public function saveDailyTrafficStats($date, $totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage) {
+        $sql = "INSERT OR REPLACE INTO traffic_stats (usage_date, total_bandwidth, used_bandwidth, remaining_bandwidth, daily_usage, recorded_at) 
+                VALUES (?, ?, ?, ?, ?, datetime('now'))";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$date, $totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage]);
+    }
+    
+    /**
+     * 获取指定日期的流量统计
+     */
+    public function getDailyTrafficStats($date) {
+        $sql = "SELECT * FROM traffic_stats WHERE usage_date = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$date]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * 获取最近N天的流量统计
+     */
+    public function getRecentTrafficStats($days = 30) {
+        $sql = "SELECT * FROM traffic_stats ORDER BY usage_date DESC LIMIT ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$days]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * 计算今日流量使用量
+     */
+    public function calculateDailyUsage($date) {
+        // 获取今天和昨天的数据
+        $todayData = $this->getDailyTrafficStats($date);
+        $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
+        $yesterdayData = $this->getDailyTrafficStats($yesterday);
+        
+        if ($todayData && $yesterdayData) {
+            // 今日使用量 = 今天已用 - 昨天已用
+            return $todayData['used_bandwidth'] - $yesterdayData['used_bandwidth'];
+        } elseif ($todayData) {
+            // 如果没有昨天的数据，返回今天的已用量
+            return $todayData['used_bandwidth'];
+        }
+        
+        return 0;
     }
 }

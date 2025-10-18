@@ -43,3 +43,13 @@ define('LOGIN_USERNAME', 'admin');  // 登录用户名
 define('LOGIN_PASSWORD', 'admin123');  // 登录密码
 define('SESSION_TIMEOUT', 3600);  // 会话超时时间（秒），默认1小时
 define('ENABLE_LOGIN', true);  // 是否启用登录功能
+
+// 流量监控API配置
+// 示例: curl -s -x http://Admin:Passwd@api.example.com:12323 http://api.example.com:12323/stats
+define('TRAFFIC_API_URL', 'http://api.example.com:12323/stats');  // 流量监控API地址（stats端点）
+define('TRAFFIC_API_PROXY_HOST', 'api.example.com');  // 代理服务器主机名
+define('TRAFFIC_API_PROXY_USERNAME', 'Admin');  // HTTP代理用户名
+define('TRAFFIC_API_PROXY_PASSWORD', 'Passwd');  // HTTP代理密码
+define('TRAFFIC_API_PROXY_PORT', 12323);  // HTTP代理端口
+define('TRAFFIC_UPDATE_INTERVAL', 300);  // 流量更新间隔（秒），默认5分钟
+define('TRAFFIC_TOTAL_LIMIT_GB', 1000);  // 总流量限制（GB），设置为0表示不限制
