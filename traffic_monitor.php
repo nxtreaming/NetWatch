@@ -121,7 +121,8 @@ class TrafficMonitor {
         // 转换为GB（1 GB = 1024^3 bytes）
         $rxGB = $rxBytes / (1024 * 1024 * 1024);
         $txGB = $txBytes / (1024 * 1024 * 1024);
-        $totalUsedGB = $rxGB + $txGB;
+        // 只计算TX（发送流量）作为已用流量
+        $totalUsedGB = $txGB;
         
         // 从配置获取总流量限制（如果有的话）
         $totalBandwidthGB = defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0;
@@ -142,7 +143,7 @@ class TrafficMonitor {
         );
         
         if ($result) {
-            $this->logger->info("实时流量数据已更新: 端口={$port}, RX={$rxGB}GB, TX={$txGB}GB, 总计={$totalUsedGB}GB, 使用率={$usagePercentage}%");
+            $this->logger->info("实时流量数据已更新: 端口={$port}, RX={$rxGB}GB, TX={$txGB}GB, 已用(仅TX)={$totalUsedGB}GB, 使用率={$usagePercentage}%");
         }
         
         return $result;
@@ -167,7 +168,8 @@ class TrafficMonitor {
         // 转换为GB
         $rxGB = $rxBytes / (1024 * 1024 * 1024);
         $txGB = $txBytes / (1024 * 1024 * 1024);
-        $totalUsedGB = $rxGB + $txGB;
+        // 只计算TX（发送流量）作为已用流量
+        $totalUsedGB = $txGB;
         
         // 从配置获取总流量限制
         $totalBandwidthGB = defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0;
@@ -186,7 +188,7 @@ class TrafficMonitor {
         );
         
         if ($result) {
-            $this->logger->info("每日流量统计已更新: 日期={$today}, 累计使用={$totalUsedGB}GB, 今日使用={$dailyUsage}GB");
+            $this->logger->info("每日流量统计已更新: 日期={$today}, 累计使用(仅TX)={$totalUsedGB}GB, 今日使用={$dailyUsage}GB");
         }
         
         return $result;
