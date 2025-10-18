@@ -209,12 +209,9 @@ class TrafficMonitor {
     }
     
     /**
-     * 格式化流量大小
+     * 格式化流量大小（统一使用GB）
      */
     public function formatBandwidth($gb) {
-        if ($gb >= 1024) {
-            return number_format($gb / 1024, 2) . ' TB';
-        }
         return number_format($gb, 2) . ' GB';
     }
     
