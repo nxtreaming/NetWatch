@@ -274,12 +274,7 @@ if (!$realtimeData) {
             </div>
             <?php endif; ?>
             
-            <div class="stat-card" style="background: linear-gradient(135deg, <?php 
-                $usagePercentage = $realtimeData['usage_percentage'];
-                echo $usagePercentage >= 90 ? '#f093fb 0%, #f5576c 100%' : 
-                     ($usagePercentage >= 70 ? '#fa709a 0%, #fee140 100%' : 
-                      '#4facfe 0%, #00f2fe 100%'); 
-            ?>">
+            <div class="stat-card">
                 <h3>累计使用</h3>
                 <div class="value"><?php 
                     // 显示 RX + TX 的总流量
