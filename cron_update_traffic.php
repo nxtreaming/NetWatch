@@ -4,7 +4,12 @@
  * 建议每5分钟执行一次
  * 
  * Linux Cron设置示例：
- * */5 * * * * /usr/bin/php /path/to/NetWatch/cron_update_traffic.php >> /path/to/NetWatch/logs/traffic_cron.log 2>&1
+ * 
+ * 系统级crontab（/etc/crontab，需要指定用户）：
+ * */5  *  * * *   root    /usr/local/bin/php /data/dev/NetWatch/cron_update_traffic.php >> /var/log/netwatch_traffic_cron.log 2>&1
+ * 
+ * 用户级crontab（crontab -e，不需要指定用户）：
+ * */5  *  * * *   /usr/local/bin/php /data/dev/NetWatch/cron_update_traffic.php >> /var/log/netwatch_traffic_cron.log 2>&1
  * 
  * Windows任务计划程序：
  * 程序: C:\php\php.exe
