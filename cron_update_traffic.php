@@ -30,8 +30,7 @@ if ($realtimeResult) {
         }
         
         echo "  - 总流量限制: " . $trafficMonitor->formatBandwidth($data['total_bandwidth']) . "\n";
-        echo "  - 累计使用(RX+TX): " . $trafficMonitor->formatBandwidth($totalTraffic) . "\n";
-        echo "  - 计费流量(仅TX): " . $trafficMonitor->formatBandwidth($data['used_bandwidth']) . "\n";
+        echo "  - 累计使用(RX+TX): " . $trafficMonitor->formatBandwidth($data['used_bandwidth']) . "\n";
         echo "  - 剩余流量: " . $trafficMonitor->formatBandwidth($data['remaining_bandwidth']) . "\n";
         echo "  - 使用率: " . $trafficMonitor->formatPercentage($data['usage_percentage']) . "\n";
     }
