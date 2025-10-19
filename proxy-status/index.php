@@ -129,6 +129,13 @@ if (!$realtimeData) {
             gap: 20px;
             margin-bottom: 40px;
         }
+
+        .stats-grid2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
         
         .stat-card {
             background: white;
@@ -431,7 +438,7 @@ if (!$realtimeData) {
         <?php if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes'])): ?>
         <div class="progress-section">
             <h2>📊 流量详情</h2>
-            <div class="stats-grid" style="margin-top: 20px;">
+            <div class="stats-grid2" style="margin-top: 20px;">
                 <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     <h3 style="color: white; opacity: 0.9;">⬇️ 接收流量 (RX)</h3>
                     <div class="value" style="color: white;"><?php echo $trafficMonitor->formatBandwidth($realtimeData['rx_bytes'] / (1024*1024*1024)); ?></div>
