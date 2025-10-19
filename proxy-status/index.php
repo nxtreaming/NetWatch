@@ -71,7 +71,7 @@ if (!$realtimeData) {
         }
         
         .header h1 {
-            font-size: 2.0em;
+            font-size: 2.2em;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
@@ -363,7 +363,7 @@ if (!$realtimeData) {
                 </div>
             </div>
             <h1>🌐 代理流量监控</h1>
-            <p>实时流量统计数据<?php 
+            <p>流量统计数据<?php 
                 if ($realtimeData['updated_at']) {
                     // 将UTC时间转换为北京时间（UTC+8）
                     $utcTime = strtotime($realtimeData['updated_at']);
