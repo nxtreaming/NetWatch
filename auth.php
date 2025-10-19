@@ -72,23 +72,20 @@ class Auth {
     public static function logout() {
         self::startSession();
         
-        // 清除会话数据
-        $_SESSION = array();
+        // 清除所有session数据
+        $_SESSION = [];
         
-        // 删除会话cookie
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
-            );
+        // 删除session cookie
+        if (isset($_COOKIE[session_name()])) {
+            setcookie(session_name(), '', time() - 3600, '/');
         }
         
-        // 销毁会话
+        // 销毁session
         session_destroy();
         
-        // 重定向到登录页面
-        header('Location: login.php');
+        // 重定向到登录页面（使用根目录路径）
+        $loginPath = self::getLoginPath();
+        header('Location: ' . $loginPath);
         exit;
     }
     
@@ -184,10 +181,31 @@ class Auth {
                 $_SESSION['redirect_after_login'] = $currentUrl;
             }
             
-            // 重定向到登录页面
-            header('Location: login.php');
+            // 重定向到登录页面（使用根目录路径）
+            $loginPath = self::getLoginPath();
+            header('Location: ' . $loginPath);
             exit;
         }
+    }
+    
+    /**
+     * 获取登录页面路径（支持从子目录调用）
+     */
+    private static function getLoginPath() {
+        // 获取当前脚本相对于网站根目录的路径
+        $scriptName = $_SERVER['SCRIPT_NAME'];
+        $scriptDir = dirname($scriptName);
+        
+        // 计算到根目录的相对路径
+        if ($scriptDir === '/' || $scriptDir === '\\') {
+            return 'login.php';
+        }
+        
+        // 计算需要返回的层级数
+        $levels = substr_count($scriptDir, '/');
+        $relativePath = str_repeat('../', $levels) . 'login.php';
+        
+        return $relativePath;
     }
     
     /**
