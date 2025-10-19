@@ -700,7 +700,13 @@ class Database {
         $yesterdayData = $this->getDailyTrafficStats($yesterday);
         
         if ($todayData && $yesterdayData) {
-            // 今日使用量 = 今天已用 - 昨天已用
+            // 检测流量是否被重置：如果今天的累计流量比昨天少，说明流量被重置了
+            if ($todayData['used_bandwidth'] < $yesterdayData['used_bandwidth']) {
+                // 流量被重置，直接返回今天的累计使用量
+                return $todayData['used_bandwidth'];
+            }
+            
+            // 正常情况：今日使用量 = 今天已用 - 昨天已用
             return $todayData['used_bandwidth'] - $yesterdayData['used_bandwidth'];
         } elseif ($todayData) {
             // 如果没有昨天的数据，返回今天的已用量
