@@ -367,12 +367,12 @@ if (!$realtimeData) {
     <div class="container">
         <div class="header">
             <div class="user-info">
-                <a href="../index.php" class="nav-btn">🏠 返回主页</a>
+                <a href="../index.php" class="nav-btn">🏠 主页</a>
                 <span>👤 <?php echo htmlspecialchars($_SESSION['username']); ?></span>
                 <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">🚪 退出</a>
             </div>
-            <h1>🌐 代理流量监控</h1>
-            <p>流量统计数据<?php 
+            <h1>🌐 IP池流量监控</h1>
+            <p>流量数据<?php 
                 if ($realtimeData['updated_at']) {
                     // 将UTC时间转换为北京时间（UTC+8）
                     $utcTime = strtotime($realtimeData['updated_at']);
