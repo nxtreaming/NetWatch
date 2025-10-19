@@ -10,6 +10,14 @@ require_once '../traffic_monitor.php';
 // 强制要求登录
 Auth::requireLogin();
 
+// 处理登出请求
+$action = $_GET['action'] ?? '';
+if ($action === 'logout') {
+    Auth::logout();
+    header('Location: ../login.php?action=logout');
+    exit;
+}
+
 $trafficMonitor = new TrafficMonitor();
 
 // 获取实时流量数据
@@ -364,9 +372,7 @@ if (!$realtimeData) {
                 <span>👤 <?php echo htmlspecialchars($_SESSION['username']); ?></span>
                 <div class="nav-links">
                     <a href="../index.php">🏠 返回主页</a>
-                    <form method="POST" action="../logout.php" style="margin: 0; display: inline;">
-                        <button type="submit" class="logout-btn">🚪 退出登录</button>
-                    </form>
+                    <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">🚪 退出登录</a>
                 </div>
             </div>
             <h1>🌐 代理流量监控</h1>
