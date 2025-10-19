@@ -95,7 +95,7 @@ if (!$realtimeData) {
         .user-info {
             position: absolute;
             top: 0;
-            right: -20px;
+            right: 0;
             display: flex;
             align-items: center;
             gap: 15px;
