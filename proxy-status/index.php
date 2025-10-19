@@ -76,6 +76,9 @@ if (!$realtimeData) {
             color: white;
             margin-bottom: 40px;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .header h1 {
@@ -92,7 +95,7 @@ if (!$realtimeData) {
         .user-info {
             position: absolute;
             top: 0;
-            right: 0;
+            right: -20px;
             display: flex;
             align-items: center;
             gap: 15px;
@@ -107,12 +110,7 @@ if (!$realtimeData) {
             font-weight: 600;
         }
         
-        .nav-links {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .nav-links a,
+        .nav-btn,
         .logout-btn {
             padding: 8px 16px;
             background: rgba(255, 255, 255, 0.3);
@@ -126,7 +124,7 @@ if (!$realtimeData) {
             font-size: 14px;
         }
         
-        .nav-links a:hover,
+        .nav-btn:hover,
         .logout-btn:hover {
             background: rgba(255, 255, 255, 0.4);
         }
@@ -328,12 +326,12 @@ if (!$realtimeData) {
                 gap: 10px;
             }
             
-            .nav-links {
-                flex-direction: column;
+            .user-info span {
+                text-align: center;
                 width: 100%;
             }
             
-            .nav-links a,
+            .nav-btn,
             .logout-btn {
                 width: 100%;
                 text-align: center;
@@ -369,11 +367,9 @@ if (!$realtimeData) {
     <div class="container">
         <div class="header">
             <div class="user-info">
+                <a href="../index.php" class="nav-btn">🏠 返回主页</a>
                 <span>👤 <?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                <div class="nav-links">
-                    <a href="../index.php">🏠 返回主页</a>
-                    <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">🚪 退出登录</a>
-                </div>
+                <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">🚪 退出</a>
             </div>
             <h1>🌐 代理流量监控</h1>
             <p>流量统计数据<?php 
