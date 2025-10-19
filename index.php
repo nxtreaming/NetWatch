@@ -157,6 +157,9 @@ $recentLogs = $monitor->getRecentLogs(20);
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
+                    <div class="nav-menu">
+                        <a href="proxy-status/" class="nav-link">📊 流量统计</a>
+                    </div>
                     <div class="user-info">
                         <div class="user-row">
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>

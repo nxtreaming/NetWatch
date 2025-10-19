@@ -73,7 +73,11 @@ body {
 .header-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
+}
+
+.header-right .nav-menu {
+    margin-top: 0;
 }
 
 .user-info {
@@ -421,6 +425,33 @@ body {
 }
 
 @media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .header-right {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        gap: 10px;
+    }
+    
+    .header-right .nav-menu {
+        width: 100%;
+    }
+    
+    .header-right .nav-link {
+        display: block;
+        text-align: center;
+    }
+    
+    .user-info {
+        align-items: flex-start;
+        width: 100%;
+    }
+    
     .header-actions {
         flex-direction: column;
         align-items: stretch;
