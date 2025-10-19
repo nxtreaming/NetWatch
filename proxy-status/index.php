@@ -1,11 +1,14 @@
 <?php
 /**
- * 公开的代理流量监控页面
- * 不需要登录即可访问
+ * 代理流量监控页面
  */
 
 require_once '../config.php';
+require_once '../auth.php';
 require_once '../traffic_monitor.php';
+
+// 强制要求登录
+Auth::requireLogin();
 
 $trafficMonitor = new TrafficMonitor();
 
@@ -64,6 +67,7 @@ if (!$realtimeData) {
             text-align: center;
             color: white;
             margin-bottom: 40px;
+            position: relative;
         }
         
         .header h1 {
@@ -75,6 +79,48 @@ if (!$realtimeData) {
         .header p {
             font-size: 1.1em;
             opacity: 0.9;
+        }
+        
+        .user-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .user-info span {
+            color: white;
+            font-weight: 600;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-links a,
+        .logout-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .nav-links a:hover,
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
         }
         
         .stats-grid {
@@ -248,8 +294,34 @@ if (!$realtimeData) {
         }
         
         @media (max-width: 768px) {
+            .header {
+                padding-top: 80px;
+            }
+            
             .header h1 {
                 font-size: 1.8em;
+            }
+            
+            .user-info {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                z-index: 1000;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .nav-links a,
+            .logout-btn {
+                width: 100%;
+                text-align: center;
             }
             
             .stats-grid {
@@ -281,6 +353,15 @@ if (!$realtimeData) {
 <body>
     <div class="container">
         <div class="header">
+            <div class="user-info">
+                <span>👤 <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                <div class="nav-links">
+                    <a href="../index.php">🏠 返回主页</a>
+                    <form method="POST" action="../logout.php" style="margin: 0; display: inline;">
+                        <button type="submit" class="logout-btn">🚪 退出登录</button>
+                    </form>
+                </div>
+            </div>
             <h1>🌐 代理流量监控</h1>
             <p>实时流量使用情况和统计数据<?php 
                 if ($realtimeData['updated_at']) {
