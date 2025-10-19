@@ -363,7 +363,7 @@ if (!$realtimeData) {
                 </div>
             </div>
             <h1>🌐 代理流量监控</h1>
-            <p>实时流量使用情况和统计数据<?php 
+            <p>实时流量统计数据<?php 
                 if ($realtimeData['updated_at']) {
                     // 将UTC时间转换为北京时间（UTC+8）
                     $utcTime = strtotime($realtimeData['updated_at']);
