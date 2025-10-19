@@ -133,14 +133,14 @@ if (!$realtimeData) {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
 
         .stats-grid2 {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         
         .stat-card {
@@ -197,12 +197,12 @@ if (!$realtimeData) {
             border-radius: 12px;
             padding: 30px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
         
         .progress-section h2 {
             color: #333;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         
         .progress-bar-container {
