@@ -207,6 +207,19 @@ class TrafficMonitor {
     }
     
     /**
+     * 获取指定日期前后N天的流量统计
+     * @param string $centerDate 中心日期 (Y-m-d)
+     * @param int $daysBefore 前面天数
+     * @param int $daysAfter 后面天数
+     * @return array
+     */
+    public function getStatsAroundDate($centerDate, $daysBefore = 7, $daysAfter = 7) {
+        $startDate = date('Y-m-d', strtotime($centerDate . " -{$daysBefore} days"));
+        $endDate = date('Y-m-d', strtotime($centerDate . " +{$daysAfter} days"));
+        return $this->db->getTrafficStatsByDateRange($startDate, $endDate);
+    }
+    
+    /**
      * 格式化流量大小（统一使用GB）
      */
     public function formatBandwidth($gb) {

@@ -12,8 +12,17 @@ $trafficMonitor = new TrafficMonitor();
 // 获取实时流量数据
 $realtimeData = $trafficMonitor->getRealtimeTraffic();
 
-// 获取最近30天的统计数据
-$recentStats = $trafficMonitor->getRecentStats(30);
+// 处理日期查询
+$queryDate = isset($_GET['date']) ? $_GET['date'] : null;
+$recentStats = [];
+
+if ($queryDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $queryDate)) {
+    // 如果指定了日期，获取该日期前后7天的数据
+    $recentStats = $trafficMonitor->getStatsAroundDate($queryDate, 7, 7);
+} else {
+    // 默认显示最近30天
+    $recentStats = $trafficMonitor->getRecentStats(30);
+}
 
 // 如果没有数据，显示默认值
 if (!$realtimeData) {
@@ -255,6 +264,17 @@ if (!$realtimeData) {
             .chart-section {
                 padding: 20px;
             }
+            
+            .date-query-form form {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .date-query-form input,
+            .date-query-form button,
+            .date-query-form a {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -356,7 +376,41 @@ if (!$realtimeData) {
         
         <?php if (!empty($recentStats)): ?>
         <div class="chart-section">
-            <h2>📊 最近30天流量统计</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <h2 style="margin: 0;">📊 <?php echo $queryDate ? '日期范围流量统计' : '最近30天流量统计'; ?></h2>
+                <div class="date-query-form">
+                    <form method="GET" style="display: flex; gap: 10px; align-items: center;">
+                        <label for="query-date" style="font-weight: 600; color: #555;">查询日期:</label>
+                        <input type="date" 
+                               id="query-date" 
+                               name="date" 
+                               value="<?php echo $queryDate ? htmlspecialchars($queryDate) : ''; ?>"
+                               style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <button type="submit" 
+                                style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            查询前后7天
+                        </button>
+                        <?php if ($queryDate): ?>
+                        <a href="?" 
+                           style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                            显示最近30天
+                        </a>
+                        <?php endif; ?>
+                    </form>
+                </div>
+            </div>
+            
+            <?php if ($queryDate): ?>
+            <div style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
+                <strong>📅 查询结果:</strong> 显示 <?php echo $queryDate; ?> 前后7天的流量数据
+                <?php 
+                $startDate = date('Y-m-d', strtotime($queryDate . ' -7 days'));
+                $endDate = date('Y-m-d', strtotime($queryDate . ' +7 days'));
+                echo "（{$startDate} 至 {$endDate}）";
+                ?>
+            </div>
+            <?php endif; ?>
+            
             <div class="chart-container">
                 <table>
                     <thead>
@@ -370,7 +424,7 @@ if (!$realtimeData) {
                     </thead>
                     <tbody>
                         <?php foreach ($recentStats as $stat): ?>
-                        <tr>
+                        <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'style="background: #fff3cd; font-weight: 600;"'; ?>>
                             <td><?php echo htmlspecialchars($stat['usage_date']); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($stat['total_bandwidth']); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($stat['used_bandwidth']); ?></td>

@@ -676,6 +676,21 @@ class Database {
     }
     
     /**
+     * 获取指定日期范围的流量统计
+     * @param string $startDate 开始日期 (Y-m-d)
+     * @param string $endDate 结束日期 (Y-m-d)
+     * @return array
+     */
+    public function getTrafficStatsByDateRange($startDate, $endDate) {
+        $sql = "SELECT * FROM traffic_stats 
+                WHERE usage_date >= ? AND usage_date <= ? 
+                ORDER BY usage_date ASC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$startDate, $endDate]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
      * 计算今日流量使用量
      */
     public function calculateDailyUsage($date) {
