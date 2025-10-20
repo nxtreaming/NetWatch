@@ -80,7 +80,7 @@ if (!$realtimeData) {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 20px;
+            margin-bottom: 1px;
         }
         
         .header-left {
