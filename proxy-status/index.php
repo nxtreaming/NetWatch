@@ -88,13 +88,13 @@ if (!$realtimeData) {
         }
         
         .header h1 {
-            font-size: 2.2em;
-            margin-bottom: 10px;
+            font-size: 1.5em;
+            margin-bottom: 1px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
         
         .header p {
-            font-size: 1.1em;
+            font-size: 1.0em;
             opacity: 0.9;
         }
         
