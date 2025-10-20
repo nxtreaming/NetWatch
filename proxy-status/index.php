@@ -372,12 +372,12 @@ if (!$realtimeData) {
                 <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">🚪 退出</a>
             </div>
             <h1>🌐 IP池流量监控</h1>
-            <p>流量数据<?php 
+            <p>更新时间<?php 
                 if ($realtimeData['updated_at']) {
                     // 将UTC时间转换为北京时间（UTC+8）
                     $utcTime = strtotime($realtimeData['updated_at']);
                     $beijingTime = $utcTime + (8 * 3600);
-                    echo ' (更新时间: ' . date('Y-m-d H:i:s', $beijingTime) . ')';
+                    echo ' (' . date('m-d H:i:s', $beijingTime) . ')';
                 }
             ?></p>
         </div>
