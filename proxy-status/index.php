@@ -73,7 +73,7 @@ if (!$realtimeData) {
         
         .header {
             color: white;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
         
         .header-wrapper {
