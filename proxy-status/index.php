@@ -72,13 +72,19 @@ if (!$realtimeData) {
         }
         
         .header {
-            text-align: center;
             color: white;
             margin-bottom: 40px;
-            position: relative;
+        }
+        
+        .header-wrapper {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        
+        .header-left {
+            flex: 1;
         }
         
         .header h1 {
@@ -93,9 +99,6 @@ if (!$realtimeData) {
         }
         
         .user-info {
-            position: absolute;
-            top: 0;
-            right: 0;
             display: flex;
             align-items: center;
             gap: 15px;
@@ -148,12 +151,6 @@ if (!$realtimeData) {
             border-radius: 12px;
             padding: 25px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
         }
         
         .stat-card h3 {
@@ -307,34 +304,59 @@ if (!$realtimeData) {
         }
         
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
             .header {
-                padding-top: 80px;
+                margin-bottom: 20px;
+            }
+            
+            .header-wrapper {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .header-left {
+                text-align: center;
+                width: 100%;
             }
             
             .header h1 {
-                font-size: 1.8em;
+                font-size: 1.5em;
+            }
+            
+            .header p {
+                font-size: 0.9em;
             }
             
             .user-info {
-                position: fixed;
-                top: 10px;
-                left: 10px;
-                right: 10px;
-                z-index: 1000;
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
+                position: static;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 12px;
+                margin-top: 15px;
+                font-size: 12px;
             }
             
             .user-info span {
-                text-align: center;
-                width: 100%;
+                order: 1;
             }
             
-            .nav-btn,
+            .nav-btn {
+                order: 0;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
             .logout-btn {
-                width: 100%;
-                text-align: center;
+                order: 2;
+                padding: 6px 12px;
+                font-size: 12px;
             }
             
             .stats-grid {
@@ -366,20 +388,24 @@ if (!$realtimeData) {
 <body>
     <div class="container">
         <div class="header">
-            <div class="user-info">
-                <a href="../index.php" class="nav-btn">🏠 主页</a>
-                <span>👤 <?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">🚪 退出</a>
+            <div class="header-wrapper">
+                <div class="header-left">
+                    <h1>🌐 IP池流量监控</h1>
+                    <p>更新时间<?php 
+                        if ($realtimeData['updated_at']) {
+                            // 将UTC时间转换为北京时间（UTC+8）
+                            $utcTime = strtotime($realtimeData['updated_at']);
+                            $beijingTime = $utcTime + (8 * 3600);
+                            echo ' (' . date('m-d H:i:s', $beijingTime) . ')';
+                        }
+                    ?></p>
+                </div>
+                <div class="user-info">
+                    <a href="../index.php" class="nav-btn">🏠 主页</a>
+                    <span>👤 <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                    <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">🚪 退出</a>
+                </div>
             </div>
-            <h1>🌐 IP池流量监控</h1>
-            <p>更新时间<?php 
-                if ($realtimeData['updated_at']) {
-                    // 将UTC时间转换为北京时间（UTC+8）
-                    $utcTime = strtotime($realtimeData['updated_at']);
-                    $beijingTime = $utcTime + (8 * 3600);
-                    echo ' (' . date('m-d H:i:s', $beijingTime) . ')';
-                }
-            ?></p>
         </div>
         
         <div class="stats-grid">
