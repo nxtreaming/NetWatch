@@ -532,20 +532,20 @@ if (!$realtimeData) {
                     <thead>
                         <tr>
                             <th>日期</th>
-                            <th>总流量</th>
-                            <th>已用流量</th>
-                            <th>剩余流量</th>
                             <th>当日使用</th>
+                            <th>已用流量</th>
+                            <th>总流量</th>
+                            <th>剩余流量</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($recentStats as $stat): ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'style="background: #fff3cd; font-weight: 600;"'; ?>>
                             <td><?php echo htmlspecialchars($stat['usage_date']); ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($stat['total_bandwidth']); ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($stat['used_bandwidth']); ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($stat['remaining_bandwidth']); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($stat['daily_usage']); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($stat['used_bandwidth']); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($stat['total_bandwidth']); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($stat['remaining_bandwidth']); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
