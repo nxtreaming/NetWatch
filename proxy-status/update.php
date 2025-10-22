@@ -1,13 +1,23 @@
 <?php
 /**
  * 手动更新流量数据的AJAX端点
- * 不需要登录即可访问
  */
 
 header('Content-Type: application/json');
 
 require_once '../config.php';
+require_once '../auth.php';
 require_once '../traffic_monitor.php';
+
+// 检查登录状态
+if (!Auth::isLoggedIn()) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'unauthorized',
+        'message' => '请先登录后再执行此操作'
+    ]);
+    exit;
+}
 
 try {
     $trafficMonitor = new TrafficMonitor();
