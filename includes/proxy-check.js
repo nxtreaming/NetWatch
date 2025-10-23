@@ -4,7 +4,7 @@ function checkProxy(proxyId) {
     btn.textContent = '检查中...';
     btn.disabled = true;
     
-    fetch(`index.php?ajax=1&action=check&proxy_id=${proxyId}`)
+    fetch(`./index.php?ajax=1&action=check&proxy_id=${proxyId}`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -121,7 +121,7 @@ async function checkAllProxies() {
         } else {
             // 缓存无效，重新查询
             document.getElementById('progress-info').textContent = '正在获取代理数量...';
-            const countResponse = await fetch('index.php?ajax=1&action=getProxyCount');
+            const countResponse = await fetch('./index.php?ajax=1&action=getProxyCount');
             countData = await countResponse.json();
             
             if (!countData.success) {
@@ -170,7 +170,7 @@ async function checkAllProxies() {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 120000);
                 
-                const batchResponse = await fetch(`index.php?ajax=1&action=checkBatch&offset=${offset}&limit=${batchSize}`, {
+                const batchResponse = await fetch(`./index.php?ajax=1&action=checkBatch&offset=${offset}&limit=${batchSize}`, {
                     signal: controller.signal
                 });
                 
@@ -228,7 +228,7 @@ async function checkAllProxies() {
         if (!cancelled) {
             // 检查是否有失败的代理需要发送邮件
             try {
-                const alertResponse = await fetch('index.php?ajax=1&action=checkFailedProxies');
+                const alertResponse = await fetch('./index.php?ajax=1&action=checkFailedProxies');
                 const alertData = await alertResponse.json();
                 
                 let alertMessage = '';
@@ -353,7 +353,7 @@ async function checkAllProxiesParallel() {
         // 发送取消请求，包含会话ID
         try {
             if (currentSessionId) {
-                await fetch(`index.php?ajax=1&action=cancelParallelCheck&session_id=${encodeURIComponent(currentSessionId)}`);
+                await fetch(`./index.php?ajax=1&action=cancelParallelCheck&session_id=${encodeURIComponent(currentSessionId)}`);
             }
         } catch (e) {
             // 取消请求失败，忽略错误
@@ -373,7 +373,7 @@ async function checkAllProxiesParallel() {
         // 启动并行检测
         document.getElementById('parallel-progress-info').textContent = '正在启动并行检测引擎...';
         
-        const startResponse = await fetch('index.php?ajax=1&action=startParallelCheck');
+        const startResponse = await fetch('./index.php?ajax=1&action=startParallelCheck');
         const startData = await startResponse.json();
         
         if (!startData.success) {
@@ -411,7 +411,7 @@ async function checkAllProxiesParallel() {
             
             try {
                 // 传递会话ID查询对应的检测进度
-                const progressResponse = await fetch(`index.php?ajax=1&action=getParallelProgress&session_id=${encodeURIComponent(currentSessionId)}`);
+                const progressResponse = await fetch(`./index.php?ajax=1&action=getParallelProgress&session_id=${encodeURIComponent(currentSessionId)}`);
                 const progressData = await progressResponse.json();
                 
                 // 检查是否是登录过期
