@@ -624,7 +624,7 @@ if (!$realtimeData) {
                         labels: labels,
                         datasets: [
                             {
-                                label: '当日总流量 (RX + TX)',
+                                label: '当日实时流量',
                                 data: totalData,
                                 borderColor: 'rgb(75, 192, 192)',
                                 backgroundColor: 'rgba(75, 192, 192, 0.1)',
