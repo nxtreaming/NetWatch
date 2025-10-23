@@ -256,7 +256,22 @@ class AjaxHandler {
             
             file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 准备返回JSON响应\n", FILE_APPEND);
             
-            echo json_encode($response);
+            $jsonResponse = json_encode($response);
+            $responseSize = strlen($jsonResponse);
+            
+            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - JSON大小: " . $responseSize . " 字节\n", FILE_APPEND);
+            
+            // 测试：先返回一个简单的响应
+            if ($responseSize > 100000) {
+                // 如果响应太大，只返回摘要
+                echo json_encode([
+                    'success' => true,
+                    'message' => '数据量太大，已省略详情',
+                    'batch_info' => $response['batch_info']
+                ]);
+            } else {
+                echo $jsonResponse;
+            }
             
             file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - JSON响应已发送，准备exit\n", FILE_APPEND);
             exit; // 立即终止，防止后续输出
