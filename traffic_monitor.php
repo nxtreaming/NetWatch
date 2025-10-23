@@ -179,8 +179,22 @@ class TrafficMonitor {
         $totalBandwidthGB = defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0;
         $remainingBandwidthGB = $totalBandwidthGB > 0 ? max(0, $totalBandwidthGB - $totalUsedGB) : 0;
         
-        // 计算今日使用量（当前累计 - 昨天累计）
-        $dailyUsage = $this->db->calculateDailyUsage($today);
+        // 计算今日使用量：使用当前API返回的累计值 - 昨天的累计值
+        $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
+        $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
+        
+        if ($yesterdayData) {
+            // 正常情况：今日使用 = 当前累计 - 昨天累计
+            $dailyUsage = $totalUsedGB - $yesterdayData['used_bandwidth'];
+            
+            // 检测流量重置：如果今天累计比昨天少，说明流量被重置了
+            if ($dailyUsage < 0) {
+                $dailyUsage = $totalUsedGB; // 流量被重置，直接使用今天的累计值
+            }
+        } else {
+            // 没有昨天的数据，使用今天的累计值
+            $dailyUsage = $totalUsedGB;
+        }
         
         // 保存每日统计
         $result = $this->db->saveDailyTrafficStats(
