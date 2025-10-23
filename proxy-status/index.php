@@ -386,14 +386,35 @@ if (!$realtimeData) {
             }
             
             .date-query-form form {
-                flex-direction: column;
+                flex-wrap: wrap;
                 width: 100%;
             }
             
-            .date-query-form input,
-            .date-query-form button,
+            .date-query-form label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .date-query-form input[type="date"] {
+                flex: 1;
+                min-width: 120px;
+            }
+            
+            .date-query-form button[type="submit"] {
+                flex-shrink: 0;
+                white-space: nowrap;
+                padding: 8px 12px !important;
+                font-size: 13px;
+            }
+            
             .date-query-form a {
                 width: 100%;
+                text-align: center;
+                margin-top: 5px;
+            }
+            
+            .date-query-form input[type="hidden"] {
+                display: none;
             }
         }
     </style>
