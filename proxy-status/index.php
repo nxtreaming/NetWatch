@@ -735,7 +735,7 @@ if (!$realtimeData) {
                         labels: labels,
                         datasets: [
                             {
-                                label: '当日实时流量',
+                                label: '本时段消耗',
                                 data: totalData,
                                 borderColor: 'rgb(75, 192, 192)',
                                 backgroundColor: 'rgba(75, 192, 192, 0.1)',
@@ -798,7 +798,7 @@ if (!$realtimeData) {
                                         if (context.dataIndex === 0) {
                                             label += '0 MB (起始点)';
                                         } else {
-                                            label += value + ' MB (本时段消耗)';
+                                            label += value + ' MB';
                                         }
                                         return label;
                                     }
