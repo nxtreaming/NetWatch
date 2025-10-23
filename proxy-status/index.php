@@ -734,7 +734,7 @@ if (!$realtimeData) {
                         labels: recentLabels,
                         datasets: [
                             {
-                                label: '当日实时流量',
+                                label: '本时段流量',
                                 data: recentTotalData,
                                 borderColor: 'rgb(75, 192, 192)',
                                 backgroundColor: 'rgba(75, 192, 192, 0.1)',
