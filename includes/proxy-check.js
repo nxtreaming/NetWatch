@@ -1,8 +1,8 @@
-// 获取正确的API路径（自动适应子目录部署）
+// 获取正确的API路径（使用相对路径，自动适应任何部署环境）
 function getApiUrl(params) {
-    const currentPath = window.location.pathname;
-    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-    return `${basePath}index.php?${params}`;
+    // 使用相对路径 'index.php' 而不是绝对路径 '/index.php'
+    // 这样会相对于当前HTML页面的位置
+    return `index.php?${params}`;
 }
 
 // AJAX fetch包装函数，自动添加必要的请求头
