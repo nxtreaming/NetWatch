@@ -633,28 +633,6 @@ if (!$realtimeData) {
                                 tension: 0.4,
                                 pointRadius: 4,
                                 pointHoverRadius: 6
-                            },
-                            {
-                                label: '当日接收 (RX)',
-                                data: rxData,
-                                borderColor: 'rgb(102, 126, 234)',
-                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 3,
-                                pointHoverRadius: 5
-                            },
-                            {
-                                label: '当日发送 (TX)',
-                                data: txData,
-                                borderColor: 'rgb(245, 101, 108)',
-                                backgroundColor: 'rgba(245, 101, 108, 0.1)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 3,
-                                pointHoverRadius: 5
                             }
                         ]
                     },
@@ -689,12 +667,28 @@ if (!$realtimeData) {
                                     size: 13
                                 },
                                 callbacks: {
+                                    title: function(context) {
+                                        // 显示时间段
+                                        const currentTime = context[0].label;
+                                        const index = context[0].dataIndex;
+                                        if (index === 0) {
+                                            return currentTime + ' (起始点)';
+                                        }
+                                        // 计算上一个时间点
+                                        const prevTime = context[0].chart.data.labels[index - 1];
+                                        return prevTime + ' → ' + currentTime;
+                                    },
                                     label: function(context) {
                                         let label = context.dataset.label || '';
                                         if (label) {
                                             label += ': ';
                                         }
-                                        label += parseFloat(context.parsed.y).toFixed(2) + ' MB';
+                                        const value = parseFloat(context.parsed.y).toFixed(2);
+                                        if (context.dataIndex === 0) {
+                                            label += '0 MB (起始点)';
+                                        } else {
+                                            label += value + ' MB (本时段消耗)';
+                                        }
                                         return label;
                                     }
                                 }
