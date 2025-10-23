@@ -21,13 +21,6 @@ function fetchApi(params, options = {}) {
         ...options
     };
     
-    // 调试日志：输出请求URL和头信息
-    console.log('📡 AJAX请求:', {
-        url: url,
-        headers: defaultOptions.headers,
-        options: options
-    });
-    
     return fetch(url, defaultOptions);
 }
 

@@ -213,9 +213,10 @@ class AjaxHandler {
     }
     
     private function handleCheckBatch() {
-        // 【临时测试】直接返回一个简单响应，看是否还是404
-        echo json_encode(['success' => true, 'test' => 'checkBatch is working', 'time' => date('Y-m-d H:i:s')]);
-        exit;
+        // 【修复】关闭所有输出缓冲，防止输出被截断
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
         
         // 记录请求日志
         file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 开始处理checkBatch请求\n", FILE_APPEND);
@@ -260,25 +261,14 @@ class AjaxHandler {
             
             file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 准备返回JSON响应\n", FILE_APPEND);
             
-            $jsonResponse = json_encode($response);
-            $responseSize = strlen($jsonResponse);
+            // 设置响应头
+            header('Content-Type: application/json; charset=utf-8');
             
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - JSON大小: " . $responseSize . " 字节\n", FILE_APPEND);
+            // 返回JSON响应
+            echo json_encode($response);
             
-            // 测试：先返回一个简单的响应
-            if ($responseSize > 100000) {
-                // 如果响应太大，只返回摘要
-                echo json_encode([
-                    'success' => true,
-                    'message' => '数据量太大，已省略详情',
-                    'batch_info' => $response['batch_info']
-                ]);
-            } else {
-                echo $jsonResponse;
-            }
-            
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - JSON响应已发送，准备exit\n", FILE_APPEND);
-            exit; // 立即终止，防止后续输出
+            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - JSON响应已发送\n", FILE_APPEND);
+            exit;
             
         } catch (Exception $e) {
             $error = '批量检查失败: ' . $e->getMessage();
