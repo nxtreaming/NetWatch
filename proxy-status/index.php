@@ -249,6 +249,30 @@ if (!$realtimeData) {
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
+        /* 图表滚动容器样式 */
+        .chart-section > div[style*="overflow-x"] {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e0 #f7fafc;
+        }
+        
+        .chart-section > div[style*="overflow-x"]::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .chart-section > div[style*="overflow-x"]::-webkit-scrollbar-track {
+            background: #f7fafc;
+            border-radius: 4px;
+        }
+        
+        .chart-section > div[style*="overflow-x"]::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+        
+        .chart-section > div[style*="overflow-x"]::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+        
         .chart-section h2 {
             color: #333;
             margin-bottom: 20px;
@@ -563,8 +587,13 @@ if (!$realtimeData) {
             <?php endif; ?>
             
             <?php if (!empty($todaySnapshots)): ?>
-            <div style="position: relative; height: 400px;">
-                <canvas id="trafficChart"></canvas>
+            <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
+                💡 提示：图表可左右滑动查看全天数据，默认显示最近2小时
+            </p>
+            <div style="overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;">
+                <div style="position: relative; height: 400px; min-width: 800px;">
+                    <canvas id="trafficChart"></canvas>
+                </div>
             </div>
             <?php else: ?>
             <div style="background: #fff3cd; padding: 20px; border-radius: 6px; text-align: center; color: #856404;">
@@ -689,8 +718,13 @@ if (!$realtimeData) {
                 }
             }
             
+            // 动态计算图表宽度（每个数据点占用更多空间，让图表可以横向滚动）
+            // 每个数据点占40px，最少800px
+            const chartWidth = Math.max(800, snapshots.length * 40);
+            const chartContainer = ctx.parentElement;
+            chartContainer.style.minWidth = chartWidth + 'px';
+            
             // 创建图表
-            const ctx = document.getElementById('trafficChart');
             if (ctx) {
                 new Chart(ctx, {
                     type: 'line',
@@ -814,6 +848,20 @@ if (!$realtimeData) {
                         }
                     }
                 });
+                
+                // 自动滚动到最新数据（显示最近2小时）
+                // 每5分钟一个数据点，2小时 = 24个数据点
+                setTimeout(() => {
+                    const scrollContainer = chartContainer.parentElement;
+                    if (scrollContainer && snapshots.length > 24) {
+                        // 计算需要滚动的距离：显示最后24个数据点
+                        const pointsToShow = 24;
+                        const totalPoints = snapshots.length;
+                        const scrollPercentage = (totalPoints - pointsToShow) / totalPoints;
+                        const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+                        scrollContainer.scrollLeft = maxScroll * scrollPercentage;
+                    }
+                }, 100);
             }
         })();
         <?php endif; ?>
