@@ -791,17 +791,19 @@ if (!$realtimeData) {
                                         return prevTime + ' → ' + currentTime;
                                     },
                                     label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
                                         const value = parseFloat(context.parsed.y).toFixed(2);
                                         if (context.dataIndex === 0) {
-                                            label += '0 MB (起始点)';
+                                            return '0 MB (起始点)';
                                         } else {
-                                            label += value + ' MB';
+                                            return value + ' MB';
                                         }
-                                        return label;
+                                    },
+                                    labelColor: function(context) {
+                                        // 返回透明色，隐藏图标
+                                        return {
+                                            borderColor: 'transparent',
+                                            backgroundColor: 'transparent'
+                                        };
                                     }
                                 }
                             }
