@@ -8,6 +8,9 @@
  * 防止移动端浏览器错误地将页面请求误认为AJAX请求
  */
 function isValidAjaxRequest() {
+    // 【新增】检查是否有特殊的AJAX token参数（用于绕过可能被过滤的请求头）
+    $hasAjaxToken = isset($_GET['_ajax_token']) && is_numeric($_GET['_ajax_token']);
+    
     // 检查是否有XMLHttpRequest标头
     $isXmlHttpRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
@@ -38,6 +41,11 @@ function isValidAjaxRequest() {
                 strpos($userAgent, 'Android') !== false || 
                 strpos($userAgent, 'iPhone') !== false || 
                 strpos($userAgent, 'iPad') !== false;
+    
+    // 【优先】如果有AJAX token且有有效Referer，直接认为是合法请求
+    if ($hasAjaxToken && $hasValidReferer) {
+        return true;
+    }
     
     // 如果是移动端且是浏览器请求，只要有Accept头就认为是有效的AJAX请求
     if ($isMobile && $isBrowserRequest && $acceptsJson) {

@@ -7,13 +7,17 @@ function getApiUrl(params) {
 
 // AJAX fetch包装函数，自动添加必要的请求头
 function fetchApi(params, options = {}) {
-    const url = getApiUrl(params);
+    // 添加特殊标记参数，让服务器识别这是真正的AJAX请求
+    const ajaxToken = Date.now(); // 使用时间戳作为防伪标记
+    const url = `index.php?${params}&_ajax_token=${ajaxToken}`;
+    
     const defaultOptions = {
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json, */*',
             ...options.headers
         },
+        credentials: 'same-origin', // 确保发送cookies
         ...options
     };
     
