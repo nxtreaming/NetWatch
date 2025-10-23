@@ -656,10 +656,26 @@ if (!$realtimeData) {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($recentStats as $stat): ?>
+                        <?php 
+                        $previousUsedBandwidth = 0;
+                        foreach ($recentStats as $index => $stat): 
+                            // 实时计算当日使用量：当天累计 - 前一天累计
+                            if ($index < count($recentStats) - 1) {
+                                $previousUsedBandwidth = $recentStats[$index + 1]['used_bandwidth'];
+                                $calculatedDailyUsage = $stat['used_bandwidth'] - $previousUsedBandwidth;
+                            } else {
+                                // 最后一条记录（最早的日期），使用数据库中的值
+                                $calculatedDailyUsage = $stat['daily_usage'];
+                            }
+                            
+                            // 如果计算结果为负（流量重置），使用当天的累计值
+                            if ($calculatedDailyUsage < 0) {
+                                $calculatedDailyUsage = $stat['used_bandwidth'];
+                            }
+                        ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'style="background: #fff3cd; font-weight: 600;"'; ?>>
                             <td><?php echo htmlspecialchars($stat['usage_date']); ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($stat['daily_usage']); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($stat['used_bandwidth']); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($stat['total_bandwidth']); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($stat['remaining_bandwidth']); ?></td>

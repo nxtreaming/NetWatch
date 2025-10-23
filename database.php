@@ -659,12 +659,30 @@ class Database {
     
     /**
      * 保存每日流量统计
+     * 注意：只更新指定日期的数据，不影响其他日期
      */
     public function saveDailyTrafficStats($date, $totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage) {
-        $sql = "INSERT OR REPLACE INTO traffic_stats (usage_date, total_bandwidth, used_bandwidth, remaining_bandwidth, daily_usage, recorded_at) 
-                VALUES (?, ?, ?, ?, ?, datetime('now'))";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$date, $totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage]);
+        // 检查是否已存在该日期的记录
+        $existing = $this->getDailyTrafficStats($date);
+        
+        if ($existing) {
+            // 更新现有记录
+            $sql = "UPDATE traffic_stats 
+                    SET total_bandwidth = ?, 
+                        used_bandwidth = ?, 
+                        remaining_bandwidth = ?, 
+                        daily_usage = ?, 
+                        recorded_at = datetime('now') 
+                    WHERE usage_date = ?";
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage, $date]);
+        } else {
+            // 插入新记录
+            $sql = "INSERT INTO traffic_stats (usage_date, total_bandwidth, used_bandwidth, remaining_bandwidth, daily_usage, recorded_at) 
+                    VALUES (?, ?, ?, ?, ?, datetime('now'))";
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([$date, $totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage]);
+        }
     }
     
     /**
