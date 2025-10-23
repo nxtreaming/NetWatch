@@ -10,11 +10,25 @@ function fetchApi(params, options = {}) {
     // 添加特殊标记参数，让服务器识别这是真正的AJAX请求
     const ajaxToken = Date.now(); // 使用时间戳作为防伪标记
     
-    // 使用绝对路径，从网站根目录开始
-    // 获取当前页面的路径，然后构建正确的index.php路径
+    // 使用当前页面的origin和路径来构建完整URL
+    // 如果当前页面是 /index.php，则使用 /index.php
+    // 如果当前页面是 /subdir/index.php，则使用 /subdir/index.php
     const currentPath = window.location.pathname;
-    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-    const url = `${basePath}index.php?${params}&_ajax_token=${ajaxToken}`;
+    let indexPath;
+    
+    if (currentPath.endsWith('index.php')) {
+        // 当前就在 index.php 页面，直接使用
+        indexPath = currentPath;
+    } else if (currentPath.endsWith('/')) {
+        // 当前在目录页面，添加 index.php
+        indexPath = currentPath + 'index.php';
+    } else {
+        // 其他情况，获取目录部分并添加 index.php
+        const lastSlash = currentPath.lastIndexOf('/');
+        indexPath = currentPath.substring(0, lastSlash + 1) + 'index.php';
+    }
+    
+    const url = `${indexPath}?${params}&_ajax_token=${ajaxToken}`;
     
     const defaultOptions = {
         headers: {

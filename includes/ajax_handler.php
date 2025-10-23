@@ -12,6 +12,15 @@ class AjaxHandler {
     }
     
     /**
+     * 设置标准JSON响应头
+     */
+    private function setJsonHeaders() {
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+        }
+    }
+    
+    /**
      * 处理AJAX请求
      * @param string $action 操作类型
      * @return void 直接输出JSON响应
@@ -90,10 +99,12 @@ class AjaxHandler {
     }
     
     private function handleStats() {
+        $this->setJsonHeaders();
         echo json_encode($this->monitor->getStats());
     }
     
     private function handleCheck() {
+        $this->setJsonHeaders();
         $proxyId = $_GET['proxy_id'] ?? null;
         if ($proxyId) {
             $proxy = $this->monitor->getProxyById($proxyId);
@@ -109,11 +120,13 @@ class AjaxHandler {
     }
     
     private function handleLogs() {
+        $this->setJsonHeaders();
         $logs = $this->monitor->getRecentLogs(50);
         echo json_encode($logs);
     }
     
     private function handleCheckAll() {
+        $this->setJsonHeaders();
         try {
             $results = $this->monitor->checkAllProxies();
             
@@ -164,6 +177,7 @@ class AjaxHandler {
     }
     
     private function handleGetProxyCount() {
+        $this->setJsonHeaders();
         try {
             // 记录开始时间
             $startTime = microtime(true);
@@ -214,6 +228,19 @@ class AjaxHandler {
     
     private function handleCheckBatch() {
         try {
+            // 设置PHP执行时间限制
+            set_time_limit(300); // 5分钟
+            
+            // 禁用所有输出缓冲，启用实时输出
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            
+            // 设置响应头，启用分块传输编码
+            header('Content-Type: application/json');
+            header('X-Accel-Buffering: no'); // 禁用nginx缓冲
+            header('Cache-Control: no-cache'); // 禁用缓存
+            
             // 记录开始时间
             $startTime = microtime(true);
             
@@ -225,16 +252,51 @@ class AjaxHandler {
                 throw new Exception('Monitor对象未初始化');
             }
             
-            $results = $this->monitor->checkProxyBatch($offset, $limit);
+            // 获取要检查的代理列表
+            $db = new Database();
+            $proxies = $db->getProxiesBatch($offset, $limit);
             
-            // 检查结果
-            if (!is_array($results)) {
-                throw new Exception('checkProxyBatch返回值不是数组');
+            if (empty($proxies)) {
+                echo json_encode([
+                    'success' => true,
+                    'results' => [],
+                    'execution_time' => 0,
+                    'batch_info' => [
+                        'offset' => $offset,
+                        'limit' => $limit,
+                        'actual_count' => 0
+                    ]
+                ]);
+                return;
+            }
+            
+            $results = [];
+            $processedCount = 0;
+            
+            // 逐个检查代理，每检查一个就发送心跳
+            foreach ($proxies as $proxy) {
+                // 检查代理
+                $result = $this->monitor->checkProxyFast($proxy);
+                
+                // 过滤敏感信息
+                $filteredProxy = $this->monitor->filterSensitiveData($proxy);
+                $results[] = array_merge($filteredProxy, $result);
+                
+                $processedCount++;
+                
+                // 每检查一个代理就发送一个空格作为keep-alive心跳
+                // 这样可以保持连接活跃，避免超时
+                echo ' ';
+                flush();
+                
+                // 短暂延迟，避免过度占用资源
+                usleep(10000); // 0.01秒
             }
             
             // 计算执行时间
             $executionTime = round((microtime(true) - $startTime) * 1000, 2);
             
+            // 发送最终结果（前面的空格会被JSON解析器忽略）
             echo json_encode([
                 'success' => true,
                 'results' => $results,
@@ -260,6 +322,7 @@ class AjaxHandler {
     }
     
     private function handleCheckFailedProxies() {
+        $this->setJsonHeaders();
         try {
             // 检查是否有需要发送警报的代理
             $failedProxies = $this->monitor->getFailedProxies();
@@ -306,6 +369,7 @@ class AjaxHandler {
     }
     
     private function handleStartParallelCheck($offlineOnly = false) {
+        $this->setJsonHeaders();
         try {
             require_once 'parallel_monitor.php';
             // 创建会话独立的并行监控器：使用配置常量和会话ID
@@ -336,6 +400,7 @@ class AjaxHandler {
     }
     
     private function handleGetParallelProgress() {
+        $this->setJsonHeaders();
         try {
             require_once 'parallel_monitor.php';
             // 获取会话ID，用于查询对应的检测进度
@@ -357,6 +422,7 @@ class AjaxHandler {
     }
     
     private function handleCancelParallelCheck() {
+        $this->setJsonHeaders();
         try {
             require_once 'parallel_monitor.php';
             // 获取会话ID，用于取消对应的检测任务
@@ -378,6 +444,7 @@ class AjaxHandler {
     }
     
     private function handleSessionCheck() {
+        $this->setJsonHeaders();
         try {
             if (!Auth::isLoggedIn()) {
                 echo json_encode(['valid' => false]);
@@ -390,6 +457,7 @@ class AjaxHandler {
     }
     
     private function handleDebugStatuses() {
+        $this->setJsonHeaders();
         try {
             $db = new Database();
             $statuses = $db->getDistinctStatuses();
@@ -406,6 +474,7 @@ class AjaxHandler {
     }
     
     private function handleCreateTestData() {
+        $this->setJsonHeaders();
         try {
             $db = new Database();
             // 获取前5个代理的ID
@@ -438,6 +507,7 @@ class AjaxHandler {
     }
     
     private function handleSearch() {
+        $this->setJsonHeaders();
         try {
             $searchTerm = $_GET['term'] ?? '';
             $statusFilter = $_GET['status'] ?? '';

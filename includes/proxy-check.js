@@ -161,14 +161,14 @@ async function checkAllProxies() {
         await new Promise(resolve => setTimeout(resolve, displayTime));
         
         // 分批检查代理
-        const batchSize = 20; // 每批检查20个代理
+        const batchSize = 20; // 每批检查20个代理（现在有keep-alive机制，不会超时）
         let checkedCount = 0;
         let onlineCount = 0;
         let offlineCount = 0;
         
         for (let offset = 0; offset < totalProxies && !cancelled; offset += batchSize) {
             try {
-                // 设置超时时间为2分钟
+                // 设置超时时间为2分钟（有keep-alive机制保持连接）
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 120000);
                 
@@ -221,7 +221,7 @@ async function checkAllProxies() {
                 
             } catch (error) {
                 if (error.name === 'AbortError') {
-                    throw new Error(`第 ${offset + 1}-${Math.min(offset + batchSize, totalProxies)} 个代理检查超时，请检查网络连接或减少批量大小`);
+                    throw new Error(`第 ${offset + 1}-${Math.min(offset + batchSize, totalProxies)} 个代理检查超时（2分钟）。这不应该发生，因为有keep-alive机制。请检查服务器配置。`);
                 }
                 throw error;
             }

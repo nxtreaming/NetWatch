@@ -89,10 +89,9 @@ if (isset($_GET['ajax'])) {
     
     // 只有真正的AJAX请求才返回JSON
     if ($isValidAjax) {
-        header('Content-Type: application/json');
-        
         // 统一检查登录状态（除了sessionCheck操作）
         if ($action !== 'sessionCheck' && !Auth::isLoggedIn()) {
+            header('Content-Type: application/json');
             echo json_encode([
                 'success' => false,
                 'error' => 'unauthorized',
@@ -100,6 +99,9 @@ if (isset($_GET['ajax'])) {
             ]);
             exit;
         }
+        
+        // 注意：不在这里设置Content-Type header
+        // 让各个handler根据需要自己设置（特别是checkBatch需要特殊的header配置）
         
         // 使用AJAX处理器处理请求
         $ajaxHandler = new AjaxHandler($monitor);
