@@ -589,16 +589,31 @@ if (!$realtimeData) {
             // 准备数据
             const snapshots = <?php echo json_encode($todaySnapshots); ?>;
             
-            // 获取第一个数据点作为基准（当天开始的流量值）
-            const baseRx = snapshots.length > 0 ? snapshots[0].rx_bytes : 0;
-            const baseTx = snapshots.length > 0 ? snapshots[0].tx_bytes : 0;
-            const baseTotal = baseRx + baseTx;
-            
-            // 提取时间和流量数据（计算相对于基准的增量）
+            // 提取时间标签
             const labels = snapshots.map(s => s.snapshot_time.substring(0, 5)); // 只显示 HH:MM
-            const rxData = snapshots.map(s => ((s.rx_bytes - baseRx) / (1024 * 1024)).toFixed(2)); // 当日增量，转换为 MB
-            const txData = snapshots.map(s => ((s.tx_bytes - baseTx) / (1024 * 1024)).toFixed(2)); // 当日增量，转换为 MB
-            const totalData = snapshots.map(s => ((s.total_bytes - baseTotal) / (1024 * 1024)).toFixed(2)); // 当日增量，转换为 MB
+            
+            // 计算每5分钟的增量流量（相对于上一个数据点）
+            const rxData = [];
+            const txData = [];
+            const totalData = [];
+            
+            for (let i = 0; i < snapshots.length; i++) {
+                if (i === 0) {
+                    // 第一个数据点，增量为0
+                    rxData.push(0);
+                    txData.push(0);
+                    totalData.push(0);
+                } else {
+                    // 计算相对于上一个数据点的增量
+                    const rxIncrement = (snapshots[i].rx_bytes - snapshots[i-1].rx_bytes) / (1024 * 1024);
+                    const txIncrement = (snapshots[i].tx_bytes - snapshots[i-1].tx_bytes) / (1024 * 1024);
+                    const totalIncrement = (snapshots[i].total_bytes - snapshots[i-1].total_bytes) / (1024 * 1024);
+                    
+                    rxData.push(rxIncrement.toFixed(2));
+                    txData.push(txIncrement.toFixed(2));
+                    totalData.push(totalIncrement.toFixed(2));
+                }
+            }
             
             // 创建图表
             const ctx = document.getElementById('trafficChart');
@@ -690,7 +705,7 @@ if (!$realtimeData) {
                                 beginAtZero: true,
                                 title: {
                                     display: true,
-                                    text: '当日新增流量 (MB)',
+                                    text: '每5分钟增量流量 (MB)',
                                     font: {
                                         size: 14,
                                         weight: 'bold'
