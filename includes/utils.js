@@ -1,9 +1,30 @@
+// 获取正确的API路径（自动适应子目录部署）- 与proxy-check.js共享
+function getApiUrl(params) {
+    const currentPath = window.location.pathname;
+    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+    return `${basePath}index.php?${params}`;
+}
+
+// AJAX fetch包装函数，自动添加必要的请求头
+function fetchApi(params, options = {}) {
+    const url = getApiUrl(params);
+    const defaultOptions = {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json, */*',
+            ...options.headers
+        },
+        ...options
+    };
+    return fetch(url, defaultOptions);
+}
+
 // 自动刷新
 setInterval(refreshStats, 30000); // 30秒刷新统计
 setInterval(refreshLogs, 60000);  // 60秒刷新日志
 
 function refreshStats() {
-    fetch('./index.php?ajax=1&action=stats')
+    fetchApi('ajax=1&action=stats')
         .then(response => response.json())
         .then(data => {
             const totalEl = document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-inline');
@@ -22,7 +43,7 @@ function refreshStats() {
 }
 
 function refreshLogs() {
-    fetch('./index.php?ajax=1&action=logs')
+    fetchApi('ajax=1&action=logs')
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('logs-container');
@@ -62,7 +83,7 @@ function refreshLogs() {
 // 调试函数：查看数据库中的实际状态值
 function debugStatuses() {
     if (confirm('这将显示所有代理的详细状态信息，可能需要一些时间。确定继续吗？')) {
-        fetch('./index.php?ajax=1&action=debugStatuses')
+        fetchApi('ajax=1&action=debugStatuses')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -82,7 +103,7 @@ function debugStatuses() {
 // 测试函数：创建不同状态的测试数据
 function createTestData() {
     if (confirm('这将把前4个代理的状态设为离线和未知，用于测试筛选功能。确定继续吗？')) {
-        fetch('./index.php?ajax=1&action=createTestData', {
+        fetchApi('ajax=1&action=createTestData', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -117,7 +138,7 @@ async function getProxyCount() {
     }
     
     try {
-        const response = await fetch('./index.php?ajax=1&action=getProxyCount');
+        const response = await fetchApi('ajax=1&action=getProxyCount');
         const data = await response.json();
         
         if (data.success) {
@@ -143,7 +164,7 @@ function getCachedProxyCount() {
 
 // 会话管理功能
 function checkSession() {
-    fetch('./index.php?ajax=1&action=sessionCheck')
+    fetchApi('ajax=1&action=sessionCheck')
         .then(response => response.json())
         .then(data => {
             if (!data.valid) {

@@ -1,3 +1,24 @@
+// 获取正确的API路径（自动适应子目录部署）- 与proxy-check.js共享
+function getApiUrl(params) {
+    const currentPath = window.location.pathname;
+    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+    return `${basePath}index.php?${params}`;
+}
+
+// AJAX fetch包装函数，自动添加必要的请求头
+function fetchApi(params, options = {}) {
+    const url = getApiUrl(params);
+    const defaultOptions = {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json, */*',
+            ...options.headers
+        },
+        ...options
+    };
+    return fetch(url, defaultOptions);
+}
+
 // 离线代理并行检测函数 - 最简化实现，复用现有逻辑
 async function checkOfflineProxiesParallel() {
     const btn = event.target;
@@ -10,7 +31,7 @@ async function checkOfflineProxiesParallel() {
     
     try {
         // 启动离线代理并行检测 - 复用现有的AJAX端点
-        const response = await fetch('./index.php?ajax=1&action=startOfflineParallelCheck');
+        const response = await fetchApi('ajax=1&action=startOfflineParallelCheck');
         const data = await response.json();
         
         // 检查登录状态
@@ -183,7 +204,7 @@ function startProgressMonitoring(sessionId, isOfflineMode) {
         const action = isOfflineMode ? 'cancelOfflineParallelCheck' : 'cancelParallelCheck';
         if (confirm('确定要取消检测吗？')) {
             cancelled = true;
-            fetch(`./index.php?ajax=1&action=${action}&session_id=${sessionId}`)
+            fetchApi(`ajax=1&action=${action}&session_id=${sessionId}`)
                 .finally(() => {
                     document.body.removeChild(document.getElementById('check-overlay'));
                     document.body.removeChild(document.getElementById('check-progress'));
@@ -197,7 +218,7 @@ function startProgressMonitoring(sessionId, isOfflineMode) {
         
         try {
             const action = isOfflineMode ? 'getOfflineParallelProgress' : 'getParallelProgress';
-            const response = await fetch(`./index.php?ajax=1&action=${action}&session_id=${sessionId}`);
+            const response = await fetchApi(`ajax=1&action=${action}&session_id=${sessionId}`);
             const progressData = await response.json();
             
             if (progressData.success) {
