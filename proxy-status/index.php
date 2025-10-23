@@ -26,14 +26,17 @@ $realtimeData = $trafficMonitor->getRealtimeTraffic();
 // 处理实时流量图表的日期查询
 $snapshotDate = isset($_GET['snapshot_date']) ? $_GET['snapshot_date'] : null;
 $todaySnapshots = [];
+$isViewingToday = false; // 标识是否正在查看今日数据
 
 if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
     // 获取指定日期的流量快照
     $todaySnapshots = $trafficMonitor->getSnapshotsByDate($snapshotDate);
+    $isViewingToday = ($snapshotDate === date('Y-m-d'));
 } else {
     // 默认获取今日流量快照数据用于图表
     $todaySnapshots = $trafficMonitor->getTodaySnapshots();
     $snapshotDate = date('Y-m-d'); // 设置为今天
+    $isViewingToday = true;
 }
 
 // 处理每日统计的日期查询
@@ -588,7 +591,7 @@ if (!$realtimeData) {
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：图表显示最近4小时的实时流量数据
+                💡 提示：<?php echo $isViewingToday ? '图表显示最近4小时的实时流量数据' : '图表显示当日全天的流量数据'; ?>
             </p>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
@@ -689,6 +692,7 @@ if (!$realtimeData) {
         (function() {
             // 准备数据
             const snapshots = <?php echo json_encode($todaySnapshots); ?>;
+            const isViewingToday = <?php echo $isViewingToday ? 'true' : 'false'; ?>;
             
             // 提取时间标签
             const labels = snapshots.map(s => s.snapshot_time.substring(0, 5)); // 只显示 HH:MM
@@ -720,22 +724,29 @@ if (!$realtimeData) {
             const ctx = document.getElementById('trafficChart');
             if (!ctx) return;
             
-            // 只显示最近4小时的数据（48个数据点）
-            const pointsToShow = 48;
-            const startIndex = Math.max(0, snapshots.length - pointsToShow);
-            const recentSnapshots = snapshots.slice(startIndex);
-            const recentLabels = labels.slice(startIndex);
-            const recentTotalData = totalData.slice(startIndex);
+            // 根据是否查看今日决定显示的数据范围
+            let displayLabels, displayData;
+            if (isViewingToday) {
+                // 查看今日：只显示最近4小时的数据（48个数据点）
+                const pointsToShow = 48;
+                const startIndex = Math.max(0, snapshots.length - pointsToShow);
+                displayLabels = labels.slice(startIndex);
+                displayData = totalData.slice(startIndex);
+            } else {
+                // 查看历史：显示全天数据
+                displayLabels = labels;
+                displayData = totalData;
+            }
             
             // 创建图表
             new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: recentLabels,
+                        labels: displayLabels,
                         datasets: [
                             {
                                 label: '本时段流量',
-                                data: recentTotalData,
+                                data: displayData,
                                 borderColor: 'rgb(75, 192, 192)',
                                 backgroundColor: 'rgba(75, 192, 192, 0.1)',
                                 borderWidth: 3,
