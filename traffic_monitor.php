@@ -245,4 +245,11 @@ class TrafficMonitor {
     public function getTodaySnapshots() {
         return $this->db->getTodayTrafficSnapshots();
     }
+    
+    /**
+     * 获取指定日期的流量快照用于图表展示
+     */
+    public function getSnapshotsByDate($date) {
+        return $this->db->getTrafficSnapshotsByDate($date);
+    }
 }

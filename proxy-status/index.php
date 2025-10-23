@@ -23,10 +23,20 @@ $trafficMonitor = new TrafficMonitor();
 // 获取实时流量数据
 $realtimeData = $trafficMonitor->getRealtimeTraffic();
 
-// 获取今日流量快照数据用于图表
-$todaySnapshots = $trafficMonitor->getTodaySnapshots();
+// 处理实时流量图表的日期查询
+$snapshotDate = isset($_GET['snapshot_date']) ? $_GET['snapshot_date'] : null;
+$todaySnapshots = [];
 
-// 处理日期查询
+if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
+    // 获取指定日期的流量快照
+    $todaySnapshots = $trafficMonitor->getSnapshotsByDate($snapshotDate);
+} else {
+    // 默认获取今日流量快照数据用于图表
+    $todaySnapshots = $trafficMonitor->getTodaySnapshots();
+    $snapshotDate = date('Y-m-d'); // 设置为今天
+}
+
+// 处理每日统计的日期查询
 $queryDate = isset($_GET['date']) ? $_GET['date'] : null;
 $recentStats = [];
 
@@ -493,15 +503,55 @@ if (!$realtimeData) {
         </div>
         <?php endif; ?>
         
-        <?php if (!empty($todaySnapshots)): ?>
         <div class="chart-section" style="margin-bottom: 20px;">
-            <h2>📈 今日流量趋势图</h2>
-            <p style="color: #666; margin-bottom: 20px;">每5分钟更新一次，展示当日新增流量消耗情况（每天00:00从0开始计算）</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h2 style="margin: 0;">📈 实时流量趋势图</h2>
+                    <p style="color: #666; margin: 5px 0 0 0;">每5分钟更新一次，展示当日新增流量消耗情况（每天00:00从0开始计算）</p>
+                </div>
+                <div class="date-query-form">
+                    <form method="GET" style="display: flex; gap: 10px; align-items: center;">
+                        <label for="snapshot-date" style="font-weight: 600; color: #555;">查询日期:</label>
+                        <input type="date" 
+                               id="snapshot-date" 
+                               name="snapshot_date" 
+                               value="<?php echo htmlspecialchars($snapshotDate); ?>"
+                               max="<?php echo date('Y-m-d'); ?>"
+                               style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <button type="submit" 
+                                style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            查询
+                        </button>
+                        <?php if ($snapshotDate !== date('Y-m-d')): ?>
+                        <a href="?" 
+                           style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                            返回今日
+                        </a>
+                        <?php endif; ?>
+                        <?php if ($queryDate): ?>
+                        <input type="hidden" name="date" value="<?php echo htmlspecialchars($queryDate); ?>">
+                        <?php endif; ?>
+                    </form>
+                </div>
+            </div>
+            
+            <?php if ($snapshotDate !== date('Y-m-d')): ?>
+            <div style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
+                <strong>📅 查询结果:</strong> 显示 <?php echo $snapshotDate; ?> 的实时流量数据
+            </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($todaySnapshots)): ?>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
             </div>
+            <?php else: ?>
+            <div style="background: #fff3cd; padding: 20px; border-radius: 6px; text-align: center; color: #856404;">
+                <strong>⚠️ 暂无数据</strong><br>
+                <?php echo $snapshotDate; ?> 没有流量快照数据
+            </div>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
         
         <?php if (!empty($recentStats)): ?>
         <div class="chart-section">
@@ -520,10 +570,13 @@ if (!$realtimeData) {
                             查询前后7天
                         </button>
                         <?php if ($queryDate): ?>
-                        <a href="?" 
+                        <a href="?<?php echo $snapshotDate !== date('Y-m-d') ? 'snapshot_date=' . urlencode($snapshotDate) : ''; ?>" 
                            style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
                             显示最近30天
                         </a>
+                        <?php endif; ?>
+                        <?php if ($snapshotDate !== date('Y-m-d')): ?>
+                        <input type="hidden" name="snapshot_date" value="<?php echo htmlspecialchars($snapshotDate); ?>">
                         <?php endif; ?>
                     </form>
                 </div>
