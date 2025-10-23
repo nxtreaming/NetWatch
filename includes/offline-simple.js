@@ -10,7 +10,7 @@ async function checkOfflineProxiesParallel() {
     
     try {
         // 启动离线代理并行检测 - 复用现有的AJAX端点
-        const response = await fetch('?ajax=1&action=startOfflineParallelCheck');
+        const response = await fetch('index.php?ajax=1&action=startOfflineParallelCheck');
         const data = await response.json();
         
         // 检查登录状态
@@ -183,7 +183,7 @@ function startProgressMonitoring(sessionId, isOfflineMode) {
         const action = isOfflineMode ? 'cancelOfflineParallelCheck' : 'cancelParallelCheck';
         if (confirm('确定要取消检测吗？')) {
             cancelled = true;
-            fetch(`?ajax=1&action=${action}&session_id=${sessionId}`)
+            fetch(`index.php?ajax=1&action=${action}&session_id=${sessionId}`)
                 .finally(() => {
                     document.body.removeChild(document.getElementById('check-overlay'));
                     document.body.removeChild(document.getElementById('check-progress'));
@@ -197,7 +197,7 @@ function startProgressMonitoring(sessionId, isOfflineMode) {
         
         try {
             const action = isOfflineMode ? 'getOfflineParallelProgress' : 'getParallelProgress';
-            const response = await fetch(`?ajax=1&action=${action}&session_id=${sessionId}`);
+            const response = await fetch(`index.php?ajax=1&action=${action}&session_id=${sessionId}`);
             const progressData = await response.json();
             
             if (progressData.success) {
