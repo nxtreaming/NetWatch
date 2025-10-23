@@ -258,7 +258,8 @@ class AjaxHandler {
             
             echo json_encode($response);
             
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - JSON响应已发送\n", FILE_APPEND);
+            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - JSON响应已发送，准备exit\n", FILE_APPEND);
+            exit; // 立即终止，防止后续输出
             
         } catch (Exception $e) {
             $error = '批量检查失败: ' . $e->getMessage();
@@ -268,6 +269,7 @@ class AjaxHandler {
                 'success' => false,
                 'error' => $error
             ]);
+            exit;
         } catch (Error $e) {
             $error = 'PHP错误: ' . $e->getMessage();
             file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 捕获PHP错误: $error\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
@@ -276,6 +278,7 @@ class AjaxHandler {
                 'success' => false,
                 'error' => $error
             ]);
+            exit;
         }
     }
     
