@@ -588,7 +588,7 @@ if (!$realtimeData) {
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：图表可左右滑动查看全天数据，默认显示最近2小时
+                💡 提示：左右滑动查看全天数据，默认显示最近4小时
             </p>
             <div style="overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;">
                 <div style="position: relative; height: 400px; min-width: 800px;">
@@ -852,13 +852,13 @@ if (!$realtimeData) {
                     }
                 });
                 
-                // 自动滚动到最新数据（显示最近2小时）
-                // 每5分钟一个数据点，2小时 = 24个数据点
+                // 自动滚动到最新数据（显示最近4小时）
+                // 每5分钟一个数据点，4小时 = 48个数据点
                 setTimeout(() => {
                     const scrollContainer = chartContainer.parentElement;
-                    if (scrollContainer && snapshots.length > 24) {
-                        // 计算需要滚动的距离：显示最后24个数据点
-                        const pointsToShow = 24;
+                    if (scrollContainer && snapshots.length > 48) {
+                        // 计算需要滚动的距离：显示最后48个数据点
+                        const pointsToShow = 48;
                         const totalPoints = snapshots.length;
                         const scrollPercentage = (totalPoints - pointsToShow) / totalPoints;
                         const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
