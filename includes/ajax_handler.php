@@ -213,6 +213,10 @@ class AjaxHandler {
     }
     
     private function handleCheckBatch() {
+        // 【临时测试】直接返回一个简单响应，看是否还是404
+        echo json_encode(['success' => true, 'test' => 'checkBatch is working', 'time' => date('Y-m-d H:i:s')]);
+        exit;
+        
         // 记录请求日志
         file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 开始处理checkBatch请求\n", FILE_APPEND);
         
