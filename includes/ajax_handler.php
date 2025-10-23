@@ -213,81 +213,42 @@ class AjaxHandler {
     }
     
     private function handleCheckBatch() {
-        // 【修复】关闭所有输出缓冲，防止输出被截断
-        while (ob_get_level()) {
-            ob_end_clean();
-        }
-        
-        // 记录请求日志
-        file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 开始处理checkBatch请求\n", FILE_APPEND);
-        
         try {
-            // 设置更长的PHP执行时间限制和内存限制
-            set_time_limit(120); // 2分钟
-            ini_set('memory_limit', '256M');
-            
             $offset = intval($_GET['offset'] ?? 0);
             $limit = intval($_GET['limit'] ?? 20);
             
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 参数: offset=$offset, limit=$limit\n", FILE_APPEND);
-            
-            // 记录开始时间
-            $startTime = microtime(true);
-            
-            // 检查monitor对象是否有效
+            // 检查monitor对象
             if (!$this->monitor) {
                 throw new Exception('Monitor对象未初始化');
             }
             
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 开始调用checkProxyBatch\n", FILE_APPEND);
-            
             $results = $this->monitor->checkProxyBatch($offset, $limit);
             
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - checkProxyBatch完成，结果数量: " . count($results) . "\n", FILE_APPEND);
+            // 检查结果
+            if (!is_array($results)) {
+                throw new Exception('checkProxyBatch返回值不是数组');
+            }
             
-            // 计算执行时间
-            $executionTime = round((microtime(true) - $startTime) * 1000, 2);
-            
-            $response = [
+            echo json_encode([
                 'success' => true,
                 'results' => $results,
-                'execution_time' => $executionTime,
                 'batch_info' => [
                     'offset' => $offset,
                     'limit' => $limit,
                     'actual_count' => count($results)
                 ]
-            ];
-            
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 准备返回JSON响应\n", FILE_APPEND);
-            
-            // 设置响应头
-            header('Content-Type: application/json; charset=utf-8');
-            
-            // 返回JSON响应
-            echo json_encode($response);
-            
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - JSON响应已发送\n", FILE_APPEND);
-            exit;
+            ]);
             
         } catch (Exception $e) {
-            $error = '批量检查失败: ' . $e->getMessage();
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 捕获异常: $error\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
-            
             echo json_encode([
                 'success' => false,
-                'error' => $error
+                'error' => '批量检查失败: ' . $e->getMessage()
             ]);
-            exit;
         } catch (Error $e) {
-            $error = 'PHP错误: ' . $e->getMessage();
-            file_put_contents('debug_checkbatch.log', date('Y-m-d H:i:s') . " - 捕获PHP错误: $error\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
-            
             echo json_encode([
                 'success' => false,
-                'error' => $error
+                'error' => 'PHP Fatal Error: ' . $e->getMessage()
             ]);
-            exit;
         }
     }
     
