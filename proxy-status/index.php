@@ -588,12 +588,10 @@ if (!$realtimeData) {
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：左右滑动查看全天数据，默认显示最近4小时
+                💡 提示：图表显示最近4小时的实时流量数据
             </p>
-            <div style="overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;">
-                <div style="position: relative; height: 400px; min-width: 800px;">
-                    <canvas id="trafficChart"></canvas>
-                </div>
+            <div style="position: relative; height: 400px;">
+                <canvas id="trafficChart"></canvas>
             </div>
             <?php else: ?>
             <div style="background: #fff3cd; padding: 20px; border-radius: 6px; text-align: center; color: #856404;">
@@ -722,21 +720,22 @@ if (!$realtimeData) {
             const ctx = document.getElementById('trafficChart');
             if (!ctx) return;
             
-            // 动态计算图表宽度（每个数据点占用更多空间，让图表可以横向滚动）
-            // 每个数据点占40px，最少800px
-            const chartWidth = Math.max(800, snapshots.length * 40);
-            const chartContainer = ctx.parentElement;
-            chartContainer.style.minWidth = chartWidth + 'px';
+            // 只显示最近4小时的数据（48个数据点）
+            const pointsToShow = 48;
+            const startIndex = Math.max(0, snapshots.length - pointsToShow);
+            const recentSnapshots = snapshots.slice(startIndex);
+            const recentLabels = labels.slice(startIndex);
+            const recentTotalData = totalData.slice(startIndex);
             
             // 创建图表
             new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: labels,
+                        labels: recentLabels,
                         datasets: [
                             {
-                                label: '本时段消耗',
-                                data: totalData,
+                                label: '当日实时流量',
+                                data: recentTotalData,
                                 borderColor: 'rgb(75, 192, 192)',
                                 backgroundColor: 'rgba(75, 192, 192, 0.1)',
                                 borderWidth: 3,
@@ -851,31 +850,6 @@ if (!$realtimeData) {
                         }
                     }
                 });
-                
-                // 自动滚动到最新数据（显示最近4小时）
-                // 每5分钟一个数据点，4小时 = 48个数据点
-                setTimeout(() => {
-                    const scrollContainer = chartContainer.parentElement;
-                    if (scrollContainer) {
-                        // 计算需要显示的数据点数量（4小时 = 48个点）
-                        const pointsToShow = 48;
-                        const pointWidth = 40; // 每个数据点40px
-                        
-                        if (snapshots.length > pointsToShow) {
-                            // 计算应该滚动到的位置：
-                            // 总宽度 - 视口宽度 = 最大滚动距离
-                            // 我们要让最后48个点显示在视口中
-                            const totalWidth = chartContainer.offsetWidth;
-                            const viewportWidth = scrollContainer.clientWidth;
-                            const targetScrollLeft = totalWidth - viewportWidth;
-                            
-                            scrollContainer.scrollLeft = targetScrollLeft;
-                        } else {
-                            // 数据点少于48个，不需要滚动（或滚动到开始）
-                            scrollContainer.scrollLeft = 0;
-                        }
-                    }
-                }, 100);
         })();
         <?php endif; ?>
     </script>
