@@ -9,7 +9,12 @@ function getApiUrl(params) {
 function fetchApi(params, options = {}) {
     // 添加特殊标记参数，让服务器识别这是真正的AJAX请求
     const ajaxToken = Date.now(); // 使用时间戳作为防伪标记
-    const url = `index.php?${params}&_ajax_token=${ajaxToken}`;
+    
+    // 使用绝对路径，从网站根目录开始
+    // 获取当前页面的路径，然后构建正确的index.php路径
+    const currentPath = window.location.pathname;
+    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+    const url = `${basePath}index.php?${params}&_ajax_token=${ajaxToken}`;
     
     const defaultOptions = {
         headers: {

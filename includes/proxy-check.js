@@ -1,28 +1,4 @@
-// 获取正确的API路径（使用相对路径，自动适应任何部署环境）
-function getApiUrl(params) {
-    // 使用相对路径 'index.php' 而不是绝对路径 '/index.php'
-    // 这样会相对于当前HTML页面的位置
-    return `index.php?${params}`;
-}
-
-// AJAX fetch包装函数，自动添加必要的请求头
-function fetchApi(params, options = {}) {
-    // 添加特殊标记参数，让服务器识别这是真正的AJAX请求
-    const ajaxToken = Date.now(); // 使用时间戳作为防伪标记
-    const url = `index.php?${params}&_ajax_token=${ajaxToken}`;
-    
-    const defaultOptions = {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json, */*',
-            ...options.headers
-        },
-        credentials: 'same-origin', // 确保发送cookies
-        ...options
-    };
-    
-    return fetch(url, defaultOptions);
-}
+// 注意：fetchApi 和 getApiUrl 函数已在 utils.js 中定义，此处不再重复定义
 
 function checkProxy(proxyId) {
     const btn = event.target;

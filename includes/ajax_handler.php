@@ -214,6 +214,9 @@ class AjaxHandler {
     
     private function handleCheckBatch() {
         try {
+            // 记录开始时间
+            $startTime = microtime(true);
+            
             $offset = intval($_GET['offset'] ?? 0);
             $limit = intval($_GET['limit'] ?? 20);
             
@@ -229,9 +232,13 @@ class AjaxHandler {
                 throw new Exception('checkProxyBatch返回值不是数组');
             }
             
+            // 计算执行时间
+            $executionTime = round((microtime(true) - $startTime) * 1000, 2);
+            
             echo json_encode([
                 'success' => true,
                 'results' => $results,
+                'execution_time' => $executionTime,
                 'batch_info' => [
                     'offset' => $offset,
                     'limit' => $limit,
