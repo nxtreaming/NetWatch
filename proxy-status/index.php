@@ -856,13 +856,24 @@ if (!$realtimeData) {
                 // 每5分钟一个数据点，4小时 = 48个数据点
                 setTimeout(() => {
                     const scrollContainer = chartContainer.parentElement;
-                    if (scrollContainer && snapshots.length > 48) {
-                        // 计算需要滚动的距离：显示最后48个数据点
+                    if (scrollContainer) {
+                        // 计算需要显示的数据点数量（4小时 = 48个点）
                         const pointsToShow = 48;
-                        const totalPoints = snapshots.length;
-                        const scrollPercentage = (totalPoints - pointsToShow) / totalPoints;
-                        const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-                        scrollContainer.scrollLeft = maxScroll * scrollPercentage;
+                        const pointWidth = 40; // 每个数据点40px
+                        
+                        if (snapshots.length > pointsToShow) {
+                            // 计算应该滚动到的位置：
+                            // 总宽度 - 视口宽度 = 最大滚动距离
+                            // 我们要让最后48个点显示在视口中
+                            const totalWidth = chartContainer.offsetWidth;
+                            const viewportWidth = scrollContainer.clientWidth;
+                            const targetScrollLeft = totalWidth - viewportWidth;
+                            
+                            scrollContainer.scrollLeft = targetScrollLeft;
+                        } else {
+                            // 数据点少于48个，不需要滚动（或滚动到开始）
+                            scrollContainer.scrollLeft = 0;
+                        }
                     }
                 }, 100);
         })();
