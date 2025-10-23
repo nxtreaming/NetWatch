@@ -494,7 +494,7 @@ if (!$realtimeData) {
         <?php endif; ?>
         
         <?php if (!empty($todaySnapshots)): ?>
-        <div class="chart-section">
+        <div class="chart-section" style="margin-bottom: 20px;">
             <h2>📈 今日流量趋势图</h2>
             <p style="color: #666; margin-bottom: 20px;">每5分钟更新一次，展示当日新增流量消耗情况（每天00:00从0开始计算）</p>
             <div style="position: relative; height: 400px;">
