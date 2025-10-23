@@ -361,7 +361,7 @@ class NetworkMonitor {
     /**
      * 过滤代理敏感信息（用户名和密码）
      */
-    private function filterSensitiveData($proxy) {
+    public function filterSensitiveData($proxy) {
         $filtered = $proxy;
         // 移除敏感信息
         unset($filtered['username']);
