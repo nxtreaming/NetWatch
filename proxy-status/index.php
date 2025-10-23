@@ -23,6 +23,9 @@ $trafficMonitor = new TrafficMonitor();
 // 获取实时流量数据
 $realtimeData = $trafficMonitor->getRealtimeTraffic();
 
+// 获取今日流量快照数据用于图表
+$todaySnapshots = $trafficMonitor->getTodaySnapshots();
+
 // 处理日期查询
 $queryDate = isset($_GET['date']) ? $_GET['date'] : null;
 $recentStats = [];
@@ -490,6 +493,16 @@ if (!$realtimeData) {
         </div>
         <?php endif; ?>
         
+        <?php if (!empty($todaySnapshots)): ?>
+        <div class="chart-section">
+            <h2>📈 今日流量趋势图</h2>
+            <p style="color: #666; margin-bottom: 20px;">每5分钟更新一次，展示当日新增流量消耗情况（每天00:00从0开始计算）</p>
+            <div style="position: relative; height: 400px;">
+                <canvas id="trafficChart"></canvas>
+            </div>
+        </div>
+        <?php endif; ?>
+        
         <?php if (!empty($recentStats)): ?>
         <div class="chart-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
@@ -561,11 +574,166 @@ if (!$realtimeData) {
         </div>
     </div>
     
+    <!-- Chart.js 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
     <script>
         // 每5分钟自动刷新页面
         setTimeout(function() {
             location.reload();
         }, <?php echo defined('TRAFFIC_UPDATE_INTERVAL') ? TRAFFIC_UPDATE_INTERVAL * 1000 : 300000; ?>);
+        
+        // 创建流量趋势图
+        <?php if (!empty($todaySnapshots)): ?>
+        (function() {
+            // 准备数据
+            const snapshots = <?php echo json_encode($todaySnapshots); ?>;
+            
+            // 获取第一个数据点作为基准（当天开始的流量值）
+            const baseRx = snapshots.length > 0 ? snapshots[0].rx_bytes : 0;
+            const baseTx = snapshots.length > 0 ? snapshots[0].tx_bytes : 0;
+            const baseTotal = baseRx + baseTx;
+            
+            // 提取时间和流量数据（计算相对于基准的增量）
+            const labels = snapshots.map(s => s.snapshot_time.substring(0, 5)); // 只显示 HH:MM
+            const rxData = snapshots.map(s => ((s.rx_bytes - baseRx) / (1024 * 1024)).toFixed(2)); // 当日增量，转换为 MB
+            const txData = snapshots.map(s => ((s.tx_bytes - baseTx) / (1024 * 1024)).toFixed(2)); // 当日增量，转换为 MB
+            const totalData = snapshots.map(s => ((s.total_bytes - baseTotal) / (1024 * 1024)).toFixed(2)); // 当日增量，转换为 MB
+            
+            // 创建图表
+            const ctx = document.getElementById('trafficChart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '当日总流量 (RX + TX)',
+                                data: totalData,
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            },
+                            {
+                                label: '当日接收 (RX)',
+                                data: rxData,
+                                borderColor: 'rgb(102, 126, 234)',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointHoverRadius: 5
+                            },
+                            {
+                                label: '当日发送 (TX)',
+                                data: txData,
+                                borderColor: 'rgb(245, 101, 108)',
+                                backgroundColor: 'rgba(245, 101, 108, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointHoverRadius: 5
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    },
+                                    padding: 15,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 13
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += parseFloat(context.parsed.y).toFixed(2) + ' MB';
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: '当日新增流量 (MB)',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + ' MB';
+                                    },
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '时间',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 11
+                                    },
+                                    maxRotation: 45,
+                                    minRotation: 0
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })();
+        <?php endif; ?>
     </script>
 </body>
 </html>

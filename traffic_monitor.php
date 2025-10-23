@@ -141,8 +141,14 @@ class TrafficMonitor {
             $port
         );
         
+        // 同时保存快照数据用于图表展示
+        $snapshotResult = $this->db->saveTrafficSnapshot($rxBytes, $txBytes);
+        
         if ($result) {
             $this->logger->info("实时流量数据已更新: 端口={$port}, RX={$rxGB}GB, TX={$txGB}GB, 已用(RX+TX)={$totalUsedGB}GB, 使用率={$usagePercentage}%");
+            if ($snapshotResult) {
+                $this->logger->info("流量快照已保存");
+            }
         }
         
         return $result;
@@ -231,5 +237,12 @@ class TrafficMonitor {
      */
     public function formatPercentage($percentage) {
         return number_format($percentage, 2) . '%';
+    }
+    
+    /**
+     * 获取今日流量快照用于图表展示
+     */
+    public function getTodaySnapshots() {
+        return $this->db->getTodayTrafficSnapshots();
     }
 }

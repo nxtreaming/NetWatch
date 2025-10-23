@@ -106,6 +106,17 @@ class Database {
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         
+        CREATE TABLE IF NOT EXISTS traffic_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            snapshot_date DATE NOT NULL,
+            snapshot_time TIME NOT NULL,
+            rx_bytes REAL DEFAULT 0,
+            tx_bytes REAL DEFAULT 0,
+            total_bytes REAL DEFAULT 0,
+            recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(snapshot_date, snapshot_time)
+        );
+        
         CREATE INDEX IF NOT EXISTS idx_proxies_status ON proxies(status);
         CREATE INDEX IF NOT EXISTS idx_check_logs_proxy_id ON check_logs(proxy_id);
         CREATE INDEX IF NOT EXISTS idx_check_logs_checked_at ON check_logs(checked_at);
@@ -114,6 +125,7 @@ class Database {
         CREATE INDEX IF NOT EXISTS idx_token_assignments_token ON token_proxy_assignments(token_id);
         CREATE INDEX IF NOT EXISTS idx_traffic_stats_date ON traffic_stats(usage_date);
         CREATE INDEX IF NOT EXISTS idx_traffic_realtime_updated ON traffic_realtime(updated_at);
+        CREATE INDEX IF NOT EXISTS idx_traffic_snapshots_date ON traffic_snapshots(snapshot_date);
         ";
         
         $this->pdo->exec($sql);
@@ -714,5 +726,50 @@ class Database {
         }
         
         return 0;
+    }
+    
+    /**
+     * 保存流量快照（每5分钟一次）
+     */
+    public function saveTrafficSnapshot($rxBytes, $txBytes) {
+        $date = date('Y-m-d');
+        $time = date('H:i:00'); // 取整到分钟，便于5分钟对齐
+        $totalBytes = $rxBytes + $txBytes;
+        
+        $sql = "INSERT OR REPLACE INTO traffic_snapshots (snapshot_date, snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at) 
+                VALUES (?, ?, ?, ?, ?, datetime('now'))";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$date, $time, $rxBytes, $txBytes, $totalBytes]);
+    }
+    
+    /**
+     * 获取指定日期的流量快照数据
+     */
+    public function getTrafficSnapshotsByDate($date) {
+        $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
+                FROM traffic_snapshots 
+                WHERE snapshot_date = ? 
+                ORDER BY snapshot_time ASC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$date]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * 获取今日的流量快照数据
+     */
+    public function getTodayTrafficSnapshots() {
+        $today = date('Y-m-d');
+        return $this->getTrafficSnapshotsByDate($today);
+    }
+    
+    /**
+     * 清理过期的流量快照（保留最近7天）
+     */
+    public function cleanOldTrafficSnapshots($daysToKeep = 7) {
+        $cutoffDate = date('Y-m-d', strtotime("-{$daysToKeep} days"));
+        $sql = "DELETE FROM traffic_snapshots WHERE snapshot_date < ?";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$cutoffDate]);
     }
 }
