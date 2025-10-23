@@ -771,6 +771,7 @@ if (!$realtimeData) {
                             tooltip: {
                                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
                                 padding: 12,
+                                displayColors: false,
                                 titleFont: {
                                     size: 14,
                                     weight: 'bold'
@@ -793,17 +794,10 @@ if (!$realtimeData) {
                                     label: function(context) {
                                         const value = parseFloat(context.parsed.y).toFixed(2);
                                         if (context.dataIndex === 0) {
-                                            return '0 MB (起始点)';
+                                            return '本时段流量:0 MB (起始点)';
                                         } else {
-                                            return value + ' MB';
+                                            return '本时段流量:' + value + ' MB';
                                         }
-                                    },
-                                    labelColor: function(context) {
-                                        // 返回透明色，隐藏图标
-                                        return {
-                                            borderColor: 'transparent',
-                                            backgroundColor: 'transparent'
-                                        };
                                     }
                                 }
                             }
