@@ -755,16 +755,7 @@ if (!$realtimeData) {
                         },
                         plugins: {
                             legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    },
-                                    padding: 15,
-                                    usePointStyle: true
-                                }
+                                display: false
                             },
                             tooltip: {
                                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
