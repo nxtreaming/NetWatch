@@ -718,6 +718,10 @@ if (!$realtimeData) {
                 }
             }
             
+            // 获取canvas元素
+            const ctx = document.getElementById('trafficChart');
+            if (!ctx) return;
+            
             // 动态计算图表宽度（每个数据点占用更多空间，让图表可以横向滚动）
             // 每个数据点占40px，最少800px
             const chartWidth = Math.max(800, snapshots.length * 40);
@@ -725,8 +729,7 @@ if (!$realtimeData) {
             chartContainer.style.minWidth = chartWidth + 'px';
             
             // 创建图表
-            if (ctx) {
-                new Chart(ctx, {
+            new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
@@ -862,7 +865,6 @@ if (!$realtimeData) {
                         scrollContainer.scrollLeft = maxScroll * scrollPercentage;
                     }
                 }, 100);
-            }
         })();
         <?php endif; ?>
     </script>
