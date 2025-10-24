@@ -445,8 +445,8 @@ if (!$realtimeData) {
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+    <div class="header">
+        <div class="container">
             <div class="header-wrapper">
                 <div class="header-left">
                     <h1>🌐 IP池流量监控</h1>
@@ -466,7 +466,9 @@ if (!$realtimeData) {
                 </div>
             </div>
         </div>
-        
+    </div>
+    
+    <div class="container">
         <div class="stats-grid">
             <?php if ($realtimeData['total_bandwidth'] > 0): ?>
             <div class="stat-card primary">
@@ -865,5 +867,6 @@ if (!$realtimeData) {
         })();
         <?php endif; ?>
     </script>
+    </div>
 </body>
 </html>
