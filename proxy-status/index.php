@@ -743,8 +743,8 @@ if (!$realtimeData) {
             // 根据是否查看今日决定显示的数据范围
             let displayLabels, displayData;
             if (isViewingToday) {
-                // 查看今日：只显示最近8小时的数据（96个数据点，每5分钟一个点）
-                const pointsToShow = 96;
+                // 查看今日：只显示最近12小时的数据（144个数据点，每5分钟一个点）
+                const pointsToShow = 144;
                 const startIndex = Math.max(0, snapshots.length - pointsToShow);
                 displayLabels = labels.slice(startIndex);
                 displayData = totalData.slice(startIndex);
