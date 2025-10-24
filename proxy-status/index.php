@@ -591,7 +591,7 @@ if (!$realtimeData) {
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：<?php echo $isViewingToday ? '图表显示最近4小时的实时流量数据' : '图表显示当日全天的流量数据'; ?>
+                💡 提示：<?php echo $isViewingToday ? '图表显示最近8小时的实时流量数据' : '图表显示当日全天的流量数据'; ?>
             </p>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
@@ -743,8 +743,8 @@ if (!$realtimeData) {
             // 根据是否查看今日决定显示的数据范围
             let displayLabels, displayData;
             if (isViewingToday) {
-                // 查看今日：只显示最近4小时的数据（48个数据点）
-                const pointsToShow = 48;
+                // 查看今日：只显示最近8小时的数据（96个数据点，每5分钟一个点）
+                const pointsToShow = 96;
                 const startIndex = Math.max(0, snapshots.length - pointsToShow);
                 displayLabels = labels.slice(startIndex);
                 displayData = totalData.slice(startIndex);
