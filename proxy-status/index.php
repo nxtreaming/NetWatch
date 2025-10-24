@@ -591,7 +591,7 @@ if (!$realtimeData) {
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：<?php echo $isViewingToday ? '图表显示最近8小时的实时流量数据' : '图表显示当日全天的流量数据'; ?>
+                💡 提示：<?php echo $isViewingToday ? '图表显示最近12小时的实时流量数据' : '图表显示当日全天的流量数据'; ?>
             </p>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
