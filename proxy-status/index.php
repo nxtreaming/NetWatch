@@ -765,11 +765,11 @@ if (!$realtimeData) {
                                 data: displayData,
                                 borderColor: 'rgb(75, 192, 192)',
                                 backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                                borderWidth: 3,
+                                borderWidth: 2,
                                 fill: true,
                                 tension: 0.4,
-                                pointRadius: 4,
-                                pointHoverRadius: 6
+                                pointRadius: 2,
+                                pointHoverRadius: 4
                             }
                         ]
                     },
