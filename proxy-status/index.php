@@ -77,18 +77,21 @@ if (!$realtimeData) {
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #f5f5f5;
             min-height: 100vh;
-            padding: 20px;
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 0 20px;
         }
         
         .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
         
@@ -312,14 +315,13 @@ if (!$realtimeData) {
         
         .update-time {
             text-align: center;
-            color: white;
+            color: #666;
             margin-top: 30px;
-            opacity: 0.8;
         }
         
         .auto-refresh {
             text-align: center;
-            color: white;
+            color: #666;
             margin-top: 10px;
             font-size: 0.9em;
         }
@@ -344,10 +346,6 @@ if (!$realtimeData) {
         }
         
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
             .header {
                 margin-bottom: 20px;
             }
