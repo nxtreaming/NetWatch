@@ -714,7 +714,7 @@ class Database {
     public function getTrafficStatsByDateRange($startDate, $endDate) {
         $sql = "SELECT * FROM traffic_stats 
                 WHERE usage_date >= ? AND usage_date <= ? 
-                ORDER BY usage_date ASC";
+                ORDER BY usage_date DESC";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$startDate, $endDate]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
