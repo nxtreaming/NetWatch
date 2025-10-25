@@ -657,14 +657,15 @@ if (!$realtimeData) {
                     </thead>
                     <tbody>
                         <?php 
-                        $previousUsedBandwidth = 0;
                         foreach ($recentStats as $index => $stat): 
                             // 实时计算当日使用量：当天累计 - 前一天累计
-                            if ($index < count($recentStats) - 1) {
-                                $previousUsedBandwidth = $recentStats[$index + 1]['used_bandwidth'];
+                            // 注意：数组是倒序的（最新日期在前），所以前一天是 index - 1
+                            if ($index > 0) {
+                                // 有前一天的数据，计算当日增量
+                                $previousUsedBandwidth = $recentStats[$index - 1]['used_bandwidth'];
                                 $calculatedDailyUsage = $stat['used_bandwidth'] - $previousUsedBandwidth;
                             } else {
-                                // 最后一条记录（最早的日期），使用数据库中的值
+                                // 第一条记录（最新的日期），使用数据库中的值
                                 $calculatedDailyUsage = $stat['daily_usage'];
                             }
                             
