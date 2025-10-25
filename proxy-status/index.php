@@ -455,7 +455,7 @@ if (!$realtimeData) {
                             // 将UTC时间转换为北京时间（UTC+8）
                             $utcTime = strtotime($realtimeData['updated_at']);
                             $beijingTime = $utcTime + (8 * 3600);
-                            echo ' (' . date('m-d H:i:s', $beijingTime) . ')';
+                            echo ' (' . date('m/d H:i:s', $beijingTime) . ')';
                         }
                     ?></p>
                 </div>
@@ -554,8 +554,8 @@ if (!$realtimeData) {
         <div class="chart-section" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <div>
-                    <h2 style="margin: 0;">📈 实时流量趋势图</h2>
-                    <p style="color: #666; margin: 5px 0 0 0;">每5分钟更新一次，展示当日新增流量消耗情况（每天00:00从0开始计算）</p>
+                    <h2 style="margin: 0;">📈 实时流量图</h2>
+                    <p style="color: #666; margin: 5px 0 0 0;">每5分钟更新一次，展示当日流量消耗情况</p>
                 </div>
                 <div class="date-query-form">
                     <form method="GET" style="display: flex; gap: 10px; align-items: center;">
