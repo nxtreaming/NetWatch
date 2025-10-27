@@ -555,7 +555,7 @@ if (!$realtimeData) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <div>
                     <h2 style="margin: 0;">📈 实时流量图</h2>
-                    <p style="color: #666; margin: 5px 0 0 0;">当日流量消耗情况</p>
+                    <p style="color: #666; margin: 5px 0 0 0;">流量消耗情况</p>
                 </div>
                 <div class="date-query-form">
                     <form method="GET" style="display: flex; gap: 10px; align-items: center;">
