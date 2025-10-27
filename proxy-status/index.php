@@ -585,7 +585,7 @@ if (!$realtimeData) {
             
             <?php if ($snapshotDate !== date('Y-m-d')): ?>
             <div style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
-                <strong>📅 查询结果:</strong> 显示 <?php echo $snapshotDate; ?> 日实时流量数据
+                <strong>📅 查询结果:</strong> 显示 <?php echo $snapshotDate; ?> 日流量数据
             </div>
             <?php endif; ?>
             
