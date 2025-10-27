@@ -479,7 +479,7 @@ if (!$realtimeData) {
             <?php endif; ?>
             
             <div class="stat-card">
-                <h3>累计使用</h3>
+                <h3>流量累计使用</h3>
                 <div class="value"><?php 
                     // 显示 RX + TX 的总流量
                     $totalTraffic = 0;
@@ -555,7 +555,7 @@ if (!$realtimeData) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <div>
                     <h2 style="margin: 0;">📈 实时流量图</h2>
-                    <p style="color: #666; margin: 5px 0 0 0;">当日流量消耗情况(/5 min) </p>
+                    <p style="color: #666; margin: 5px 0 0 0;">当日流量消耗情况</p>
                 </div>
                 <div class="date-query-form">
                     <form method="GET" style="display: flex; gap: 10px; align-items: center;">
@@ -585,13 +585,13 @@ if (!$realtimeData) {
             
             <?php if ($snapshotDate !== date('Y-m-d')): ?>
             <div style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
-                <strong>📅 查询结果:</strong> 显示 <?php echo $snapshotDate; ?> 的实时流量数据
+                <strong>📅 查询结果:</strong> 显示 <?php echo $snapshotDate; ?> 日实时流量数据
             </div>
             <?php endif; ?>
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：<?php echo $isViewingToday ? '显示最近12小时的流量数据' : '显示当日全天的流量数据'; ?>
+                💡 提示：<?php echo $isViewingToday ? '显示最近12小时流量数据' : '显示当日全天流量数据'; ?>
             </p>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
