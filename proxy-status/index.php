@@ -555,7 +555,7 @@ if (!$realtimeData) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <div>
                     <h2 style="margin: 0;">📈 实时流量图</h2>
-                    <p style="color: #666; margin: 5px 0 0 0;">每5分钟更新一次，展示当日流量消耗情况</p>
+                    <p style="color: #666; margin: 5px 0 0 0;">当日流量消耗情况(/5 min) </p>
                 </div>
                 <div class="date-query-form">
                     <form method="GET" style="display: flex; gap: 10px; align-items: center;">
@@ -591,7 +591,7 @@ if (!$realtimeData) {
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：<?php echo $isViewingToday ? '图表显示最近12小时的实时流量数据' : '图表显示当日全天的流量数据'; ?>
+                💡 提示：<?php echo $isViewingToday ? '显示最近12小时的流量数据' : '显示当日全天的流量数据'; ?>
             </p>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
