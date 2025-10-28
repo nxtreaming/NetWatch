@@ -29,6 +29,12 @@ try {
         // 获取最新数据
         $data = $trafficMonitor->getRealtimeTraffic();
         
+        // 计算总使用流量 (RX + TX)
+        $totalUsedTraffic = 0;
+        if (isset($data['rx_bytes']) && isset($data['tx_bytes'])) {
+            $totalUsedTraffic = ($data['rx_bytes'] + $data['tx_bytes']) / (1024*1024*1024);
+        }
+        
         echo json_encode([
             'success' => true,
             'message' => '流量数据更新成功',
@@ -38,11 +44,16 @@ try {
                 'remaining_bandwidth' => $data['remaining_bandwidth'],
                 'usage_percentage' => $data['usage_percentage'],
                 'updated_at' => $data['updated_at'],
+                'rx_bytes' => isset($data['rx_bytes']) ? $data['rx_bytes'] : 0,
+                'tx_bytes' => isset($data['tx_bytes']) ? $data['tx_bytes'] : 0,
+                'port' => isset($data['port']) ? $data['port'] : 0,
                 'formatted' => [
                     'total' => $trafficMonitor->formatBandwidth($data['total_bandwidth']),
-                    'used' => $trafficMonitor->formatBandwidth($data['used_bandwidth']),
+                    'used' => $trafficMonitor->formatBandwidth($totalUsedTraffic),
                     'remaining' => $trafficMonitor->formatBandwidth($data['remaining_bandwidth']),
-                    'percentage' => $trafficMonitor->formatPercentage($data['usage_percentage'])
+                    'percentage' => $trafficMonitor->formatPercentage($data['usage_percentage']),
+                    'rx' => isset($data['rx_bytes']) ? $trafficMonitor->formatBandwidth($data['rx_bytes'] / (1024*1024*1024)) : '0.00 GB',
+                    'tx' => isset($data['tx_bytes']) ? $trafficMonitor->formatBandwidth($data['tx_bytes'] / (1024*1024*1024)) : '0.00 GB'
                 ]
             ]
         ]);

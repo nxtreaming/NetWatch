@@ -557,7 +557,7 @@ if (!$realtimeData) {
                     <h2 style="margin: 0;">📈 实时流量图</h2>
                 </div>
                 <div class="date-query-form">
-                    <form method="GET" style="display: flex; gap: 10px; align-items: center;">
+                    <form method="GET" style="display: flex; gap: 10px; align-items: center;" onsubmit="event.preventDefault(); handleSnapshotDateChange();">
                         <label for="snapshot-date" style="font-weight: 600; color: #555;">查询日期:</label>
                         <input type="date" 
                                id="snapshot-date" 
@@ -608,7 +608,7 @@ if (!$realtimeData) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <h2 style="margin: 0;">📊 <?php echo $queryDate ? '日期范围流量统计' : '最近32天流量统计'; ?></h2>
                 <div class="date-query-form">
-                    <form method="GET" style="display: flex; gap: 10px; align-items: center;">
+                    <form method="GET" style="display: flex; gap: 10px; align-items: center;" onsubmit="event.preventDefault(); handleQueryDateChange();">
                         <label for="query-date" style="font-weight: 600; color: #555;">查询日期:</label>
                         <input type="date" 
                                id="query-date" 
@@ -707,34 +707,200 @@ if (!$realtimeData) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <script>
-        // 每5分钟自动刷新页面
-        setTimeout(function() {
-            location.reload();
-        }, <?php echo defined('TRAFFIC_UPDATE_INTERVAL') ? TRAFFIC_UPDATE_INTERVAL * 1000 : 300000; ?>);
+        // 全局变量
+        let currentSnapshotDate = '<?php echo $snapshotDate; ?>';
+        let currentQueryDate = '<?php echo $queryDate ? htmlspecialchars($queryDate) : ''; ?>';
+        let autoRefreshTimer = null;
         
-        // 创建流量趋势图
-        <?php if (!empty($todaySnapshots)): ?>
-        (function() {
-            // 准备数据
-            const snapshots = <?php echo json_encode($todaySnapshots); ?>;
-            const isViewingToday = <?php echo $isViewingToday ? 'true' : 'false'; ?>;
+        // 每5分钟自动刷新数据
+        function startAutoRefresh() {
+            const interval = <?php echo defined('TRAFFIC_UPDATE_INTERVAL') ? TRAFFIC_UPDATE_INTERVAL * 1000 : 300000; ?>;
+            
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+            }
+            
+            autoRefreshTimer = setInterval(function() {
+                updateRealtimeData();
+                // 如果正在查看今日数据，也更新图表
+                if (currentSnapshotDate === '<?php echo date('Y-m-d'); ?>') {
+                    updateTrafficChart(currentSnapshotDate);
+                }
+            }, interval);
+        }
+        
+        // 更新实时流量数据
+        async function updateRealtimeData() {
+            try {
+                const response = await fetch('update.php');
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 更新统计卡片
+                    updateStatsCards(result.data);
+                    // 更新进度条
+                    updateProgressBar(result.data);
+                    // 更新流量详情
+                    updateTrafficDetails(result.data);
+                    // 更新时间显示
+                    updateLastUpdateTime(result.data.updated_at);
+                    
+                    console.log('实时流量数据更新成功');
+                } else {
+                    console.error('更新失败:', result.message);
+                }
+            } catch (error) {
+                console.error('请求失败:', error);
+            }
+        }
+        
+        // 更新统计卡片
+        function updateStatsCards(data) {
+            // 更新总流量限制
+            const totalLimitCard = document.querySelector('.stat-card.primary .value');
+            if (totalLimitCard && data.formatted.total) {
+                totalLimitCard.textContent = data.formatted.total;
+            }
+            
+            // 计算并更新总使用流量
+            const usedTrafficCard = document.querySelector('.stats-grid .stat-card:not(.primary):not(.success):not(.warning):not(.danger) .value');
+            if (usedTrafficCard) {
+                // 这里需要重新计算RX+TX，暂时使用现有的值
+                // 实际应该从API获取RX和TX的单独值
+            }
+            
+            // 更新剩余流量
+            const remainingCard = document.querySelector('.stat-card.success .value');
+            if (remainingCard && data.formatted.remaining) {
+                remainingCard.textContent = data.formatted.remaining;
+            }
+            
+            // 更新使用率
+            const percentageCard = document.querySelector('.stats-grid .stat-card:not(.primary):not(.success):not(.primary) .value');
+            if (percentageCard && data.formatted.percentage) {
+                percentageCard.textContent = data.formatted.percentage;
+                // 更新卡片样式
+                const percentageCardElement = percentageCard.closest('.stat-card');
+                const percentage = parseFloat(data.usage_percentage);
+                percentageCardElement.className = 'stat-card ' + 
+                    (percentage >= 90 ? 'danger' : percentage >= 75 ? 'warning' : 'primary');
+            }
+        }
+        
+        // 更新进度条
+        function updateProgressBar(data) {
+            const progressBar = document.querySelector('.progress-bar');
+            const progressPercent = document.querySelector('.progress-bar');
+            
+            if (progressBar) {
+                const percentage = Math.min(data.usage_percentage, 100);
+                progressBar.style.width = percentage + '%';
+                progressBar.textContent = data.formatted.percentage;
+                
+                // 更新进度条样式
+                const percentage = parseFloat(data.usage_percentage);
+                progressBar.className = 'progress-bar ' + 
+                    (percentage >= 90 ? 'danger' : percentage >= 75 ? 'warning' : '');
+            }
+        }
+        
+        // 更新流量详情
+        function updateTrafficDetails(data) {
+            // 更新RX流量卡片
+            const rxCard = document.querySelector('.stats-grid2 .stat-card .value');
+            if (rxCard && data.formatted.rx) {
+                // 找到RX卡片（第一个有渐变背景的卡片）
+                const rxCards = document.querySelectorAll('.stats-grid2 .stat-card[style*="background: linear-gradient"]');
+                if (rxCards.length > 0 && rxCards[0].textContent.includes('接收流量')) {
+                    const rxValue = rxCards[0].querySelector('.value');
+                    if (rxValue) {
+                        rxValue.textContent = data.formatted.rx;
+                    }
+                }
+            }
+            
+            // 更新TX流量卡片
+            if (data.formatted.tx) {
+                const txCards = document.querySelectorAll('.stats-grid2 .stat-card[style*="background: linear-gradient"]');
+                if (txCards.length > 1 && txCards[1].textContent.includes('发送流量')) {
+                    const txValue = txCards[1].querySelector('.value');
+                    if (txValue) {
+                        txValue.textContent = data.formatted.tx;
+                    }
+                }
+            }
+            
+            // 更新监控端口
+            if (data.port) {
+                const portCards = document.querySelectorAll('.stats-grid2 .stat-card[style*="background: linear-gradient"]');
+                if (portCards.length > 2 && portCards[2].textContent.includes('监控端口')) {
+                    const portValue = portCards[2].querySelector('.value');
+                    if (portValue) {
+                        portValue.textContent = data.port;
+                    }
+                }
+            }
+        }
+        
+        // 更新最后更新时间
+        function updateLastUpdateTime(updatedAt) {
+            if (updatedAt) {
+                const utcTime = new Date(updatedAt + 'Z');
+                const beijingTime = new Date(utcTime.getTime() + (8 * 3600 * 1000));
+                const timeString = ' (' + beijingTime.toLocaleString('zh-CN', {
+                    month: '2-digit',
+                    day: '2-digit', 
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                }).replace(/\//g, '/') + ')';
+                
+                const updateTimeElement = document.querySelector('.header p');
+                if (updateTimeElement) {
+                    const baseText = '更新时间';
+                    updateTimeElement.textContent = baseText + timeString;
+                }
+            }
+        }
+        
+        // 更新流量图表
+        async function updateTrafficChart(date) {
+            try {
+                const response = await fetch(`api.php?action=chart&date=${encodeURIComponent(date)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 重新创建图表
+                    createTrafficChart(result.data, date === '<?php echo date('Y-m-d'); ?>');
+                    console.log('流量图表更新成功');
+                } else {
+                    console.error('图表更新失败:', result.message);
+                }
+            } catch (error) {
+                console.error('图表请求失败:', error);
+            }
+        }
+        
+        // 创建流量图表
+        function createTrafficChart(snapshots, isViewingToday) {
+            if (!snapshots || snapshots.length === 0) {
+                return;
+            }
             
             // 提取时间标签
-            const labels = snapshots.map(s => s.snapshot_time.substring(0, 5)); // 只显示 HH:MM
+            const labels = snapshots.map(s => s.snapshot_time.substring(0, 5));
             
-            // 计算每5分钟的增量流量（相对于上一个数据点）
+            // 计算每5分钟的增量流量
             const rxData = [];
             const txData = [];
             const totalData = [];
             
             for (let i = 0; i < snapshots.length; i++) {
                 if (i === 0) {
-                    // 第一个数据点，增量为0
                     rxData.push(0);
                     txData.push(0);
                     totalData.push(0);
                 } else {
-                    // 计算相对于上一个数据点的增量
                     const rxIncrement = (snapshots[i].rx_bytes - snapshots[i-1].rx_bytes) / (1024 * 1024);
                     const txIncrement = (snapshots[i].tx_bytes - snapshots[i-1].tx_bytes) / (1024 * 1024);
                     const totalIncrement = (snapshots[i].total_bytes - snapshots[i-1].total_bytes) / (1024 * 1024);
@@ -749,130 +915,312 @@ if (!$realtimeData) {
             const ctx = document.getElementById('trafficChart');
             if (!ctx) return;
             
+            // 销毁旧图表
+            if (window.trafficChartInstance) {
+                window.trafficChartInstance.destroy();
+            }
+            
             // 根据是否查看今日决定显示的数据范围
             let displayLabels, displayData;
             if (isViewingToday) {
-                // 查看今日：只显示最近12小时的数据（144个数据点，每5分钟一个点）
                 const pointsToShow = 144;
                 const startIndex = Math.max(0, snapshots.length - pointsToShow);
                 displayLabels = labels.slice(startIndex);
                 displayData = totalData.slice(startIndex);
             } else {
-                // 查看历史：显示全天数据
                 displayLabels = labels;
                 displayData = totalData;
             }
             
-            // 创建图表
-            new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: displayLabels,
-                        datasets: [
-                            {
-                                label: '本时段流量',
-                                data: displayData,
-                                borderColor: 'rgb(75, 192, 192)',
-                                backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 2,
-                                pointHoverRadius: 4
-                            }
-                        ]
+            // 创建新图表
+            window.trafficChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: displayLabels,
+                    datasets: [
+                        {
+                            label: '本时段流量',
+                            data: displayData,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            mode: 'index',
-                            intersect: false,
+                    plugins: {
+                        legend: {
+                            display: false
                         },
-                        plugins: {
-                            legend: {
-                                display: false
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            displayColors: false,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
                             },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
-                                displayColors: false,
-                                titleFont: {
-                                    size: 14,
-                                    weight: 'bold'
-                                },
-                                bodyFont: {
-                                    size: 13
-                                },
-                                callbacks: {
-                                    title: function(context) {
-                                        // 显示时间段
-                                        const currentTime = context[0].label;
-                                        const index = context[0].dataIndex;
-                                        if (index === 0) {
-                                            return currentTime + ' (起始点)';
-                                        }
-                                        // 计算上一个时间点
-                                        const prevTime = context[0].chart.data.labels[index - 1];
-                                        return prevTime + ' → ' + currentTime;
-                                    },
-                                    label: function(context) {
-                                        const value = parseFloat(context.parsed.y).toFixed(2);
-                                        if (context.dataIndex === 0) {
-                                            return '本时段流量:0 MB (起始点)';
-                                        } else {
-                                            return '本时段流量:' + value + ' MB';
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: '每5分钟增量流量 (MB)',
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    }
-                                },
-                                ticks: {
-                                    callback: function(value) {
-                                        return value + ' MB';
-                                    },
-                                    font: {
-                                        size: 12
-                                    }
-                                },
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
-                                }
+                            bodyFont: {
+                                size: 13
                             },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: '时间',
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
+                            callbacks: {
+                                title: function(context) {
+                                    const currentTime = context[0].label;
+                                    const index = context[0].dataIndex;
+                                    if (index === 0) {
+                                        return currentTime + ' (起始点)';
                                     }
+                                    const prevTime = context[0].chart.data.labels[index - 1];
+                                    return prevTime + ' → ' + currentTime;
                                 },
-                                ticks: {
-                                    font: {
-                                        size: 11
-                                    },
-                                    maxRotation: 45,
-                                    minRotation: 0
-                                },
-                                grid: {
-                                    display: false
+                                label: function(context) {
+                                    const value = parseFloat(context.parsed.y).toFixed(2);
+                                    if (context.dataIndex === 0) {
+                                        return '本时段流量:0 MB (起始点)';
+                                    } else {
+                                        return '本时段流量:' + value + ' MB';
+                                    }
                                 }
                             }
                         }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '每5分钟增量流量 (MB)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' MB';
+                                },
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '时间',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                },
+                                maxRotation: 45,
+                                minRotation: 0
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
                     }
-                });
+                }
+            });
+        }
+        
+        // 处理实时流量图表日期查询
+        function handleSnapshotDateChange() {
+            const dateInput = document.getElementById('snapshot-date');
+            const newDate = dateInput.value;
+            
+            if (newDate !== currentSnapshotDate) {
+                currentSnapshotDate = newDate;
+                updateTrafficChart(newDate);
+                
+                // 更新提示信息
+                const infoDiv = document.querySelector('.chart-section div[style*="background: #e7f3ff"]');
+                if (infoDiv) {
+                    if (newDate === '<?php echo date('Y-m-d'); ?>') {
+                        infoDiv.style.display = 'none';
+                    } else {
+                        infoDiv.innerHTML = `<strong>📅 查询结果:</strong> 显示 ${newDate} 日流量数据`;
+                        infoDiv.style.display = 'block';
+                    }
+                }
+                
+                // 更新提示文本
+                const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
+                if (tipText) {
+                    tipText.innerHTML = '💡 提示：' + (newDate === '<?php echo date('Y-m-d'); ?>' ? '显示最近12小时流量数据' : '显示当日全天流量数据');
+                }
+            }
+        }
+        
+        // 处理统计日期查询
+        function handleQueryDateChange() {
+            const dateInput = document.getElementById('query-date');
+            const newDate = dateInput.value;
+            
+            if (newDate !== currentQueryDate) {
+                currentQueryDate = newDate;
+                updateStatsTable(newDate);
+                
+                // 更新标题和提示信息
+                const titleElement = document.querySelector('.chart-section h2');
+                if (titleElement) {
+                    titleElement.textContent = newDate ? '📊 日期范围流量统计' : '📊 最近32天流量统计';
+                }
+                
+                const infoDiv = document.querySelector('.chart-section:nth-child(2) div[style*="background: #e7f3ff"]');
+                if (infoDiv) {
+                    if (newDate) {
+                        const startDate = new Date(newDate);
+                        startDate.setDate(startDate.getDate() - 7);
+                        const endDate = new Date(newDate);
+                        endDate.setDate(endDate.getDate() + 7);
+                        
+                        infoDiv.innerHTML = `<strong>📅 查询结果:</strong> 显示 ${newDate} 前后7天的流量数据（${startDate.toISOString().split('T')[0]} 至 ${endDate.toISOString().split('T')[0]}）`;
+                        infoDiv.style.display = 'block';
+                    } else {
+                        infoDiv.style.display = 'none';
+                    }
+                }
+            }
+        }
+        
+        // 更新统计表格
+        async function updateStatsTable(centerDate) {
+            try {
+                const url = centerDate ? 
+                    `api.php?action=stats&date=${encodeURIComponent(centerDate)}` : 
+                    'api.php?action=stats';
+                    
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderStatsTable(result.data, centerDate);
+                    console.log('统计表格更新成功');
+                } else {
+                    console.error('统计表格更新失败:', result.message);
+                }
+            } catch (error) {
+                console.error('统计表格请求失败:', error);
+            }
+        }
+        
+        // 渲染统计表格
+        function renderStatsTable(stats, centerDate) {
+            const tbody = document.querySelector('.chart-section:nth-child(2) tbody');
+            if (!tbody) return;
+            
+            if (!stats || stats.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">暂无数据</td></tr>';
+                return;
+            }
+            
+            // 建立日期索引
+            const statsByDate = {};
+            stats.forEach(s => {
+                statsByDate[s.usage_date] = s;
+            });
+            
+            let html = '';
+            stats.forEach(stat => {
+                // 计算当日使用量
+                const currentDate = stat.usage_date;
+                const previousDate = new Date(currentDate);
+                previousDate.setDate(previousDate.getDate() - 1);
+                const previousDateStr = previousDate.toISOString().split('T')[0];
+                
+                let calculatedDailyUsage;
+                if (statsByDate[previousDateStr]) {
+                    const previousDayUsed = statsByDate[previousDateStr].used_bandwidth;
+                    calculatedDailyUsage = stat.used_bandwidth - previousDayUsed;
+                    if (calculatedDailyUsage < 0) {
+                        calculatedDailyUsage = stat.used_bandwidth;
+                    }
+                } else {
+                    calculatedDailyUsage = stat.daily_usage;
+                }
+                
+                // 格式化数据
+                const totalBandwidth = parseFloat(stat.total_bandwidth).toFixed(2);
+                const usedBandwidth = parseFloat(stat.used_bandwidth).toFixed(2);
+                const remainingBandwidth = parseFloat(stat.remaining_bandwidth).toFixed(2);
+                const dailyUsage = parseFloat(calculatedDailyUsage).toFixed(2);
+                
+                const isHighlighted = centerDate && stat.usage_date === centerDate;
+                const rowStyle = isHighlighted ? 'style="background: #fff3cd; font-weight: 600;"' : '';
+                
+                html += `
+                    <tr ${rowStyle}>
+                        <td>${stat.usage_date}</td>
+                        <td>${dailyUsage} GB</td>
+                        <td>${usedBandwidth} GB</td>
+                        <td>${totalBandwidth} GB</td>
+                        <td>${remainingBandwidth} GB</td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定日期查询事件
+            const snapshotDateInput = document.getElementById('snapshot-date');
+            if (snapshotDateInput) {
+                snapshotDateInput.addEventListener('change', handleSnapshotDateChange);
+            }
+            
+            const queryDateInput = document.getElementById('query-date');
+            if (queryDateInput) {
+                queryDateInput.addEventListener('change', handleQueryDateChange);
+            }
+            
+            // 启动自动刷新
+            startAutoRefresh();
+            
+            // 保存初始图表实例
+            <?php if (!empty($todaySnapshots)): ?>
+            const ctx = document.getElementById('trafficChart');
+            if (ctx && window.trafficChartInstance) {
+                // 图表已在下方创建，这里不需要重复创建
+            }
+            <?php endif; ?>
+        });
+        
+        // 页面卸载时清理定时器
+        window.addEventListener('beforeunload', function() {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+            }
+        });
+        
+        <?php if (!empty($todaySnapshots)): ?>
+        // 创建初始流量趋势图
+        (function() {
+            const snapshots = <?php echo json_encode($todaySnapshots); ?>;
+            const isViewingToday = <?php echo $isViewingToday ? 'true' : 'false'; ?>;
+            
+            // 使用全局函数创建图表
+            createTrafficChart(snapshots, isViewingToday);
         })();
         <?php endif; ?>
     </script>
