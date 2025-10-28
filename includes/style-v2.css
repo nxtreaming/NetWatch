@@ -41,6 +41,7 @@ body {
 
 .header-left {
     flex: 1;
+    font-size: 14px;
 }
 
 .nav-menu {
@@ -84,7 +85,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .user-row {
@@ -108,7 +109,7 @@ body {
     padding: 8px 16px;
     border-radius: 20px;
     text-decoration: none;
-    font-size: 12px;
+    font-size: 14px;
     transition: background 0.3s ease;
 }
 
@@ -299,7 +300,7 @@ body {
 
 .btn-small {
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 /* 搜索功能样式 */
@@ -441,7 +442,7 @@ body {
     }
     
     .header-left p {
-        font-size: 12px;
+        font-size: 14px;
     }
     
     .header-right {
@@ -461,7 +462,7 @@ body {
     .user-info {
         align-items: flex-end;
         width: auto;
-        font-size: 12px;
+        font-size: 14px;
     }
     
     .user-row {
@@ -570,7 +571,7 @@ tr:hover {
 .status-badge {
     padding: 4px 8px;
     border-radius: 20px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     text-transform: uppercase;
 }
@@ -684,7 +685,7 @@ tr:hover {
     }
     
     table {
-        font-size: 12px;
+        font-size: 14px;
     }
     
     th, td {
@@ -754,7 +755,7 @@ tr:hover {
     }
     
     .filter-label {
-        font-size: 12px;
+        font-size: 14px;
     }
     
     .filter-btn {
@@ -771,7 +772,7 @@ tr:hover {
     #search-input {
         width: 60%;
         min-width: 120px;
-        font-size: 12px;
+        font-size: 14px;
         padding: 6px 8px;
     }
     
@@ -793,7 +794,7 @@ tr:hover {
     
     .search-btn, .clear-btn {
         padding: 6px 10px;
-        font-size: 12px;
+        font-size: 14px;
     }
     
     .pagination-container {
