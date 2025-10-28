@@ -744,8 +744,6 @@ if (!$realtimeData) {
                     updateTrafficDetails(result.data);
                     // 更新时间显示
                     updateLastUpdateTime(result.data.updated_at);
-                    
-                    console.log('实时流量数据更新成功');
                 } else {
                     console.error('更新失败:', result.message);
                 }
@@ -870,7 +868,6 @@ if (!$realtimeData) {
                 if (result.success) {
                     // 重新创建图表
                     createTrafficChart(result.data, date === '<?php echo date('Y-m-d'); ?>');
-                    console.log('流量图表更新成功');
                 } else {
                     console.error('图表更新失败:', result.message);
                 }
@@ -1143,8 +1140,6 @@ if (!$realtimeData) {
             const dateInput = document.getElementById('query-date');
             const newDate = dateInput.value;
             
-            console.log('handleQueryDateChange 被调用, 新日期:', newDate, '当前日期:', currentQueryDate);
-            
             if (newDate !== currentQueryDate) {
                 currentQueryDate = newDate;
                 updateStatsTable(newDate);
@@ -1191,17 +1186,12 @@ if (!$realtimeData) {
                 const url = centerDate ? 
                     `api.php?action=stats&date=${encodeURIComponent(centerDate)}` : 
                     'api.php?action=stats';
-                
-                console.log('正在请求统计数据:', url);
                     
                 const response = await fetch(url);
                 const result = await response.json();
                 
-                console.log('API响应:', result);
-                
                 if (result.success) {
                     renderStatsTable(result.data, centerDate);
-                    console.log('统计表格更新成功');
                 } else {
                     console.error('统计表格更新失败:', result.message);
                 }
