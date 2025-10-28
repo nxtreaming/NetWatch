@@ -613,7 +613,7 @@ if (!$realtimeData) {
                         <input type="date" 
                                id="query-date" 
                                name="date" 
-                               value="<?php echo $queryDate ? htmlspecialchars($queryDate) : ''; ?>"
+                               value="<?php echo $queryDate ? htmlspecialchars($queryDate) : date('Y-m-d'); ?>"
                                style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                         <button type="submit" 
                                 style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
@@ -1068,8 +1068,9 @@ if (!$realtimeData) {
         // 返回最近32天统计
         function resetQueryToRecent() {
             const dateInput = document.getElementById('query-date');
+            const today = '<?php echo date('Y-m-d'); ?>';
             
-            dateInput.value = '';
+            dateInput.value = today;
             currentQueryDate = '';
             updateStatsTable('');
             
