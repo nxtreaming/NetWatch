@@ -1181,7 +1181,7 @@ if (!$realtimeData) {
         
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
-            // 绑定表单提交事件
+            // 绑定表单提交事件（只在点击查询按钮时触发）
             const snapshotDateForm = document.getElementById('snapshot-date-form');
             if (snapshotDateForm) {
                 snapshotDateForm.addEventListener('submit', function(e) {
@@ -1196,17 +1196,6 @@ if (!$realtimeData) {
                     e.preventDefault();
                     handleQueryDateChange();
                 });
-            }
-            
-            // 绑定日期输入框change事件
-            const snapshotDateInput = document.getElementById('snapshot-date');
-            if (snapshotDateInput) {
-                snapshotDateInput.addEventListener('change', handleSnapshotDateChange);
-            }
-            
-            const queryDateInput = document.getElementById('query-date');
-            if (queryDateInput) {
-                queryDateInput.addEventListener('change', handleQueryDateChange);
             }
             
             // 启动自动刷新
