@@ -569,12 +569,12 @@ if (!$realtimeData) {
                                 style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
                             查询
                         </button>
-                        <?php if ($snapshotDate !== date('Y-m-d')): ?>
-                        <a href="?" 
-                           style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                        <button type="button" 
+                                id="snapshot-back-today"
+                                onclick="resetSnapshotToToday()"
+                                style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; <?php echo $snapshotDate === date('Y-m-d') ? 'display: none;' : ''; ?>">
                             返回今日
-                        </a>
-                        <?php endif; ?>
+                        </button>
                         <?php if ($queryDate): ?>
                         <input type="hidden" name="date" value="<?php echo htmlspecialchars($queryDate); ?>">
                         <?php endif; ?>
@@ -619,12 +619,12 @@ if (!$realtimeData) {
                                 style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
                             查询前后7天
                         </button>
-                        <?php if ($queryDate): ?>
-                        <a href="?<?php echo $snapshotDate !== date('Y-m-d') ? 'snapshot_date=' . urlencode($snapshotDate) : ''; ?>" 
-                           style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                        <button type="button" 
+                                id="query-back-recent"
+                                onclick="resetQueryToRecent()"
+                                style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; <?php echo !$queryDate ? 'display: none;' : ''; ?>">
                             显示最近32天
-                        </a>
-                        <?php endif; ?>
+                        </button>
                         <?php if ($snapshotDate !== date('Y-m-d')): ?>
                         <input type="hidden" name="snapshot_date" value="<?php echo htmlspecialchars($snapshotDate); ?>">
                         <?php endif; ?>
@@ -1040,6 +1040,61 @@ if (!$realtimeData) {
             });
         }
         
+        // 返回今日流量
+        function resetSnapshotToToday() {
+            const dateInput = document.getElementById('snapshot-date');
+            const today = '<?php echo date('Y-m-d'); ?>';
+            
+            dateInput.value = today;
+            currentSnapshotDate = today;
+            updateTrafficChart(today);
+            
+            // 隐藏返回按钮
+            const backButton = document.getElementById('snapshot-back-today');
+            if (backButton) {
+                backButton.style.display = 'none';
+            }
+            
+            // 隐藏提示信息
+            const infoDiv = document.querySelector('.chart-section div[style*="background: #e7f3ff"]');
+            if (infoDiv) {
+                infoDiv.style.display = 'none';
+            }
+            
+            // 更新提示文本
+            const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
+            if (tipText) {
+                tipText.innerHTML = '💡 提示：显示最近12小时流量数据';
+            }
+        }
+        
+        // 返回最近32天统计
+        function resetQueryToRecent() {
+            const dateInput = document.getElementById('query-date');
+            
+            dateInput.value = '';
+            currentQueryDate = '';
+            updateStatsTable('');
+            
+            // 隐藏返回按钮
+            const backButton = document.getElementById('query-back-recent');
+            if (backButton) {
+                backButton.style.display = 'none';
+            }
+            
+            // 更新标题
+            const titleElement = document.querySelector('.chart-section:nth-child(2) h2');
+            if (titleElement) {
+                titleElement.textContent = '📊 最近32天流量统计';
+            }
+            
+            // 隐藏提示信息
+            const infoDiv = document.querySelector('.chart-section:nth-child(2) div[style*="background: #e7f3ff"]');
+            if (infoDiv) {
+                infoDiv.style.display = 'none';
+            }
+        }
+        
         // 处理实时流量图表日期查询
         function handleSnapshotDateChange() {
             const dateInput = document.getElementById('snapshot-date');
@@ -1049,10 +1104,18 @@ if (!$realtimeData) {
                 currentSnapshotDate = newDate;
                 updateTrafficChart(newDate);
                 
+                const isToday = newDate === '<?php echo date('Y-m-d'); ?>';
+                
+                // 显示/隐藏返回按钮
+                const backButton = document.getElementById('snapshot-back-today');
+                if (backButton) {
+                    backButton.style.display = isToday ? 'none' : 'inline-block';
+                }
+                
                 // 更新提示信息
                 const infoDiv = document.querySelector('.chart-section div[style*="background: #e7f3ff"]');
                 if (infoDiv) {
-                    if (newDate === '<?php echo date('Y-m-d'); ?>') {
+                    if (isToday) {
                         infoDiv.style.display = 'none';
                     } else {
                         infoDiv.innerHTML = `<strong>📅 查询结果:</strong> 显示 ${newDate} 日流量数据`;
@@ -1063,7 +1126,7 @@ if (!$realtimeData) {
                 // 更新提示文本
                 const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
                 if (tipText) {
-                    tipText.innerHTML = '💡 提示：' + (newDate === '<?php echo date('Y-m-d'); ?>' ? '显示最近12小时流量数据' : '显示当日全天流量数据');
+                    tipText.innerHTML = '💡 提示：' + (isToday ? '显示最近12小时流量数据' : '显示当日全天流量数据');
                 }
             }
         }
@@ -1077,8 +1140,14 @@ if (!$realtimeData) {
                 currentQueryDate = newDate;
                 updateStatsTable(newDate);
                 
+                // 显示/隐藏返回按钮
+                const backButton = document.getElementById('query-back-recent');
+                if (backButton) {
+                    backButton.style.display = newDate ? 'inline-block' : 'none';
+                }
+                
                 // 更新标题和提示信息
-                const titleElement = document.querySelector('.chart-section h2');
+                const titleElement = document.querySelector('.chart-section:nth-child(2) h2');
                 if (titleElement) {
                     titleElement.textContent = newDate ? '📊 日期范围流量统计' : '📊 最近32天流量统计';
                 }
