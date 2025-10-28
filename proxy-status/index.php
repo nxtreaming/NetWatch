@@ -353,7 +353,7 @@ if (!$realtimeData) {
             .header-wrapper {
                 flex-direction: column;
                 align-items: center;
-                gap: 15px;
+                gap: 0px;
             }
             
             .header-left {
@@ -362,7 +362,7 @@ if (!$realtimeData) {
             }
             
             .header h1 {
-                font-size: 24px;
+                font-size: 20px;
             }
             
             .header p {
