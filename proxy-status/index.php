@@ -484,7 +484,12 @@ if (!$realtimeData) {
                     // 显示 RX + TX 的总流量
                     $totalTraffic = 0;
                     if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes'])) {
-                        $totalTraffic = ($realtimeData['rx_bytes'] + $realtimeData['tx_bytes']) / (1024*1024*1024);
+                        $rxBytes = floatval($realtimeData['rx_bytes']);
+                        $txBytes = floatval($realtimeData['tx_bytes']);
+                        $totalTraffic = ($rxBytes + $txBytes) / (1024*1024*1024);
+                    } elseif (isset($realtimeData['used_bandwidth'])) {
+                        // 如果没有rx_bytes和tx_bytes，使用used_bandwidth作为备选
+                        $totalTraffic = floatval($realtimeData['used_bandwidth']);
                     }
                     echo $trafficMonitor->formatBandwidth($totalTraffic);
                 ?></div>
@@ -754,35 +759,33 @@ if (!$realtimeData) {
         
         // 更新统计卡片
         function updateStatsCards(data) {
-            // 更新总流量限制
-            const totalLimitCard = document.querySelector('.stat-card.primary .value');
-            if (totalLimitCard && data.formatted.total) {
-                totalLimitCard.textContent = data.formatted.total;
-            }
+            // 获取所有统计卡片
+            const statCards = document.querySelectorAll('.stats-grid .stat-card');
             
-            // 计算并更新总使用流量
-            const usedTrafficCard = document.querySelector('.stats-grid .stat-card:not(.primary):not(.success):not(.warning):not(.danger) .value');
-            if (usedTrafficCard) {
-                // 这里需要重新计算RX+TX，暂时使用现有的值
-                // 实际应该从API获取RX和TX的单独值
-            }
-            
-            // 更新剩余流量
-            const remainingCard = document.querySelector('.stat-card.success .value');
-            if (remainingCard && data.formatted.remaining) {
-                remainingCard.textContent = data.formatted.remaining;
-            }
-            
-            // 更新使用率
-            const percentageCard = document.querySelector('.stats-grid .stat-card:not(.primary):not(.success):not(.primary) .value');
-            if (percentageCard && data.formatted.percentage) {
-                percentageCard.textContent = data.formatted.percentage;
-                // 更新卡片样式
-                const percentageCardElement = percentageCard.closest('.stat-card');
-                const percentage = parseFloat(data.usage_percentage);
-                percentageCardElement.className = 'stat-card ' + 
-                    (percentage >= 90 ? 'danger' : percentage >= 75 ? 'warning' : 'primary');
-            }
+            statCards.forEach(card => {
+                const heading = card.querySelector('h3');
+                if (!heading) return;
+                
+                const valueElement = card.querySelector('.value');
+                if (!valueElement) return;
+                
+                const headingText = heading.textContent.trim();
+                
+                // 根据标题更新对应的值
+                if (headingText === '总流量限制' && data.formatted.total) {
+                    valueElement.textContent = data.formatted.total;
+                } else if (headingText === '流量累计使用' && data.formatted.used) {
+                    valueElement.textContent = data.formatted.used;
+                } else if (headingText === '剩余流量' && data.formatted.remaining) {
+                    valueElement.textContent = data.formatted.remaining;
+                } else if (headingText === '使用率' && data.formatted.percentage) {
+                    valueElement.textContent = data.formatted.percentage;
+                    // 更新卡片样式
+                    const percentage = parseFloat(data.usage_percentage);
+                    card.className = 'stat-card ' + 
+                        (percentage >= 90 ? 'danger' : percentage >= 75 ? 'warning' : 'primary');
+                }
+            });
         }
         
         // 更新进度条
