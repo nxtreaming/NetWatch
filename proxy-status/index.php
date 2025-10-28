@@ -557,7 +557,7 @@ if (!$realtimeData) {
                     <h2 style="margin: 0;">📈 实时流量图</h2>
                 </div>
                 <div class="date-query-form">
-                    <form method="GET" style="display: flex; gap: 10px; align-items: center;" onsubmit="event.preventDefault(); handleSnapshotDateChange();">
+                    <form id="snapshot-date-form" method="GET" style="display: flex; gap: 10px; align-items: center;">
                         <label for="snapshot-date" style="font-weight: 600; color: #555;">查询日期:</label>
                         <input type="date" 
                                id="snapshot-date" 
@@ -608,7 +608,7 @@ if (!$realtimeData) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <h2 style="margin: 0;">📊 <?php echo $queryDate ? '日期范围流量统计' : '最近32天流量统计'; ?></h2>
                 <div class="date-query-form">
-                    <form method="GET" style="display: flex; gap: 10px; align-items: center;" onsubmit="event.preventDefault(); handleQueryDateChange();">
+                    <form id="query-date-form" method="GET" style="display: flex; gap: 10px; align-items: center;">
                         <label for="query-date" style="font-weight: 600; color: #555;">查询日期:</label>
                         <input type="date" 
                                id="query-date" 
@@ -790,15 +790,13 @@ if (!$realtimeData) {
         // 更新进度条
         function updateProgressBar(data) {
             const progressBar = document.querySelector('.progress-bar');
-            const progressPercent = document.querySelector('.progress-bar');
             
             if (progressBar) {
-                const percentage = Math.min(data.usage_percentage, 100);
-                progressBar.style.width = percentage + '%';
+                const percentage = parseFloat(data.usage_percentage);
+                progressBar.style.width = Math.min(percentage, 100) + '%';
                 progressBar.textContent = data.formatted.percentage;
                 
                 // 更新进度条样式
-                const percentage = parseFloat(data.usage_percentage);
                 progressBar.className = 'progress-bar ' + 
                     (percentage >= 90 ? 'danger' : percentage >= 75 ? 'warning' : '');
             }
@@ -1183,7 +1181,24 @@ if (!$realtimeData) {
         
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
-            // 绑定日期查询事件
+            // 绑定表单提交事件
+            const snapshotDateForm = document.getElementById('snapshot-date-form');
+            if (snapshotDateForm) {
+                snapshotDateForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    handleSnapshotDateChange();
+                });
+            }
+            
+            const queryDateForm = document.getElementById('query-date-form');
+            if (queryDateForm) {
+                queryDateForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    handleQueryDateChange();
+                });
+            }
+            
+            // 绑定日期输入框change事件
             const snapshotDateInput = document.getElementById('snapshot-date');
             if (snapshotDateInput) {
                 snapshotDateInput.addEventListener('change', handleSnapshotDateChange);
