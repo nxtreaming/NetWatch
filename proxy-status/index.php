@@ -1082,16 +1082,23 @@ if (!$realtimeData) {
                 backButton.style.display = 'none';
             }
             
-            // 更新标题
-            const titleElement = document.querySelector('.chart-section:nth-child(2) h2');
-            if (titleElement) {
-                titleElement.textContent = '📊 最近32天流量统计';
+            // 更新标题 - 使用表单的父元素来定位
+            const queryForm = document.getElementById('query-date-form');
+            if (queryForm) {
+                const titleElement = queryForm.closest('.chart-section').querySelector('h2');
+                if (titleElement) {
+                    titleElement.textContent = '📊 最近32天流量统计';
+                }
             }
             
             // 隐藏提示信息
-            const infoDiv = document.querySelector('.chart-section:nth-child(2) div[style*="background: #e7f3ff"]');
-            if (infoDiv) {
-                infoDiv.style.display = 'none';
+            const chartSections = document.querySelectorAll('.chart-section');
+            if (chartSections.length > 1) {
+                const statsSection = chartSections[chartSections.length - 1];
+                const infoDiv = statsSection.querySelector('div[style*="background: #e7f3ff"]');
+                if (infoDiv) {
+                    infoDiv.style.display = 'none';
+                }
             }
         }
         
@@ -1136,6 +1143,8 @@ if (!$realtimeData) {
             const dateInput = document.getElementById('query-date');
             const newDate = dateInput.value;
             
+            console.log('handleQueryDateChange 被调用, 新日期:', newDate, '当前日期:', currentQueryDate);
+            
             if (newDate !== currentQueryDate) {
                 currentQueryDate = newDate;
                 updateStatsTable(newDate);
@@ -1146,24 +1155,31 @@ if (!$realtimeData) {
                     backButton.style.display = newDate ? 'inline-block' : 'none';
                 }
                 
-                // 更新标题和提示信息
-                const titleElement = document.querySelector('.chart-section:nth-child(2) h2');
-                if (titleElement) {
-                    titleElement.textContent = newDate ? '📊 日期范围流量统计' : '📊 最近32天流量统计';
-                }
-                
-                const infoDiv = document.querySelector('.chart-section:nth-child(2) div[style*="background: #e7f3ff"]');
-                if (infoDiv) {
-                    if (newDate) {
-                        const startDate = new Date(newDate);
-                        startDate.setDate(startDate.getDate() - 7);
-                        const endDate = new Date(newDate);
-                        endDate.setDate(endDate.getDate() + 7);
-                        
-                        infoDiv.innerHTML = `<strong>📅 查询结果:</strong> 显示 ${newDate} 前后7天的流量数据（${startDate.toISOString().split('T')[0]} 至 ${endDate.toISOString().split('T')[0]}）`;
-                        infoDiv.style.display = 'block';
-                    } else {
-                        infoDiv.style.display = 'none';
+                // 更新标题和提示信息 - 使用表单的父元素来定位
+                const queryForm = document.getElementById('query-date-form');
+                if (queryForm) {
+                    const statsSection = queryForm.closest('.chart-section');
+                    
+                    // 更新标题
+                    const titleElement = statsSection.querySelector('h2');
+                    if (titleElement) {
+                        titleElement.textContent = newDate ? '📊 日期范围流量统计' : '📊 最近32天流量统计';
+                    }
+                    
+                    // 更新提示信息
+                    const infoDiv = statsSection.querySelector('div[style*="background: #e7f3ff"]');
+                    if (infoDiv) {
+                        if (newDate) {
+                            const startDate = new Date(newDate);
+                            startDate.setDate(startDate.getDate() - 7);
+                            const endDate = new Date(newDate);
+                            endDate.setDate(endDate.getDate() + 7);
+                            
+                            infoDiv.innerHTML = `<strong>📅 查询结果:</strong> 显示 ${newDate} 前后7天的流量数据（${startDate.toISOString().split('T')[0]} 至 ${endDate.toISOString().split('T')[0]}）`;
+                            infoDiv.style.display = 'block';
+                        } else {
+                            infoDiv.style.display = 'none';
+                        }
                     }
                 }
             }
@@ -1175,9 +1191,13 @@ if (!$realtimeData) {
                 const url = centerDate ? 
                     `api.php?action=stats&date=${encodeURIComponent(centerDate)}` : 
                     'api.php?action=stats';
+                
+                console.log('正在请求统计数据:', url);
                     
                 const response = await fetch(url);
                 const result = await response.json();
+                
+                console.log('API响应:', result);
                 
                 if (result.success) {
                     renderStatsTable(result.data, centerDate);
@@ -1192,7 +1212,12 @@ if (!$realtimeData) {
         
         // 渲染统计表格
         function renderStatsTable(stats, centerDate) {
-            const tbody = document.querySelector('.chart-section:nth-child(2) tbody');
+            // 使用表单来定位正确的表格
+            const queryForm = document.getElementById('query-date-form');
+            if (!queryForm) return;
+            
+            const statsSection = queryForm.closest('.chart-section');
+            const tbody = statsSection ? statsSection.querySelector('tbody') : null;
             if (!tbody) return;
             
             if (!stats || stats.length === 0) {
