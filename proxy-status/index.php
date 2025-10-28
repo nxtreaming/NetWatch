@@ -47,8 +47,8 @@ if ($queryDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $queryDate)) {
     // 如果指定了日期，获取该日期前后7天的数据
     $recentStats = $trafficMonitor->getStatsAroundDate($queryDate, 7, 7);
 } else {
-    // 默认显示最近30天
-    $recentStats = $trafficMonitor->getRecentStats(30);
+    // 默认显示最近32天
+    $recentStats = $trafficMonitor->getRecentStats(32);
 }
 
 // 如果没有数据，显示默认值
@@ -606,7 +606,7 @@ if (!$realtimeData) {
         <?php if (!empty($recentStats)): ?>
         <div class="chart-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                <h2 style="margin: 0;">📊 <?php echo $queryDate ? '日期范围流量统计' : '最近30天流量统计'; ?></h2>
+                <h2 style="margin: 0;">📊 <?php echo $queryDate ? '日期范围流量统计' : '最近32天流量统计'; ?></h2>
                 <div class="date-query-form">
                     <form method="GET" style="display: flex; gap: 10px; align-items: center;">
                         <label for="query-date" style="font-weight: 600; color: #555;">查询日期:</label>
@@ -622,7 +622,7 @@ if (!$realtimeData) {
                         <?php if ($queryDate): ?>
                         <a href="?<?php echo $snapshotDate !== date('Y-m-d') ? 'snapshot_date=' . urlencode($snapshotDate) : ''; ?>" 
                            style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
-                            显示最近30天
+                            显示最近32天
                         </a>
                         <?php endif; ?>
                         <?php if ($snapshotDate !== date('Y-m-d')): ?>
