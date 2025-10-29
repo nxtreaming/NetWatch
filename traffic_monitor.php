@@ -107,6 +107,19 @@ class TrafficMonitor {
             return false;
         }
         
+        return $this->updateRealtimeTrafficWithData($data);
+    }
+    
+    /**
+     * 使用已获取的 API 数据更新实时流量数据
+     * @param array $data API 返回的数据
+     * @return bool
+     */
+    public function updateRealtimeTrafficWithData($data) {
+        if (!$data || !is_array($data)) {
+            return false;
+        }
+        
         // API返回的数据格式：
         // {
         //   "port": 12323,           // 端口号
@@ -161,6 +174,19 @@ class TrafficMonitor {
         $data = $this->fetchTrafficData();
         
         if ($data === false) {
+            return false;
+        }
+        
+        return $this->updateDailyStatsWithData($data);
+    }
+    
+    /**
+     * 使用已获取的 API 数据更新每日流量统计
+     * @param array $data API 返回的数据
+     * @return bool
+     */
+    public function updateDailyStatsWithData($data) {
+        if (!$data || !is_array($data)) {
             return false;
         }
         

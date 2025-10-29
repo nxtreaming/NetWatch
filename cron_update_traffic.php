@@ -13,36 +13,38 @@ echo "执行时间: " . date('Y-m-d H:i:s') . "\n\n";
 
 $trafficMonitor = new TrafficMonitor();
 
-// 更新实时流量数据
+// 只调用一次 API 获取数据
+echo "正在从 API 获取流量数据...\n";
+$apiData = $trafficMonitor->fetchTrafficData();
+
+if ($apiData === false) {
+    echo "✗ API 数据获取失败，任务终止\n";
+    exit(1);
+}
+
+echo "✓ API 数据获取成功\n";
+echo "  - 端口: " . ($apiData['port'] ?? 'N/A') . "\n";
+echo "  - RX: " . number_format(($apiData['rx'] ?? 0) / (1024*1024*1024), 2) . " GB\n";
+echo "  - TX: " . number_format(($apiData['tx'] ?? 0) / (1024*1024*1024), 2) . " GB\n";
+echo "  - 总计: " . number_format((($apiData['rx'] ?? 0) + ($apiData['tx'] ?? 0)) / (1024*1024*1024), 2) . " GB\n";
+
+echo "\n";
+
+// 使用同一份数据更新实时流量表
 echo "正在更新实时流量数据...\n";
-$realtimeResult = $trafficMonitor->updateRealtimeTraffic();
+$realtimeResult = $trafficMonitor->updateRealtimeTrafficWithData($apiData);
 
 if ($realtimeResult) {
     echo "✓ 实时流量数据更新成功\n";
-    
-    // 显示当前数据
-    $data = $trafficMonitor->getRealtimeTraffic();
-    if ($data) {
-        // 计算 RX + TX 总流量
-        $totalTraffic = 0;
-        if (isset($data['rx_bytes']) && isset($data['tx_bytes'])) {
-            $totalTraffic = ($data['rx_bytes'] + $data['tx_bytes']) / (1024*1024*1024);
-        }
-        
-        echo "  - 总流量限制: " . $trafficMonitor->formatBandwidth($data['total_bandwidth']) . "\n";
-        echo "  - 累计使用(RX+TX): " . $trafficMonitor->formatBandwidth($data['used_bandwidth']) . "\n";
-        echo "  - 剩余流量: " . $trafficMonitor->formatBandwidth($data['remaining_bandwidth']) . "\n";
-        echo "  - 使用率: " . $trafficMonitor->formatPercentage($data['usage_percentage']) . "\n";
-    }
 } else {
     echo "✗ 实时流量数据更新失败\n";
 }
 
 echo "\n";
 
-// 更新每日统计（每天执行一次即可，但多次执行不会有问题）
+// 使用同一份数据更新每日统计表
 echo "正在更新每日流量统计...\n";
-$dailyResult = $trafficMonitor->updateDailyStats();
+$dailyResult = $trafficMonitor->updateDailyStatsWithData($apiData);
 
 if ($dailyResult) {
     echo "✓ 每日流量统计更新成功\n";
