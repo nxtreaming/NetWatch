@@ -667,32 +667,52 @@ if (!$realtimeData) {
                             $statsByDate[$s['usage_date']] = $s;
                         }
                         
+                        // 获取今日日期，用于判断是否显示实时数据
+                        $today = date('Y-m-d');
+                        
                         foreach ($recentStats as $stat): 
-                            // 计算当日使用量：当天累计 - 前一天累计
                             $currentDate = $stat['usage_date'];
+                            $isToday = ($currentDate === $today);
+                            
+                            // 如果是今日数据，使用实时数据；否则使用历史快照
+                            if ($isToday && isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes'])) {
+                                // 今日数据：使用实时API数据
+                                $rxBytes = floatval($realtimeData['rx_bytes']);
+                                $txBytes = floatval($realtimeData['tx_bytes']);
+                                $displayUsedBandwidth = ($rxBytes + $txBytes) / (1024*1024*1024);
+                                $displayTotalBandwidth = $realtimeData['total_bandwidth'];
+                                $displayRemainingBandwidth = $realtimeData['remaining_bandwidth'];
+                            } else {
+                                // 历史数据：使用数据库快照
+                                $displayUsedBandwidth = $stat['used_bandwidth'];
+                                $displayTotalBandwidth = $stat['total_bandwidth'];
+                                $displayRemainingBandwidth = $stat['remaining_bandwidth'];
+                            }
+                            
+                            // 计算当日使用量：当天累计 - 前一天累计
                             $previousDate = date('Y-m-d', strtotime($currentDate . ' -1 day'));
                             
                             // 查找前一天的数据
                             if (isset($statsByDate[$previousDate])) {
                                 // 有前一天的数据，计算当日增量
                                 $previousDayUsed = $statsByDate[$previousDate]['used_bandwidth'];
-                                $calculatedDailyUsage = $stat['used_bandwidth'] - $previousDayUsed;
+                                $calculatedDailyUsage = $displayUsedBandwidth - $previousDayUsed;
                                 
                                 // 如果计算结果为负（流量重置），使用当天的累计值
                                 if ($calculatedDailyUsage < 0) {
-                                    $calculatedDailyUsage = $stat['used_bandwidth'];
+                                    $calculatedDailyUsage = $displayUsedBandwidth;
                                 }
                             } else {
-                                // 没有前一天的数据，使用数据库中的值
-                                $calculatedDailyUsage = $stat['daily_usage'];
+                                // 没有前一天的数据，使用数据库中的值或实时累计值
+                                $calculatedDailyUsage = $isToday ? $displayUsedBandwidth : $stat['daily_usage'];
                             }
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'style="background: #fff3cd; font-weight: 600;"'; ?>>
-                            <td><?php echo htmlspecialchars($stat['usage_date']); ?></td>
+                            <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span style="color: #48bb78; font-weight: 600;">●</span>'; ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($stat['used_bandwidth']); ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($stat['total_bandwidth']); ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($stat['remaining_bandwidth']); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($displayUsedBandwidth); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($displayTotalBandwidth); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($displayRemainingBandwidth); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
