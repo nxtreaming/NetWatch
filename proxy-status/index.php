@@ -39,6 +39,24 @@ if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
     $isViewingToday = true;
 }
 
+// 调试：显示前10条数据（仅在有debug参数时显示）
+if (isset($_GET['debug']) && !empty($todaySnapshots)) {
+    echo "<pre style='background: #f5f5f5; padding: 20px; margin: 20px; border: 1px solid #ddd;'>";
+    echo "=== 流量快照数据调试信息 ===\n";
+    echo "日期: $snapshotDate\n";
+    echo "总记录数: " . count($todaySnapshots) . "\n\n";
+    echo "前10条记录:\n";
+    echo str_pad("索引", 6) . str_pad("时间", 12) . str_pad("RX (GB)", 15) . str_pad("TX (GB)", 15) . "\n";
+    echo str_repeat("-", 60) . "\n";
+    for ($i = 0; $i < min(10, count($todaySnapshots)); $i++) {
+        $s = $todaySnapshots[$i];
+        $rxGB = $s['rx_bytes'] / (1024*1024*1024);
+        $txGB = $s['tx_bytes'] / (1024*1024*1024);
+        echo str_pad($i, 6) . str_pad($s['snapshot_time'], 12) . str_pad(number_format($rxGB, 2), 15) . str_pad(number_format($txGB, 2), 15) . "\n";
+    }
+    echo "</pre>";
+}
+
 // 处理每日统计的日期查询
 $queryDate = isset($_GET['date']) ? $_GET['date'] : null;
 $recentStats = [];
@@ -913,6 +931,12 @@ if (!$realtimeData) {
         function createTrafficChart(snapshots, isViewingToday) {
             if (!snapshots || snapshots.length === 0) {
                 return;
+            }
+            
+            // 调试：输出前10条数据
+            console.log('=== 流量快照数据（前10条）===');
+            for (let i = 0; i < Math.min(10, snapshots.length); i++) {
+                console.log(`${i}: ${snapshots[i].snapshot_time} - RX: ${snapshots[i].rx_bytes}, TX: ${snapshots[i].tx_bytes}`);
             }
             
             // 提取时间标签
