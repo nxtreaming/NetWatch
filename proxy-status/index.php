@@ -950,12 +950,20 @@ if (!$realtimeData) {
             }
             
             // 显示全天数据（从00:00开始）
-            const displayLabels = labels;
+            let displayLabels = labels;
             const displayData = totalData;
             
             // 判断数据量是否超过12小时（144个数据点）
-            const dataPointCount = displayLabels.length;
+            const dataPointCount = labels.length;
             const isMoreThan12Hours = dataPointCount > 144;
+            
+            // 如果超过12小时，处理标签：每10分钟显示一个（每2个数据点显示一个）
+            if (isMoreThan12Hours) {
+                displayLabels = labels.map((label, index) => {
+                    // 每2个数据点显示一个标签
+                    return index % 2 === 0 ? label : '';
+                });
+            }
             
             // 创建新图表
             window.trafficChartInstance = new Chart(ctx, {
@@ -1057,9 +1065,7 @@ if (!$realtimeData) {
                                 },
                                 maxRotation: 45,
                                 minRotation: 0,
-                                autoSkip: true,
-                                // 根据数据量动态设置最大标签数
-                                maxTicksLimit: isMoreThan12Hours ? 72 : undefined,  // 超过12小时时限制为72个标签（每10分钟一个）
+                                autoSkip: true,  // 启用自动跳过，避免标签重叠
                             },
                             grid: {
                                 display: false
