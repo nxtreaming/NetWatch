@@ -761,12 +761,15 @@ class Database {
     }
     
     /**
-     * 获取指定日期的流量快照数据
+     * 获取指定日期的流量快照数据（只返回5分钟倍数的时间点）
      */
     public function getTrafficSnapshotsByDate($date) {
         $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
                 FROM traffic_snapshots 
                 WHERE snapshot_date = ? 
+                AND (
+                    substr(snapshot_time, 4, 2) IN ('00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55')
+                )
                 ORDER BY snapshot_time ASC";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$date]);
