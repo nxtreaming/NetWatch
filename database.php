@@ -751,7 +751,12 @@ class Database {
      */
     public function saveTrafficSnapshot($rxBytes, $txBytes) {
         $date = date('Y-m-d');
-        $time = date('H:i:00'); // 取整到分钟，便于5分钟对齐
+        
+        // 将时间对齐到5分钟的倍数
+        $currentMinute = intval(date('i'));
+        $alignedMinute = floor($currentMinute / 5) * 5;  // 向下取整到5的倍数
+        $time = date('H:') . str_pad($alignedMinute, 2, '0', STR_PAD_LEFT) . ':00';
+        
         $totalBytes = $rxBytes + $txBytes;
         
         $sql = "INSERT OR REPLACE INTO traffic_snapshots (snapshot_date, snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at) 

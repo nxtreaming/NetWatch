@@ -598,7 +598,6 @@ if (!$realtimeData) {
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
                 💡 提示：<?php echo $isViewingToday ? '显示当日从00:00开始的24小时流量数据，每5分钟一个数据点' : '显示当日全天流量数据，每5分钟一个数据点'; ?>
-                <?php if ($isViewingToday && count($todaySnapshots) > 144): ?>，数据超过12小时时横坐标每10分钟显示一个标签<?php endif; ?>
             </p>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
@@ -949,22 +948,9 @@ if (!$realtimeData) {
                 window.trafficChartInstance.destroy();
             }
             
-            // 显示全天数据（从00:00开始）
-            const originalLabels = labels;  // 保存原始标签用于tooltip
-            let displayLabels = labels;
+            // 显示当日从00:00开始的数据（最多288个点，即24小时）
+            const displayLabels = labels;
             const displayData = totalData;
-            
-            // 判断数据量是否超过12小时（144个数据点）
-            const dataPointCount = labels.length;
-            const isMoreThan12Hours = dataPointCount > 144;
-            
-            // 如果超过12小时，处理标签：每10分钟显示一个（每2个数据点显示一个）
-            if (isMoreThan12Hours) {
-                displayLabels = labels.map((label, index) => {
-                    // 每2个数据点显示一个标签
-                    return index % 2 === 0 ? label : '';
-                });
-            }
             
             // 创建新图表
             window.trafficChartInstance = new Chart(ctx, {
@@ -1009,13 +995,12 @@ if (!$realtimeData) {
                             },
                             callbacks: {
                                 title: function(context) {
+                                    const currentTime = context[0].label;
                                     const index = context[0].dataIndex;
-                                    // 使用原始标签而不是显示标签
-                                    const currentTime = originalLabels[index];
                                     if (index === 0) {
                                         return currentTime + ' (起始点)';
                                     }
-                                    const prevTime = originalLabels[index - 1];
+                                    const prevTime = context[0].chart.data.labels[index - 1];
                                     return prevTime + ' → ' + currentTime;
                                 },
                                 label: function(context) {
@@ -1055,7 +1040,7 @@ if (!$realtimeData) {
                         x: {
                             title: {
                                 display: true,
-                                text: isMoreThan12Hours ? '时间（每10分钟显示一个标签）' : '时间',
+                                text: '时间',
                                 font: {
                                     size: 14,
                                     weight: 'bold'
@@ -1067,7 +1052,7 @@ if (!$realtimeData) {
                                 },
                                 maxRotation: 45,
                                 minRotation: 0,
-                                autoSkip: true,  // 启用自动跳过，避免标签重叠
+                                autoSkip: true,
                             },
                             grid: {
                                 display: false
