@@ -1,9 +1,18 @@
 <?php
 /**
  * 手动更新流量数据的AJAX端点
+ * 已禁用 - 只允许定时任务更新数据
  */
 
 header('Content-Type: application/json');
+
+// 禁止手动更新，只允许定时任务更新
+echo json_encode([
+    'success' => false,
+    'error' => 'disabled',
+    'message' => '手动更新已禁用，数据由定时任务自动更新'
+]);
+exit;
 
 require_once '../config.php';
 require_once '../auth.php';

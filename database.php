@@ -748,10 +748,18 @@ class Database {
     
     /**
      * 保存流量快照（每5分钟一次）
+     * 只在当前分钟是5的倍数时保存，避免产生非5分钟间隔的数据
      */
     public function saveTrafficSnapshot($rxBytes, $txBytes) {
         $date = date('Y-m-d');
-        $time = date('H:i:00'); // 取整到分钟，便于5分钟对齐
+        $currentMinute = intval(date('i'));
+        
+        // 只在5分钟倍数时保存快照（0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55）
+        if ($currentMinute % 5 !== 0) {
+            return true; // 不是5分钟倍数，跳过保存，返回true表示"成功"（不报错）
+        }
+        
+        $time = date('H:i:00'); // 取整到分钟
         $totalBytes = $rxBytes + $txBytes;
         
         $sql = "INSERT OR REPLACE INTO traffic_snapshots (snapshot_date, snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at) 
