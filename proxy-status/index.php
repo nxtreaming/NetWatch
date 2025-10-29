@@ -1057,8 +1057,7 @@ if (!$realtimeData) {
                                 },
                                 maxRotation: 45,
                                 minRotation: 0,
-                                autoSkip: true,
-                                maxTicksLimit: 144,
+                                autoSkip: false,  // 禁用自动跳过，由callback控制
                                 // 只有超过12小时才每10分钟显示一个标签
                                 callback: isMoreThan12Hours ? function(value, index, ticks) {
                                     // 每10分钟显示一个标签（每2个数据点）
