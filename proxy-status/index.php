@@ -935,7 +935,7 @@ if (!$realtimeData) {
                         },
                         x: {
                             title: {
-                                display: true,
+                                display: false,
                                 text: '时间',
                                 font: {
                                     size: 14,
