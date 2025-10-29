@@ -767,7 +767,6 @@ $percentage = $realtimeData['usage_percentage'];
             
             autoRefreshTimer = setInterval(function() {
                 // 整页刷新，确保顶部和底部数据完全同步
-                console.log('自动刷新页面...');
                 location.reload();
             }, interval);
         }
@@ -793,12 +792,6 @@ $percentage = $realtimeData['usage_percentage'];
         function createTrafficChart(snapshots, isViewingToday) {
             if (!snapshots || snapshots.length === 0) {
                 return;
-            }
-            
-            // 调试：输出前10条数据
-            console.log('=== 流量快照数据（前10条）===');
-            for (let i = 0; i < Math.min(10, snapshots.length); i++) {
-                console.log(`${i}: ${snapshots[i].snapshot_time} - RX: ${snapshots[i].rx_bytes}, TX: ${snapshots[i].tx_bytes}`);
             }
             
             // 提取时间标签
