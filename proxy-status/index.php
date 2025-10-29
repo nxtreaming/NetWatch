@@ -597,7 +597,8 @@ if (!$realtimeData) {
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：<?php echo $isViewingToday ? '显示最近12小时流量数据' : '显示当日全天流量数据'; ?>
+                💡 提示：<?php echo $isViewingToday ? '显示当日从00:00开始的24小时流量数据，每5分钟一个数据点' : '显示当日全天流量数据，每5分钟一个数据点'; ?>
+                <?php if ($isViewingToday && count($todaySnapshots) > 144): ?>，数据超过12小时时横坐标每10分钟显示一个标签<?php endif; ?>
             </p>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
@@ -948,17 +949,13 @@ if (!$realtimeData) {
                 window.trafficChartInstance.destroy();
             }
             
-            // 根据是否查看今日决定显示的数据范围
-            let displayLabels, displayData;
-            if (isViewingToday) {
-                const pointsToShow = 144;
-                const startIndex = Math.max(0, snapshots.length - pointsToShow);
-                displayLabels = labels.slice(startIndex);
-                displayData = totalData.slice(startIndex);
-            } else {
-                displayLabels = labels;
-                displayData = totalData;
-            }
+            // 显示全天数据（从00:00开始）
+            const displayLabels = labels;
+            const displayData = totalData;
+            
+            // 判断数据量是否超过12小时（144个数据点）
+            const dataPointCount = displayLabels.length;
+            const isMoreThan12Hours = dataPointCount > 144;
             
             // 创建新图表
             window.trafficChartInstance = new Chart(ctx, {
@@ -1048,7 +1045,7 @@ if (!$realtimeData) {
                         x: {
                             title: {
                                 display: true,
-                                text: '时间',
+                                text: isMoreThan12Hours ? '时间（每10分钟显示一个标签）' : '时间',
                                 font: {
                                     size: 14,
                                     weight: 'bold'
@@ -1059,7 +1056,17 @@ if (!$realtimeData) {
                                     size: 11
                                 },
                                 maxRotation: 45,
-                                minRotation: 0
+                                minRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 144,
+                                // 只有超过12小时才每10分钟显示一个标签
+                                callback: isMoreThan12Hours ? function(value, index, ticks) {
+                                    // 每10分钟显示一个标签（每2个数据点）
+                                    if (index % 2 === 0) {
+                                        return this.getLabelForValue(value);
+                                    }
+                                    return '';
+                                } : undefined
                             },
                             grid: {
                                 display: false
@@ -1094,7 +1101,7 @@ if (!$realtimeData) {
             // 更新提示文本
             const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
             if (tipText) {
-                tipText.innerHTML = '💡 提示：显示最近12小时流量数据';
+                tipText.innerHTML = '💡 提示：显示当日从00:00开始的24小时流量数据，每5分钟一个数据点';
             }
         }
         
@@ -1164,7 +1171,7 @@ if (!$realtimeData) {
                 // 更新提示文本
                 const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
                 if (tipText) {
-                    tipText.innerHTML = '💡 提示：' + (isToday ? '显示最近12小时流量数据' : '显示当日全天流量数据');
+                    tipText.innerHTML = '💡 提示：' + (isToday ? '显示当日从00:00开始的24小时流量数据，每5分钟一个数据点' : '显示当日全天流量数据，每5分钟一个数据点');
                 }
             }
         }
