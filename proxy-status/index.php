@@ -1057,15 +1057,9 @@ if (!$realtimeData) {
                                 },
                                 maxRotation: 45,
                                 minRotation: 0,
-                                autoSkip: false,  // 禁用自动跳过，由callback控制
-                                // 只有超过12小时才每10分钟显示一个标签
-                                callback: isMoreThan12Hours ? function(value, index, ticks) {
-                                    // 每10分钟显示一个标签（每2个数据点）
-                                    if (index % 2 === 0) {
-                                        return this.getLabelForValue(value);
-                                    }
-                                    return '';
-                                } : undefined
+                                autoSkip: true,
+                                // 根据数据量动态设置最大标签数
+                                maxTicksLimit: isMoreThan12Hours ? 72 : undefined,  // 超过12小时时限制为72个标签（每10分钟一个）
                             },
                             grid: {
                                 display: false
