@@ -915,7 +915,7 @@ if (!$realtimeData) {
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: '每5分钟增量流量 (MB)',
+                                text: '每5分钟消耗流量 (MB)',
                                 font: {
                                     size: 14,
                                     weight: 'bold'
