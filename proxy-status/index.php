@@ -950,6 +950,7 @@ if (!$realtimeData) {
             }
             
             // 显示全天数据（从00:00开始）
+            const originalLabels = labels;  // 保存原始标签用于tooltip
             let displayLabels = labels;
             const displayData = totalData;
             
@@ -1008,20 +1009,21 @@ if (!$realtimeData) {
                             },
                             callbacks: {
                                 title: function(context) {
-                                    const currentTime = context[0].label;
                                     const index = context[0].dataIndex;
+                                    // 使用原始标签而不是显示标签
+                                    const currentTime = originalLabels[index];
                                     if (index === 0) {
                                         return currentTime + ' (起始点)';
                                     }
-                                    const prevTime = context[0].chart.data.labels[index - 1];
+                                    const prevTime = originalLabels[index - 1];
                                     return prevTime + ' → ' + currentTime;
                                 },
                                 label: function(context) {
                                     const value = parseFloat(context.parsed.y).toFixed(2);
                                     if (context.dataIndex === 0) {
-                                        return '本时段流量:0 MB (起始点)';
+                                        return '本时段流量: 0 MB (起始点)';
                                     } else {
-                                        return '本时段流量:' + value + ' MB';
+                                        return '本时段流量: ' + value + ' MB';
                                     }
                                 }
                             }
