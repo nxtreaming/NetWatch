@@ -615,7 +615,7 @@ if (!$realtimeData) {
             
             <?php if (!empty($todaySnapshots)): ?>
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
-                💡 提示：<?php echo $isViewingToday ? '显示当日从00:00开始的24小时流量数据' : '显示当日全天流量数据'; ?>
+                💡 提示：<?php echo $isViewingToday ? '显示当日从00:00开始的流量数据' : '显示当日全天流量数据'; ?>
             </p>
             <div style="position: relative; height: 400px;">
                 <canvas id="trafficChart"></canvas>
@@ -983,7 +983,7 @@ if (!$realtimeData) {
             // 更新提示文本
             const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
             if (tipText) {
-                tipText.innerHTML = '💡 提示：显示当日从00:00开始的24小时流量数据';
+                tipText.innerHTML = '💡 提示：显示当日从00:00开始的流量数据';
             }
         }
         
@@ -1053,7 +1053,7 @@ if (!$realtimeData) {
                 // 更新提示文本
                 const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
                 if (tipText) {
-                    tipText.innerHTML = '💡 提示：' + (isToday ? '显示当日从00:00开始的24小时流量数据' : '显示当日全天流量数据');
+                    tipText.innerHTML = '💡 提示：' + (isToday ? '显示当日从00:00开始的流量数据' : '显示当日全天流量数据');
                 }
             }
         }
