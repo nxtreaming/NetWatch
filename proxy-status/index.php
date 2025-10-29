@@ -79,6 +79,22 @@ if (!$realtimeData) {
         'updated_at' => null
     ];
 }
+
+// 计算总流量（统一计算逻辑，避免重复）
+$totalTraffic = 0;
+if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes']) && 
+    ($realtimeData['rx_bytes'] > 0 || $realtimeData['tx_bytes'] > 0)) {
+    // 优先使用原始字节数计算
+    $rxBytes = floatval($realtimeData['rx_bytes']);
+    $txBytes = floatval($realtimeData['tx_bytes']);
+    $totalTraffic = ($rxBytes + $txBytes) / (1024*1024*1024);
+} elseif (isset($realtimeData['used_bandwidth'])) {
+    // 备选：使用已计算的 used_bandwidth
+    $totalTraffic = floatval($realtimeData['used_bandwidth']);
+}
+
+// 定义百分比变量供后续使用
+$percentage = $realtimeData['usage_percentage'];
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -498,21 +514,7 @@ if (!$realtimeData) {
             
             <div class="stat-card">
                 <h3>流量累计使用</h3>
-                <div class="value"><?php 
-                    // 显示 RX + TX 的总流量（优先使用 rx_bytes + tx_bytes，备选 used_bandwidth）
-                    $totalTraffic = 0;
-                    if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes']) && 
-                        ($realtimeData['rx_bytes'] > 0 || $realtimeData['tx_bytes'] > 0)) {
-                        // 优先使用原始字节数计算
-                        $rxBytes = floatval($realtimeData['rx_bytes']);
-                        $txBytes = floatval($realtimeData['tx_bytes']);
-                        $totalTraffic = ($rxBytes + $txBytes) / (1024*1024*1024);
-                    } elseif (isset($realtimeData['used_bandwidth'])) {
-                        // 备选：使用已计算的 used_bandwidth
-                        $totalTraffic = floatval($realtimeData['used_bandwidth']);
-                    }
-                    echo $trafficMonitor->formatBandwidth($totalTraffic);
-                ?></div>
+                <div class="value"><?php echo $trafficMonitor->formatBandwidth($totalTraffic); ?></div>
                 <div class="label">Total Used (RX + TX)</div>
             </div>
             
@@ -696,20 +698,8 @@ if (!$realtimeData) {
                             
                             // 如果是今日数据，使用实时数据；否则使用历史快照
                             if ($isToday) {
-                                // 今日数据：使用实时数据（与顶部计算逻辑完全一致）
-                                if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes']) && 
-                                    ($realtimeData['rx_bytes'] > 0 || $realtimeData['tx_bytes'] > 0)) {
-                                    // 优先使用原始字节数计算
-                                    $rxBytes = floatval($realtimeData['rx_bytes']);
-                                    $txBytes = floatval($realtimeData['tx_bytes']);
-                                    $displayUsedBandwidth = ($rxBytes + $txBytes) / (1024*1024*1024);
-                                } elseif (isset($realtimeData['used_bandwidth'])) {
-                                    // 备选：使用已计算的 used_bandwidth
-                                    $displayUsedBandwidth = floatval($realtimeData['used_bandwidth']);
-                                } else {
-                                    // 都没有，使用数据库快照
-                                    $displayUsedBandwidth = $stat['used_bandwidth'];
-                                }
+                                // 今日数据：使用页面顶部已计算的总流量
+                                $displayUsedBandwidth = $totalTraffic;
                                 $displayTotalBandwidth = $realtimeData['total_bandwidth'];
                                 $displayRemainingBandwidth = $realtimeData['remaining_bandwidth'];
                             } else {
@@ -1207,14 +1197,6 @@ if (!$realtimeData) {
             
             // 启动自动刷新
             startAutoRefresh();
-            
-            // 保存初始图表实例
-            <?php if (!empty($todaySnapshots)): ?>
-            const ctx = document.getElementById('trafficChart');
-            if (ctx && window.trafficChartInstance) {
-                // 图表已在下方创建，这里不需要重复创建
-            }
-            <?php endif; ?>
         });
         
         // 页面卸载时清理定时器
