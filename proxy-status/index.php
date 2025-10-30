@@ -905,6 +905,7 @@ $percentage = $realtimeData['usage_percentage'];
                                 }
                             },
                             ticks: {
+                                stepSize: 1000,
                                 callback: function(value) {
                                     return value + ' MB';
                                 },
