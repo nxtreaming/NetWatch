@@ -619,7 +619,7 @@ $percentage = $realtimeData['usage_percentage'];
             <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
                 💡 提示：<?php echo $isViewingToday ? '显示当日从00:00开始的流量数据' : '显示当日全天流量数据'; ?>
             </p>
-            <div style="position: relative; height: 400px;">
+            <div style="position: relative; height: 200px;">
                 <canvas id="trafficChart"></canvas>
             </div>
             <?php else: ?>
