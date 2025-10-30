@@ -845,8 +845,8 @@ $percentage = $realtimeData['usage_percentage'];
                             borderWidth: 2,
                             fill: true,
                             tension: 0.4,
-                            pointRadius: 2,
-                            pointHoverRadius: 4
+                            pointRadius: 1,
+                            pointHoverRadius: 2
                         }
                     ]
                 },
