@@ -238,7 +238,7 @@ class TrafficMonitor {
             $trafficReset = true;
             $this->logger->info("检测到流量重置，使用当日使用量({$dailyUsage}GB)作为已用流量显示值");
             
-            // 回溯更新昨天的"已用流量"为重置前的最后值（今天00:00的快照值）
+            // 回溯更新昨天的数据（已用流量和当日使用）
             $todaySnapshots = $this->db->getTrafficSnapshotsByDate($today);
             if (!empty($todaySnapshots)) {
                 $firstSnapshot = $todaySnapshots[0];
@@ -248,9 +248,24 @@ class TrafficMonitor {
                 $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
                 
                 if ($yesterdayData && $resetBeforeValue > $yesterdayData['used_bandwidth']) {
-                    // 更新昨天的已用流量为重置前的最后值
-                    $this->db->updateUsedBandwidth($yesterday, $resetBeforeValue);
-                    $this->logger->info("流量重置：回溯更新 {$yesterday} 的已用流量从 {$yesterdayData['used_bandwidth']}GB 到 {$resetBeforeValue}GB");
+                    // 重新计算昨天的当日使用量（包含跨日流量）
+                    $yesterdayDailyUsage = $this->calculateDailyUsageFromSnapshots($yesterday);
+                    
+                    if ($yesterdayDailyUsage !== false) {
+                        // 更新昨天的已用流量和当日使用量
+                        $this->db->saveDailyTrafficStats(
+                            $yesterday,
+                            $yesterdayData['total_bandwidth'],
+                            $resetBeforeValue,
+                            $yesterdayData['remaining_bandwidth'],
+                            $yesterdayDailyUsage
+                        );
+                        $this->logger->info("流量重置：回溯更新 {$yesterday} 的数据 - 已用流量: {$yesterdayData['used_bandwidth']}GB → {$resetBeforeValue}GB, 当日使用: {$yesterdayData['daily_usage']}GB → {$yesterdayDailyUsage}GB");
+                    } else {
+                        // 如果无法重新计算，只更新已用流量
+                        $this->db->updateUsedBandwidth($yesterday, $resetBeforeValue);
+                        $this->logger->info("流量重置：回溯更新 {$yesterday} 的已用流量从 {$yesterdayData['used_bandwidth']}GB 到 {$resetBeforeValue}GB");
+                    }
                 }
             }
         }
