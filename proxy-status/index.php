@@ -808,9 +808,17 @@ $percentage = $realtimeData['usage_percentage'];
                     txData.push(0);
                     totalData.push(0);
                 } else {
-                    const rxIncrement = (snapshots[i].rx_bytes - snapshots[i-1].rx_bytes) / (1024 * 1024);
-                    const txIncrement = (snapshots[i].tx_bytes - snapshots[i-1].tx_bytes) / (1024 * 1024);
-                    const totalIncrement = (snapshots[i].total_bytes - snapshots[i-1].total_bytes) / (1024 * 1024);
+                    let rxIncrement = (snapshots[i].rx_bytes - snapshots[i-1].rx_bytes) / (1024 * 1024);
+                    let txIncrement = (snapshots[i].tx_bytes - snapshots[i-1].tx_bytes) / (1024 * 1024);
+                    let totalIncrement = (snapshots[i].total_bytes - snapshots[i-1].total_bytes) / (1024 * 1024);
+                    
+                    // 检测流量重置：如果增量为负数，说明发生了流量重置
+                    // 这时使用当前快照的值（重置后的新流量）
+                    if (totalIncrement < 0) {
+                        rxIncrement = snapshots[i].rx_bytes / (1024 * 1024);
+                        txIncrement = snapshots[i].tx_bytes / (1024 * 1024);
+                        totalIncrement = snapshots[i].total_bytes / (1024 * 1024);
+                    }
                     
                     rxData.push(rxIncrement.toFixed(2));
                     txData.push(txIncrement.toFixed(2));
