@@ -709,22 +709,29 @@ $percentage = $realtimeData['usage_percentage'];
                                 $displayRemainingBandwidth = $stat['remaining_bandwidth'];
                             }
                             
-                            // 计算当日使用量：当天累计 - 前一天累计
-                            $previousDate = date('Y-m-d', strtotime($currentDate . ' -1 day'));
-                            
-                            // 查找前一天的数据
-                            if (isset($statsByDate[$previousDate])) {
-                                // 有前一天的数据，计算当日增量
-                                $previousDayUsed = $statsByDate[$previousDate]['used_bandwidth'];
-                                $calculatedDailyUsage = $displayUsedBandwidth - $previousDayUsed;
+                            // 计算当日使用量：优先使用数据库中已计算好的 daily_usage
+                            // 数据库的 daily_usage 已经通过快照增量正确计算，包含了流量重置的处理
+                            if (!$isToday && isset($stat['daily_usage']) && $stat['daily_usage'] > 0) {
+                                // 历史数据：直接使用数据库中的 daily_usage（已通过快照增量计算）
+                                $calculatedDailyUsage = $stat['daily_usage'];
+                            } else {
+                                // 今日数据或没有 daily_usage：使用传统计算方法
+                                $previousDate = date('Y-m-d', strtotime($currentDate . ' -1 day'));
                                 
-                                // 如果计算结果为负（流量重置），使用当天的累计值
-                                if ($calculatedDailyUsage < 0) {
+                                // 查找前一天的数据
+                                if (isset($statsByDate[$previousDate])) {
+                                    // 有前一天的数据，计算当日增量
+                                    $previousDayUsed = $statsByDate[$previousDate]['used_bandwidth'];
+                                    $calculatedDailyUsage = $displayUsedBandwidth - $previousDayUsed;
+                                    
+                                    // 如果计算结果为负（流量重置），使用当天的累计值
+                                    if ($calculatedDailyUsage < 0) {
+                                        $calculatedDailyUsage = $displayUsedBandwidth;
+                                    }
+                                } else {
+                                    // 没有前一天的数据，使用当天累计值
                                     $calculatedDailyUsage = $displayUsedBandwidth;
                                 }
-                            } else {
-                                // 没有前一天的数据，使用数据库中的值或实时累计值
-                                $calculatedDailyUsage = $isToday ? $displayUsedBandwidth : $stat['daily_usage'];
                             }
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'style="background: #fff3cd; font-weight: 600;"'; ?>>

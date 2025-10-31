@@ -227,11 +227,20 @@ class TrafficMonitor {
             }
         }
         
+        // 检测流量重置：如果当日使用量大于当前累计值，说明发生了重置
+        // 这种情况下，用当日使用量作为"已用流量"，因为这是新周期的起点
+        $displayUsedGB = $totalUsedGB;
+        if ($dailyUsage > $totalUsedGB) {
+            // 当日使用量包含了重置前的流量，使用当日使用量作为显示值
+            $displayUsedGB = $dailyUsage;
+            $this->logger->info("检测到流量重置，使用当日使用量({$dailyUsage}GB)作为已用流量显示值");
+        }
+        
         // 保存每日统计
         $result = $this->db->saveDailyTrafficStats(
             $today,
             $totalBandwidthGB,
-            $totalUsedGB,
+            $displayUsedGB,
             $remainingBandwidthGB,
             $dailyUsage
         );
@@ -260,6 +269,11 @@ class TrafficMonitor {
         // 获取前一天最后一个快照（23:55）作为基准点
         $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
         $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
+        
+        // 获取次日第一个快照（00:00），用于计算跨日流量
+        $tomorrow = date('Y-m-d', strtotime($date . ' +1 day'));
+        $tomorrowSnapshots = $this->db->getTrafficSnapshotsByDate($tomorrow);
+        $tomorrowFirstSnapshot = !empty($tomorrowSnapshots) ? $tomorrowSnapshots[0] : null;
         
         $totalDailyUsage = 0;
         
@@ -298,6 +312,19 @@ class TrafficMonitor {
                 // 第一个快照且没有前一天数据，直接使用其值
                 $totalDailyUsage += $snapshots[$i]['total_bytes'] / (1024 * 1024 * 1024);
             }
+        }
+        
+        // 计算跨日流量：当日23:55 → 次日00:00
+        if ($tomorrowFirstSnapshot && !empty($snapshots)) {
+            $lastSnapshot = $snapshots[count($snapshots) - 1];
+            $crossDayIncrement = ($tomorrowFirstSnapshot['total_bytes'] - $lastSnapshot['total_bytes']) / (1024 * 1024 * 1024);
+            
+            // 如果增量为正，说明是正常的跨日流量增量
+            if ($crossDayIncrement > 0) {
+                $totalDailyUsage += $crossDayIncrement;
+                $this->logger->info("计算跨日流量: {$date} 23:55 → {$tomorrow} 00:00 = {$crossDayIncrement}GB");
+            }
+            // 如果增量为负，说明次日发生了流量重置，不计入当日
         }
         
         return $totalDailyUsage;
