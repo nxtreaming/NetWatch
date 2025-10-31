@@ -515,7 +515,7 @@ $percentage = $realtimeData['usage_percentage'];
             <div class="stat-card">
                 <h3>流量累计使用</h3>
                 <div class="value"><?php echo $trafficMonitor->formatBandwidth($totalTraffic); ?></div>
-                <div class="label">Total Used (RX + TX)</div>
+                <div class="label">Total Used</div>
             </div>
             
             <?php if ($realtimeData['total_bandwidth'] > 0): ?>
