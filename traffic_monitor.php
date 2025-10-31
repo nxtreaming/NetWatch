@@ -205,31 +205,26 @@ class TrafficMonitor {
         $totalBandwidthGB = defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0;
         $remainingBandwidthGB = $totalBandwidthGB > 0 ? max(0, $totalBandwidthGB - $totalUsedGB) : 0;
         
-        // 计算今日使用量：使用当前API返回的累计值 - 昨天的累计值
-        $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
-        $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
-        $todayData = $this->db->getDailyTrafficStats($today);
+        // 计算今日使用量：使用快照增量累加，避免流量重置导致的数据丢失
+        $dailyUsage = $this->calculateDailyUsageFromSnapshots($today);
         
-        // 如果今天已经有记录，检查是否需要重新计算
-        if ($todayData && $yesterdayData) {
-            // 今天已有记录，使用当前累计 - 昨天累计
-            $dailyUsage = $totalUsedGB - $yesterdayData['used_bandwidth'];
+        // 如果快照数据不足，回退到简单计算
+        if ($dailyUsage === false) {
+            $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
+            $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
             
-            // 检测流量重置：如果计算结果为负，说明流量被重置了
-            if ($dailyUsage < 0) {
+            if ($yesterdayData) {
+                $dailyUsage = $totalUsedGB - $yesterdayData['used_bandwidth'];
+                
+                // 检测流量重置：如果计算结果为负，说明流量被重置了
+                if ($dailyUsage < 0) {
+                    $dailyUsage = $totalUsedGB;
+                    $this->logger->warning("检测到流量重置，当日使用量可能不准确（丢失跨日流量）");
+                }
+            } else {
+                // 没有昨天的数据，使用今天的累计值作为当日使用量
                 $dailyUsage = $totalUsedGB;
             }
-        } elseif ($yesterdayData) {
-            // 今天第一次记录，使用当前累计 - 昨天累计
-            $dailyUsage = $totalUsedGB - $yesterdayData['used_bandwidth'];
-            
-            // 检测流量重置
-            if ($dailyUsage < 0) {
-                $dailyUsage = $totalUsedGB;
-            }
-        } else {
-            // 没有昨天的数据，使用今天的累计值作为当日使用量
-            $dailyUsage = $totalUsedGB;
         }
         
         // 保存每日统计
@@ -246,6 +241,66 @@ class TrafficMonitor {
         }
         
         return $result;
+    }
+    
+    /**
+     * 从快照数据计算当日真实流量使用量（增量累加）
+     * 这样即使发生流量重置，也能准确计算当日流量
+     * @param string $date 日期 (Y-m-d)
+     * @return float|false 当日使用量(GB)，如果数据不足返回false
+     */
+    private function calculateDailyUsageFromSnapshots($date) {
+        // 获取当日所有快照
+        $snapshots = $this->db->getTrafficSnapshotsByDate($date);
+        
+        if (empty($snapshots)) {
+            return false;
+        }
+        
+        // 获取前一天最后一个快照（23:55）作为基准点
+        $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
+        $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
+        
+        $totalDailyUsage = 0;
+        
+        // 如果有前一天的最后快照，计算第一个点的增量
+        if ($yesterdayLastSnapshot && !empty($snapshots)) {
+            $firstSnapshot = $snapshots[0];
+            $increment = ($firstSnapshot['total_bytes'] - $yesterdayLastSnapshot['total_bytes']) / (1024 * 1024 * 1024);
+            
+            // 如果增量为负，说明发生了流量重置，只计算第一个快照的值
+            if ($increment < 0) {
+                $totalDailyUsage += $firstSnapshot['total_bytes'] / (1024 * 1024 * 1024);
+            } else {
+                $totalDailyUsage += $increment;
+            }
+            
+            // 从第二个快照开始计算增量
+            $startIndex = 1;
+        } else {
+            // 没有前一天的数据，从第一个快照开始
+            $startIndex = 0;
+        }
+        
+        // 计算当日各快照之间的增量
+        for ($i = $startIndex; $i < count($snapshots); $i++) {
+            if ($i > 0) {
+                $increment = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024 * 1024 * 1024);
+                
+                // 如果增量为负，说明发生了流量重置
+                if ($increment < 0) {
+                    // 只累加当前快照的值（重置后的新流量）
+                    $totalDailyUsage += $snapshots[$i]['total_bytes'] / (1024 * 1024 * 1024);
+                } else {
+                    $totalDailyUsage += $increment;
+                }
+            } elseif ($i === 0 && $startIndex === 0) {
+                // 第一个快照且没有前一天数据，直接使用其值
+                $totalDailyUsage += $snapshots[$i]['total_bytes'] / (1024 * 1024 * 1024);
+            }
+        }
+        
+        return $totalDailyUsage;
     }
     
     /**

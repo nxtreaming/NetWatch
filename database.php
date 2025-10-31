@@ -793,6 +793,21 @@ class Database {
     }
     
     /**
+     * 获取指定日期的最后一个快照（通常是23:55）
+     * 用于计算跨日流量时的基准点
+     */
+    public function getLastSnapshotOfDay($date) {
+        $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
+                FROM traffic_snapshots 
+                WHERE snapshot_date = ? 
+                ORDER BY snapshot_time DESC 
+                LIMIT 1";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$date]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    /**
      * 清理过期的流量快照（保留最近7天）
      */
     public function cleanOldTrafficSnapshots($daysToKeep = 7) {
