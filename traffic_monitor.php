@@ -230,10 +230,29 @@ class TrafficMonitor {
         // 检测流量重置：如果当日使用量大于当前累计值，说明发生了重置
         // 这种情况下，用当日使用量作为"已用流量"，因为这是新周期的起点
         $displayUsedGB = $totalUsedGB;
+        $trafficReset = false;
+        
         if ($dailyUsage > $totalUsedGB) {
             // 当日使用量包含了重置前的流量，使用当日使用量作为显示值
             $displayUsedGB = $dailyUsage;
+            $trafficReset = true;
             $this->logger->info("检测到流量重置，使用当日使用量({$dailyUsage}GB)作为已用流量显示值");
+            
+            // 回溯更新昨天的"已用流量"为重置前的最后值（今天00:00的快照值）
+            $todaySnapshots = $this->db->getTrafficSnapshotsByDate($today);
+            if (!empty($todaySnapshots)) {
+                $firstSnapshot = $todaySnapshots[0];
+                $resetBeforeValue = $firstSnapshot['total_bytes'] / (1024 * 1024 * 1024);
+                
+                $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
+                $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
+                
+                if ($yesterdayData && $resetBeforeValue > $yesterdayData['used_bandwidth']) {
+                    // 更新昨天的已用流量为重置前的最后值
+                    $this->db->updateUsedBandwidth($yesterday, $resetBeforeValue);
+                    $this->logger->info("流量重置：回溯更新 {$yesterday} 的已用流量从 {$yesterdayData['used_bandwidth']}GB 到 {$resetBeforeValue}GB");
+                }
+            }
         }
         
         // 保存每日统计

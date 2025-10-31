@@ -696,6 +696,18 @@ class Database {
     }
     
     /**
+     * 更新指定日期的已用流量（用于流量重置时回溯更新）
+     */
+    public function updateUsedBandwidth($date, $usedBandwidth) {
+        $sql = "UPDATE traffic_stats 
+                SET used_bandwidth = ?, 
+                    recorded_at = datetime('now') 
+                WHERE usage_date = ?";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$usedBandwidth, $date]);
+    }
+    
+    /**
      * 获取最近N天的流量统计
      */
     public function getRecentTrafficStats($days = 30) {
