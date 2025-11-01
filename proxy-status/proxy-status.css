@@ -124,3 +124,13 @@
   color: #48bb78;
   font-weight: 600;
 }
+
+/* Toolbar row: title left, form right */
+.toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}

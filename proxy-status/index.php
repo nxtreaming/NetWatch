@@ -576,7 +576,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
         <?php endif; ?>
         
         <div class="chart-section mb-20">
-            <div class="d-flex justify-content-between align-items-center mb-20 flex-wrap gap-15">
+            <div class="toolbar-row">
                 <div>
                     <h2 class="m-0">📈 实时流量图</h2>
                 </div>
@@ -628,7 +628,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
         
         <?php if (!empty($recentStats)): ?>
         <div class="chart-section">
-            <div class="d-flex justify-content-between align-items-center mb-20 flex-wrap gap-15">
+            <div class="toolbar-row">
                 <h2 class="m-0">📊 <?php echo $queryDate ? '日期范围流量统计' : '最近32天流量统计'; ?></h2>
                 <div class="date-query-form">
                     <form id="query-date-form" method="GET" class="form-inline">
