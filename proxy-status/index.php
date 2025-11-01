@@ -61,6 +61,11 @@ if (isset($_GET['debug']) && !empty($todaySnapshots)) {
 $queryDate = isset($_GET['date']) ? $_GET['date'] : null;
 $recentStats = [];
 
+// 规范化：禁止未来日期（如果传入未来，则回退为今天）
+if ($queryDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $queryDate) && $queryDate > date('Y-m-d')) {
+    $queryDate = date('Y-m-d');
+}
+
 if ($queryDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $queryDate)) {
     // 如果指定了日期，获取该日期前后7天的数据
     $recentStats = $trafficMonitor->getStatsAroundDate($queryDate, 7, 7);
@@ -637,6 +642,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                id="query-date" 
                                name="date" 
                                value="<?php echo $queryDate ? htmlspecialchars($queryDate) : date('Y-m-d'); ?>"
+                               max="<?php echo date('Y-m-d'); ?>"
                                class="form-input">
                         <button type="submit" class="btn btn-primary">
                             查询前后7天
