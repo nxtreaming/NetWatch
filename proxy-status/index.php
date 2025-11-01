@@ -105,6 +105,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代理流量监控 - NetWatch</title>
+    <link rel="stylesheet" href="proxy-status.css?v=<?php echo time(); ?>">
     <style>
         * {
             margin: 0;
@@ -550,24 +551,24 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
         <?php if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes'])): ?>
         <div class="progress-section">
             <h2>📊 流量详情</h2>
-            <div class="stats-grid2" style="margin-top: 20px;">
-                <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <h3 style="color: white; opacity: 0.9;">⬇️ 接收流量 (RX)</h3>
-                    <div class="value" style="color: white;"><?php echo $trafficMonitor->formatBandwidth($realtimeData['rx_bytes'] / (1024*1024*1024)); ?></div>
-                    <div class="label" style="color: white; opacity: 0.8;">Download</div>
+            <div class="stats-grid2 mt-20">
+                <div class="stat-card gradient-purple">
+                    <h3>⬇️ 接收流量 (RX)</h3>
+                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['rx_bytes'] / (1024*1024*1024)); ?></div>
+                    <div class="label">Download</div>
                 </div>
                 
-                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
-                    <h3 style="color: white; opacity: 0.9;">⬆️ 发送流量 (TX)</h3>
-                    <div class="value" style="color: white;"><?php echo $trafficMonitor->formatBandwidth($realtimeData['tx_bytes'] / (1024*1024*1024)); ?></div>
-                    <div class="label" style="color: white; opacity: 0.8;">Upload</div>
+                <div class="stat-card gradient-pink">
+                    <h3>⬆️ 发送流量 (TX)</h3>
+                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['tx_bytes'] / (1024*1024*1024)); ?></div>
+                    <div class="label">Upload</div>
                 </div>
                 
                 <?php if (isset($realtimeData['port']) && $realtimeData['port'] > 0): ?>
-                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
-                    <h3 style="color: white; opacity: 0.9;">🔌 监控端口</h3>
-                    <div class="value" style="color: white;"><?php echo $realtimeData['port']; ?></div>
-                    <div class="label" style="color: white; opacity: 0.8;">Port Number</div>
+                <div class="stat-card gradient-blue">
+                    <h3>🔌 监控端口</h3>
+                    <div class="value"><?php echo $realtimeData['port']; ?></div>
+                    <div class="label">Port Number</div>
                 </div>
                 <?php endif; ?>
             </div>
@@ -606,20 +607,20 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             </div>
             
             <?php if ($snapshotDate !== date('Y-m-d')): ?>
-            <div id="snapshot-info" style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
+            <div id="snapshot-info" class="info-banner">
                 <strong>📅 查询结果:</strong> 显示 <?php echo $snapshotDate; ?> 日流量数据
             </div>
             <?php endif; ?>
             
             <?php if (!empty($todaySnapshots)): ?>
-            <p id="snapshot-tip" style="color: #999; font-size: 13px; margin-bottom: 10px;">
+            <p id="snapshot-tip" class="tip-text">
                 💡 提示：<?php echo $isViewingToday ? '显示当日从00:00开始的流量数据' : '显示当日全天流量数据'; ?>
             </p>
-            <div style="position: relative; height: 300px;">
+            <div class="chart-canvas-box">
                 <canvas id="trafficChart"></canvas>
             </div>
             <?php else: ?>
-            <div style="background: #fff3cd; padding: 20px; border-radius: 6px; text-align: center; color: #856404;">
+            <div class="warning-banner">
                 <strong>⚠️ 暂无数据</strong><br>
                 <?php echo $snapshotDate; ?> 没有流量快照数据
             </div>
@@ -656,7 +657,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             </div>
             
             <?php if ($queryDate): ?>
-            <div id="stats-info" style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
+            <div id="stats-info" class="info-banner">
                 <strong>📅 查询结果:</strong> 显示 <?php echo $queryDate; ?> 前后7天的流量数据
                 <?php 
                 $startDate = date('Y-m-d', strtotime($queryDate . ' -7 days'));
