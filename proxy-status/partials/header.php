@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代理流量监控 - NetWatch</title>
     <link rel="stylesheet" href="proxy-status.css?v=<?php echo time(); ?>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="assets/js/proxy-status.js?v=<?php echo time(); ?>" defer></script>
 </head>
 <body>

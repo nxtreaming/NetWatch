@@ -4,8 +4,6 @@
         </div>
     </div>
     
-    <!-- Chart.js 库 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- Bootstrap JSON data for external JS -->
     <script type="application/json" id="proxy-status-data">
     <?php 

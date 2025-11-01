@@ -7,6 +7,7 @@ require_once '../config.php';
 require_once '../auth.php';
 require_once '../traffic_monitor.php';
 require_once __DIR__ . '/partials/banner.php';
+require_once __DIR__ . '/includes/helpers.php';
 
 // 强制要求登录
 Auth::requireLogin();
@@ -58,14 +59,9 @@ if (isset($_GET['debug']) && !empty($todaySnapshots)) {
     echo "</pre>";
 }
 
-// 处理每日统计的日期查询
-$queryDate = isset($_GET['date']) ? $_GET['date'] : null;
+// 处理每日统计的日期查询（使用 helper 进行未来日期夹取）
+$queryDate = clampToToday($_GET['date'] ?? null);
 $recentStats = [];
-
-// 规范化：禁止未来日期（如果传入未来，则回退为今天）
-if ($queryDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $queryDate) && $queryDate > date('Y-m-d')) {
-    $queryDate = date('Y-m-d');
-}
 
 if ($queryDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $queryDate)) {
     // 如果指定了日期，获取该日期前后7天的数据
