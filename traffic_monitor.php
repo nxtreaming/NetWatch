@@ -216,10 +216,19 @@ class TrafficMonitor {
             if ($yesterdayData) {
                 $dailyUsage = $totalUsedGB - $yesterdayData['used_bandwidth'];
                 
-                // 检测流量重置：如果计算结果为负，说明流量被重置了
+                // 检测流量重置或API数据异常：如果计算结果为负
                 if ($dailyUsage < 0) {
-                    $dailyUsage = $totalUsedGB;
-                    $this->logger->warning("检测到流量重置，当日使用量可能不准确（丢失跨日流量）");
+                    $difference = abs($dailyUsage);
+                    
+                    // 只有差值 >= 100GB 才认为是真正的流量重置
+                    if ($difference >= 100) {
+                        $dailyUsage = $totalUsedGB;
+                        $this->logger->warning("检测到流量重置（差值{$difference}GB >= 100GB），当日使用量可能不准确（丢失跨日流量）");
+                    } else {
+                        // 差值 < 100GB，可能是API数据异常，跳过本次更新
+                        $this->logger->warning("API数据异常：今天累计值({$totalUsedGB}GB)比昨天({$yesterdayData['used_bandwidth']}GB)少{$difference}GB，但不足100GB阈值，跳过本次更新");
+                        return false;
+                    }
                 }
             } else {
                 // 没有昨天的数据，使用今天的累计值作为当日使用量
@@ -231,6 +240,7 @@ class TrafficMonitor {
         // 这种情况下，用当日使用量作为"已用流量"，因为这是新周期的起点
         $displayUsedGB = $totalUsedGB;
         $trafficReset = false;
+        $skipUpdate = false;  // 是否跳过本次更新（API数据异常时）
         
         if ($dailyUsage > $totalUsedGB) {
             // 当日使用量包含了重置前的流量，使用当日使用量作为显示值
@@ -294,6 +304,13 @@ class TrafficMonitor {
                 } else {
                     if ($yesterdayData) {
                         $this->logger->warning("检测到 dailyUsage > totalUsedGB，但差值({$difference}GB)小于100GB阈值，判断为API数据异常而非真正的流量重置，跳过回溯更新");
+                        
+                        // API数据异常：今天的值比昨天小，但差值不足100GB
+                        // 这种情况下不应该保存异常数据，跳过本次更新
+                        if ($todayFirstValue < $yesterdayData['used_bandwidth']) {
+                            $skipUpdate = true;
+                            $this->logger->warning("API数据异常：今天累计值({$todayFirstValue}GB)小于昨天({$yesterdayData['used_bandwidth']}GB)，跳过本次数据更新");
+                        }
                     } else {
                         $this->logger->warning("检测到 dailyUsage > totalUsedGB，但没有昨天的数据，跳过回溯更新");
                     }
@@ -301,7 +318,12 @@ class TrafficMonitor {
             }
         }
         
-        // 保存每日统计
+        // 保存每日统计（如果检测到API数据异常则跳过）
+        if ($skipUpdate) {
+            $this->logger->info("由于API数据异常，跳过本次流量统计更新");
+            return false;
+        }
+        
         $result = $this->db->saveDailyTrafficStats(
             $today,
             $totalBandwidthGB,
