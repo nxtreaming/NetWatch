@@ -1,6 +1,4 @@
 <?php
-// Small helper functions for proxy-status (no behavior or UI change)
-
 /**
  * Clamp a Y-m-d date string to today if it is in the future, otherwise return as-is.
  * Returns null if input is falsy or format invalid (non Y-m-d).
