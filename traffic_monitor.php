@@ -238,20 +238,49 @@ class TrafficMonitor {
             $trafficReset = true;
             $this->logger->info("检测到流量重置，使用当日使用量({$dailyUsage}GB)作为已用流量显示值");
             
-            // 回溯更新昨天的数据（已用流量和当日使用）
+            // 只有在真正发生流量重置时才回溯更新昨天的数据
+            // 判断条件：今天的第一个快照值必须明显小于昨天的累计值（说明发生了重置）
             $todaySnapshots = $this->db->getTrafficSnapshotsByDate($today);
             if (!empty($todaySnapshots)) {
                 $firstSnapshot = $todaySnapshots[0];
-                $resetBeforeValue = $firstSnapshot['total_bytes'] / (1024 * 1024 * 1024);
+                $todayFirstValue = $firstSnapshot['total_bytes'] / (1024 * 1024 * 1024);
                 
                 $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
                 $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
                 
-                if ($yesterdayData && $resetBeforeValue > $yesterdayData['used_bandwidth']) {
-                    // 重新计算昨天的当日使用量（包含跨日流量）
-                    $yesterdayDailyUsage = $this->calculateDailyUsageFromSnapshots($yesterday);
+                // 关键判断：只有当今天首个快照值比昨天累计值少100GB以上时，才认为是真正的流量重置
+                // 如果差值小于100GB，可能只是API数据波动或异常，不应该修正昨天的数据
+                $difference = $yesterdayData['used_bandwidth'] - $todayFirstValue;
+                if ($yesterdayData && $difference >= 100) {
+                    // 真正的流量重置：今天的值比昨天少100GB以上，说明流量被重置了
+                    // 这种情况下，需要将 23:55 ~ 00:00 这段跨日流量累加到昨天的数据中
+                    $this->logger->info("检测到真正的流量重置：昨天{$yesterdayData['used_bandwidth']}GB，今天首个快照{$todayFirstValue}GB，差值{$difference}GB >= 100GB");
                     
-                    if ($yesterdayDailyUsage !== false) {
+                    $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
+                    if ($yesterdayLastSnapshot) {
+                        $yesterday23_55Value = $yesterdayLastSnapshot['total_bytes'] / (1024 * 1024 * 1024);
+                        
+                        // 计算 23:55 ~ 00:00 的跨日流量增量
+                        // 因为发生了重置，今天00:00的值是新周期的起点
+                        // 所以跨日流量 = 今天00:00的值（重置后的新起点）
+                        $crossDayTraffic = $todayFirstValue;
+                        
+                        // 昨天的最终累计值 = 昨天23:55的值 + 跨日流量
+                        $resetBeforeValue = $yesterday23_55Value + $crossDayTraffic;
+                        
+                        $this->logger->info("流量重置回溯计算：昨天23:55={$yesterday23_55Value}GB + 跨日流量(23:55~00:00)={$crossDayTraffic}GB = {$resetBeforeValue}GB");
+                        
+                        // 重新计算昨天的当日使用量（包含跨日流量）
+                        $yesterdayDailyUsage = $this->calculateDailyUsageFromSnapshots($yesterday);
+                        
+                        // 如果能计算出当日使用量，则加上跨日流量
+                        if ($yesterdayDailyUsage !== false) {
+                            $yesterdayDailyUsage += $crossDayTraffic;
+                        } else {
+                            // 如果无法计算，使用重置前的累计值作为当日使用量
+                            $yesterdayDailyUsage = $resetBeforeValue;
+                        }
+                        
                         // 更新昨天的已用流量和当日使用量
                         $this->db->saveDailyTrafficStats(
                             $yesterday,
@@ -261,10 +290,12 @@ class TrafficMonitor {
                             $yesterdayDailyUsage
                         );
                         $this->logger->info("流量重置：回溯更新 {$yesterday} 的数据 - 已用流量: {$yesterdayData['used_bandwidth']}GB → {$resetBeforeValue}GB, 当日使用: {$yesterdayData['daily_usage']}GB → {$yesterdayDailyUsage}GB");
+                    }
+                } else {
+                    if ($yesterdayData) {
+                        $this->logger->warning("检测到 dailyUsage > totalUsedGB，但差值({$difference}GB)小于100GB阈值，判断为API数据异常而非真正的流量重置，跳过回溯更新");
                     } else {
-                        // 如果无法重新计算，只更新已用流量
-                        $this->db->updateUsedBandwidth($yesterday, $resetBeforeValue);
-                        $this->logger->info("流量重置：回溯更新 {$yesterday} 的已用流量从 {$yesterdayData['used_bandwidth']}GB 到 {$resetBeforeValue}GB");
+                        $this->logger->warning("检测到 dailyUsage > totalUsedGB，但没有昨天的数据，跳过回溯更新");
                     }
                 }
             }
