@@ -6,6 +6,7 @@
 require_once '../config.php';
 require_once '../auth.php';
 require_once '../traffic_monitor.php';
+require_once __DIR__ . '/partials/banner.php';
 
 // 强制要求登录
 Auth::requireLogin();
@@ -104,38 +105,7 @@ $percentage = $realtimeData['usage_percentage'];
 $hasQuota = ($realtimeData['total_bandwidth'] ?? 0) > 0;
 $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' : 'primary');
 ?>
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代理流量监控 - NetWatch</title>
-    <link rel="stylesheet" href="proxy-status.css?v=<?php echo time(); ?>">
-    <script src="assets/js/proxy-status.js?v=<?php echo time(); ?>" defer></script>
-</head>
-<body>
-    <div class="header">
-        <div class="container">
-            <div class="header-wrapper">
-                <div class="header-left">
-                    <h1>🌐 IP池流量监控</h1>
-                    <p>更新时间<?php 
-                        if ($realtimeData['updated_at']) {
-                            // 将UTC时间转换为北京时间（UTC+8）
-                            $utcTime = strtotime($realtimeData['updated_at']);
-                            $beijingTime = $utcTime + (8 * 3600);
-                            echo ' (' . date('m/d H:i:s', $beijingTime) . ')';
-                        }
-                    ?></p>
-                </div>
-                <div class="user-info">
-                    <a href="../index.php" class="nav-btn">🏠 主页</a>
-                    <span>👤 <?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                    <a href="?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">🚪 退出</a>
-                </div>
-            </div>
-        </div>
-    </div>
+<?php require_once __DIR__ . '/partials/header.php'; ?>
     
     <div class="container">
         <div class="stats-grid">
@@ -237,9 +207,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             </div>
             
             <?php if ($snapshotDate !== date('Y-m-d')): ?>
-            <div id="snapshot-info" class="info-banner">
-                <strong>📅 查询结果:</strong> 显示 <?php echo $snapshotDate; ?> 日流量数据
-            </div>
+            <?php renderInfoBanner('<strong>📅 查询结果:</strong> 显示 ' . htmlspecialchars($snapshotDate, ENT_QUOTES, 'UTF-8') . ' 日流量数据', 'snapshot-info'); ?>
             <?php endif; ?>
             
             <?php if (!empty($todaySnapshots)): ?>
@@ -250,10 +218,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                 <canvas id="trafficChart"></canvas>
             </div>
             <?php else: ?>
-            <div class="warning-banner">
-                <strong>⚠️ 暂无数据</strong><br>
-                <?php echo $snapshotDate; ?> 没有流量快照数据
-            </div>
+            <?php renderWarningBanner('<strong>⚠️ 暂无数据</strong><br>' . htmlspecialchars($snapshotDate, ENT_QUOTES, 'UTF-8') . ' 没有流量快照数据'); ?>
             <?php endif; ?>
         </div>
         
@@ -287,14 +252,12 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             </div>
             
             <?php if ($queryDate): ?>
-            <div id="stats-info" class="info-banner">
-                <strong>📅 查询结果:</strong> 显示 <?php echo $queryDate; ?> 前后7天的流量数据
-                <?php 
+            <?php 
                 $startDate = date('Y-m-d', strtotime($queryDate . ' -7 days'));
                 $endDate = date('Y-m-d', strtotime($queryDate . ' +7 days'));
-                echo "（{$startDate} 至 {$endDate}）";
-                ?>
-            </div>
+                $statsHtml = '<strong>📅 查询结果:</strong> 显示 ' . htmlspecialchars($queryDate, ENT_QUOTES, 'UTF-8') . ' 前后7天的流量数据（' . $startDate . ' 至 ' . $endDate . '）';
+                renderInfoBanner($statsHtml, 'stats-info');
+            ?>
             <?php endif; ?>
             
             <div class="chart-container">
@@ -375,28 +338,4 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
         </div>
         <?php endif; ?>
         
-        <div class="auto-refresh">
-            <span class="refresh-indicator"></span>
-            页面每5分钟自动刷新一次
-        </div>
-    </div>
-    
-    <!-- Chart.js 库 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- Bootstrap JSON data for external JS -->
-    <script type="application/json" id="proxy-status-data">
-    <?php 
-      $bootstrap = [
-        'currentSnapshotDate' => $snapshotDate,
-        'currentQueryDate' => $queryDate ? htmlspecialchars($queryDate) : '',
-        'today' => date('Y-m-d'),
-        'intervalMs' => defined('TRAFFIC_UPDATE_INTERVAL') ? TRAFFIC_UPDATE_INTERVAL * 1000 : 300000,
-        'todaySnapshots' => !empty($todaySnapshots) ? array_values($todaySnapshots) : [],
-        'isViewingToday' => $isViewingToday,
-      ];
-      echo json_encode($bootstrap, JSON_UNESCAPED_UNICODE);
-    ?>
-    </script>
-    </div>
-</body>
-</html>
+<?php require_once __DIR__ . '/partials/footer.php'; ?>
