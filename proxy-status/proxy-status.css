@@ -1,5 +1,3 @@
-/* Proxy Status page scoped styles (extracted from inline styles) */
-
 /* Info and warning banners */
 .info-banner {
   background: #e7f3ff;
@@ -77,4 +75,52 @@
 .stat-card.gradient-pink .label,
 .stat-card.gradient-blue .label {
   opacity: 0.8;
+}
+
+.m-0 { margin: 0; }
+.mb-20 { margin-bottom: 20px; }
+.hidden { display: none; }
+
+/* Inline form layout used in date query toolbars */
+.form-inline {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.form-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary { background: #667eea; }
+.btn-secondary { background: #6c757d; }
+
+/* Table row highlight (same as inline) */
+.row-highlight {
+  background: #fff3cd;
+  font-weight: 600;
+}
+
+/* Green dot style used for today marker */
+.dot-green {
+  color: #48bb78;
+  font-weight: 600;
 }

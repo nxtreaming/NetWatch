@@ -575,28 +575,27 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
         </div>
         <?php endif; ?>
         
-        <div class="chart-section" style="margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+        <div class="chart-section mb-20">
+            <div class="d-flex justify-content-between align-items-center mb-20 flex-wrap gap-15">
                 <div>
-                    <h2 style="margin: 0;">📈 实时流量图</h2>
+                    <h2 class="m-0">📈 实时流量图</h2>
                 </div>
                 <div class="date-query-form">
-                    <form id="snapshot-date-form" method="GET" style="display: flex; gap: 10px; align-items: center;">
-                        <label for="snapshot-date" style="font-weight: 600; color: #555;">查询日期:</label>
+                    <form id="snapshot-date-form" method="GET" class="form-inline">
+                        <label for="snapshot-date" class="form-label">查询日期:</label>
                         <input type="date" 
                                id="snapshot-date" 
                                name="snapshot_date" 
                                value="<?php echo htmlspecialchars($snapshotDate); ?>"
                                max="<?php echo date('Y-m-d'); ?>"
-                               style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-                        <button type="submit" 
-                                style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                               class="form-input">
+                        <button type="submit" class="btn btn-primary">
                             查询
                         </button>
                         <button type="button" 
                                 id="snapshot-back-today"
                                 onclick="resetSnapshotToToday()"
-                                style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; <?php echo $snapshotDate === date('Y-m-d') ? 'display: none;' : ''; ?>">
+                                class="btn btn-secondary <?php echo $snapshotDate === date('Y-m-d') ? 'hidden' : ''; ?>">
                             返回今日
                         </button>
                         <?php if ($queryDate): ?>
@@ -629,24 +628,23 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
         
         <?php if (!empty($recentStats)): ?>
         <div class="chart-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                <h2 style="margin: 0;">📊 <?php echo $queryDate ? '日期范围流量统计' : '最近32天流量统计'; ?></h2>
+            <div class="d-flex justify-content-between align-items-center mb-20 flex-wrap gap-15">
+                <h2 class="m-0">📊 <?php echo $queryDate ? '日期范围流量统计' : '最近32天流量统计'; ?></h2>
                 <div class="date-query-form">
-                    <form id="query-date-form" method="GET" style="display: flex; gap: 10px; align-items: center;">
-                        <label for="query-date" style="font-weight: 600; color: #555;">查询日期:</label>
+                    <form id="query-date-form" method="GET" class="form-inline">
+                        <label for="query-date" class="form-label">查询日期:</label>
                         <input type="date" 
                                id="query-date" 
                                name="date" 
                                value="<?php echo $queryDate ? htmlspecialchars($queryDate) : date('Y-m-d'); ?>"
-                               style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-                        <button type="submit" 
-                                style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                               class="form-input">
+                        <button type="submit" class="btn btn-primary">
                             查询前后7天
                         </button>
                         <button type="button" 
                                 id="query-back-recent"
                                 onclick="resetQueryToRecent()"
-                                style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; <?php echo !$queryDate ? 'display: none;' : ''; ?>">
+                                class="btn btn-secondary <?php echo !$queryDate ? 'hidden' : ''; ?>">
                             显示最近32天
                         </button>
                         <?php if ($snapshotDate !== date('Y-m-d')): ?>
@@ -731,8 +729,8 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                 }
                             }
                         ?>
-                        <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'style="background: #fff3cd; font-weight: 600;"'; ?>>
-                            <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span style="color: #48bb78; font-weight: 600;">●</span>'; ?></td>
+                        <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
+                            <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span class="dot-green">●</span>'; ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayUsedBandwidth); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayTotalBandwidth); ?></td>
