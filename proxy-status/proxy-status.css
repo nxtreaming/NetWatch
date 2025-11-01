@@ -1,3 +1,4 @@
+/* ===== Proxy Status Styles ===== */
 /* Info and warning banners */
 .info-banner {
   background: #e7f3ff;
@@ -77,6 +78,7 @@
   opacity: 0.8;
 }
 
+/* Utilities */
 .m-0 { margin: 0; }
 .mb-20 { margin-bottom: 20px; }
 .hidden { display: none; }
@@ -161,6 +163,7 @@ body {
   padding: 0 20px;
 }
 
+/* Header */
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -198,6 +201,7 @@ body {
 
 .user-info span { color: white; font-weight: 600; }
 
+/* Header actions (buttons/links) */
 .nav-btn,
 .logout-btn {
   padding: 8px 16px;
@@ -215,6 +219,7 @@ body {
 .nav-btn:hover,
 .logout-btn:hover { background: rgba(255, 255, 255, 0.4); }
 
+/* Stats grids */
 .stats-grid,
 .stats-grid2 {
   display: grid;
@@ -224,6 +229,7 @@ body {
 .stats-grid { margin-bottom: 20px; }
 .stats-grid2 { margin-bottom: 10px; }
 
+/* Statistic cards */
 .stat-card {
   background: white;
   border-radius: 12px;
@@ -252,6 +258,7 @@ body {
 .stat-card.warning .value { color: #ed8936; }
 .stat-card.danger .value { color: #f56565; }
 
+/* Progress section */
 .progress-section {
   background: white;
   border-radius: 12px;
@@ -283,6 +290,7 @@ body {
 .progress-bar.warning { background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%); }
 .progress-bar.danger  { background: linear-gradient(90deg, #f56565 0%, #e53e3e 100%); }
 
+/* Chart section */
 .chart-section {
   background: white;
   border-radius: 12px;
@@ -301,8 +309,10 @@ body {
 .chart-container::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
 .chart-container::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
 
+/* Section headings */
 .chart-section h2 { color: #333; margin-bottom: 20px; }
 
+/* Table */
 table { width: 100%; border-collapse: collapse; }
 table th,
 table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
@@ -316,9 +326,11 @@ table th {
 }
 table tr:hover { background: #f7fafc; }
 
+/* Footer/help text */
 .update-time { text-align: center; color: #666; margin-top: 30px; }
 .auto-refresh { text-align: center; color: #666; margin-top: 10px; font-size: 0.9em; }
 
+/* Animations */
 .refresh-indicator {
   display: inline-block;
   width: 10px;
@@ -334,6 +346,7 @@ table tr:hover { background: #f7fafc; }
   50% { opacity: 0.5; }
 }
 
+/* Responsive */
 @media (max-width: 768px) {
   .header { margin-bottom: 20px; }
   .header-wrapper { flex-direction: column; align-items: center; gap: 0px; }
