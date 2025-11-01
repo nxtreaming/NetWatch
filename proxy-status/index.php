@@ -114,7 +114,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             <?php endif; ?>
             
             <div class="stat-card">
-                <h3>流量累计使用</h3>
+                <h3>当月流量累计使用</h3>
                 <div class="value"><?php echo $trafficMonitor->formatBandwidth($totalTraffic); ?></div>
                 <div class="label">Total Used</div>
             </div>
