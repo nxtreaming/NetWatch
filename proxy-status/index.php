@@ -95,6 +95,9 @@ if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes']) &&
 
 // 定义百分比变量供后续使用
 $percentage = $realtimeData['usage_percentage'];
+// 抽取常用变量，避免重复判断
+$hasQuota = ($realtimeData['total_bandwidth'] ?? 0) > 0;
+$usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' : 'primary');
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -504,7 +507,7 @@ $percentage = $realtimeData['usage_percentage'];
     
     <div class="container">
         <div class="stats-grid">
-            <?php if ($realtimeData['total_bandwidth'] > 0): ?>
+            <?php if ($hasQuota): ?>
             <div class="stat-card primary">
                 <h3>总流量限制</h3>
                 <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['total_bandwidth']); ?></div>
@@ -518,18 +521,14 @@ $percentage = $realtimeData['usage_percentage'];
                 <div class="label">Total Used</div>
             </div>
             
-            <?php if ($realtimeData['total_bandwidth'] > 0): ?>
+            <?php if ($hasQuota): ?>
             <div class="stat-card success">
                 <h3>剩余流量</h3>
                 <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['remaining_bandwidth']); ?></div>
                 <div class="label">Remaining</div>
             </div>
             
-            <div class="stat-card <?php 
-                if ($percentage >= 90) echo 'danger';
-                elseif ($percentage >= 75) echo 'warning';
-                else echo 'primary';
-            ?>">
+            <div class="stat-card <?php echo $usageClass; ?>">
                 <h3>使用率</h3>
                 <div class="value"><?php echo $trafficMonitor->formatPercentage($realtimeData['usage_percentage']); ?></div>
                 <div class="label">Usage Percentage</div>
@@ -537,14 +536,11 @@ $percentage = $realtimeData['usage_percentage'];
             <?php endif; ?>
         </div>
         
-        <?php if ($realtimeData['total_bandwidth'] > 0): ?>
+        <?php if ($hasQuota): ?>
         <div class="progress-section">
             <h2>流量使用进度</h2>
             <div class="progress-bar-container">
-                <div class="progress-bar <?php 
-                    if ($percentage >= 90) echo 'danger';
-                    elseif ($percentage >= 75) echo 'warning';
-                ?>" style="width: <?php echo min($percentage, 100); ?>%">
+                <div class="progress-bar <?php echo $usageClass; ?>" style="width: <?php echo min($percentage, 100); ?>%">
                     <?php echo $trafficMonitor->formatPercentage($realtimeData['usage_percentage']); ?>
                 </div>
             </div>
@@ -610,13 +606,13 @@ $percentage = $realtimeData['usage_percentage'];
             </div>
             
             <?php if ($snapshotDate !== date('Y-m-d')): ?>
-            <div style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
+            <div id="snapshot-info" style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
                 <strong>📅 查询结果:</strong> 显示 <?php echo $snapshotDate; ?> 日流量数据
             </div>
             <?php endif; ?>
             
             <?php if (!empty($todaySnapshots)): ?>
-            <p style="color: #999; font-size: 13px; margin-bottom: 10px;">
+            <p id="snapshot-tip" style="color: #999; font-size: 13px; margin-bottom: 10px;">
                 💡 提示：<?php echo $isViewingToday ? '显示当日从00:00开始的流量数据' : '显示当日全天流量数据'; ?>
             </p>
             <div style="position: relative; height: 300px;">
@@ -660,7 +656,7 @@ $percentage = $realtimeData['usage_percentage'];
             </div>
             
             <?php if ($queryDate): ?>
-            <div style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
+            <div id="stats-info" style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #0066cc;">
                 <strong>📅 查询结果:</strong> 显示 <?php echo $queryDate; ?> 前后7天的流量数据
                 <?php 
                 $startDate = date('Y-m-d', strtotime($queryDate . ' -7 days'));
@@ -827,9 +823,10 @@ $percentage = $realtimeData['usage_percentage'];
                         totalIncrement = snapshots[i].total_bytes / (1024 * 1024);
                     }
                     
-                    rxData.push(rxIncrement.toFixed(2));
-                    txData.push(txIncrement.toFixed(2));
-                    totalData.push(totalIncrement.toFixed(2));
+                    // 使用数字类型（保留两位小数），避免字符串带来的隐式转换
+                    rxData.push(Number(rxIncrement.toFixed(2)));
+                    txData.push(Number(txIncrement.toFixed(2)));
+                    totalData.push(Number(totalIncrement.toFixed(2)));
                 }
             }
             
@@ -974,13 +971,13 @@ $percentage = $realtimeData['usage_percentage'];
             }
             
             // 隐藏提示信息
-            const infoDiv = document.querySelector('.chart-section div[style*="background: #e7f3ff"]');
+            const infoDiv = document.getElementById('snapshot-info');
             if (infoDiv) {
                 infoDiv.style.display = 'none';
             }
             
             // 更新提示文本
-            const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
+            const tipText = document.getElementById('snapshot-tip');
             if (tipText) {
                 tipText.innerHTML = '💡 提示：显示当日从00:00开始的流量数据';
             }
@@ -1011,13 +1008,9 @@ $percentage = $realtimeData['usage_percentage'];
             }
             
             // 隐藏提示信息
-            const chartSections = document.querySelectorAll('.chart-section');
-            if (chartSections.length > 1) {
-                const statsSection = chartSections[chartSections.length - 1];
-                const infoDiv = statsSection.querySelector('div[style*="background: #e7f3ff"]');
-                if (infoDiv) {
-                    infoDiv.style.display = 'none';
-                }
+            const statsInfo = document.getElementById('stats-info');
+            if (statsInfo) {
+                statsInfo.style.display = 'none';
             }
         }
         
@@ -1039,7 +1032,7 @@ $percentage = $realtimeData['usage_percentage'];
                 }
                 
                 // 更新提示信息
-                const infoDiv = document.querySelector('.chart-section div[style*="background: #e7f3ff"]');
+                const infoDiv = document.getElementById('snapshot-info');
                 if (infoDiv) {
                     if (isToday) {
                         infoDiv.style.display = 'none';
@@ -1050,7 +1043,7 @@ $percentage = $realtimeData['usage_percentage'];
                 }
                 
                 // 更新提示文本
-                const tipText = document.querySelector('.chart-section p[style*="color: #999"]');
+                const tipText = document.getElementById('snapshot-tip');
                 if (tipText) {
                     tipText.innerHTML = '💡 提示：' + (isToday ? '显示当日从00:00开始的流量数据' : '显示当日全天流量数据');
                 }
@@ -1084,7 +1077,7 @@ $percentage = $realtimeData['usage_percentage'];
                     }
                     
                     // 更新提示信息
-                    const infoDiv = statsSection.querySelector('div[style*="background: #e7f3ff"]');
+                    const infoDiv = document.getElementById('stats-info');
                     if (infoDiv) {
                         if (newDate) {
                             const startDate = new Date(newDate);
