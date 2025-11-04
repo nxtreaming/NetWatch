@@ -127,7 +127,7 @@
         scales: {
           y: {
             beginAtZero: true,
-            title: { display: true, text: '每5分钟消耗流量 (MB)', font: { size: 14, weight: 'bold' } },
+            title: { display: true, text: '每5分钟流量消耗', font: { size: 14, weight: 'bold' } },
             ticks: { stepSize: 1000, callback: (v) => v + ' MB', font: { size: 12 } },
             grid: { color: 'rgba(0, 0, 0, 0.05)' }
           },

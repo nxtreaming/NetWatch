@@ -107,27 +107,27 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
         <div class="stats-grid">
             <?php if ($hasQuota): ?>
             <div class="stat-card primary">
-                <h3>总流量限制</h3>
+                <h2>总流量限制</h2>
                 <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['total_bandwidth']); ?></div>
                 <div class="label">Total Limit</div>
             </div>
             <?php endif; ?>
             
             <div class="stat-card">
-                <h3>当月流量累计使用</h3>
+                <h2>当月累计使用流量</h2>
                 <div class="value"><?php echo $trafficMonitor->formatBandwidth($totalTraffic); ?></div>
                 <div class="label">Total Used</div>
             </div>
             
             <?php if ($hasQuota): ?>
             <div class="stat-card success">
-                <h3>剩余流量</h3>
+                <h2>剩余流量</h2>
                 <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['remaining_bandwidth']); ?></div>
                 <div class="label">Remaining</div>
             </div>
             
             <div class="stat-card <?php echo $usageClass; ?>">
-                <h3>使用率</h3>
+                <h2>使用率</h2>
                 <div class="value"><?php echo $trafficMonitor->formatPercentage($realtimeData['usage_percentage']); ?></div>
                 <div class="label">Usage Percentage</div>
             </div>
