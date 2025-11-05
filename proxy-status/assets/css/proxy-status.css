@@ -262,7 +262,7 @@ body {
 .progress-section {
   background: white;
   border-radius: 12px;
-  padding: 30px;
+  padding: 15px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   margin-bottom: 20px;
 }
@@ -294,7 +294,7 @@ body {
 .chart-section {
   background: white;
   border-radius: 12px;
-  padding: 30px;
+  padding: 15px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
