@@ -209,6 +209,9 @@ NetWatch/
 │   └── netwatch.db         # SQLite database
 ├── logs/                    # Log directory
 │   └── netwatch_*.log      # Log files
+├── proxy-status/            # Proxy traffic monitoring
+│   ├── index.php           # Traffic monitoring dashboard
+│   └── update.php          # Manual traffic update endpoint
 ├── Debug/                   # Debug-related files
 └── Docs/                    # Documentation directory
 ```
