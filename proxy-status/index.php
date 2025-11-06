@@ -152,20 +152,17 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                 <div class="stat-card gradient-purple">
                     <h3>⬇️ 接收流量 (RX)</h3>
                     <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['rx_bytes'] / (1024*1024*1024)); ?></div>
-                    <div class="label">Download</div>
                 </div>
                 
                 <div class="stat-card gradient-pink">
                     <h3>⬆️ 发送流量 (TX)</h3>
                     <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['tx_bytes'] / (1024*1024*1024)); ?></div>
-                    <div class="label">Upload</div>
                 </div>
                 
                 <?php if (isset($realtimeData['port']) && $realtimeData['port'] > 0): ?>
                 <div class="stat-card gradient-blue">
                     <h3>🔌 监控端口</h3>
                     <div class="value"><?php echo $realtimeData['port']; ?></div>
-                    <div class="label">Port Number</div>
                 </div>
                 <?php endif; ?>
             </div>
