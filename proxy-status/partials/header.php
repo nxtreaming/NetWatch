@@ -13,7 +13,7 @@
         <div class="container">
             <div class="header-wrapper">
                 <div class="header-left">
-                    <h1>🌐 IP池流量监控</h1>
+                    <h1>🌐 动态IP池监控</h1>
                     <p>更新时间<?php 
                         if ($realtimeData['updated_at']) {
                             // 将UTC时间转换为北京时间（UTC+8）
