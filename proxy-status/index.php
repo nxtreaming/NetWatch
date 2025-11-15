@@ -266,7 +266,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                     </thead>
                     <tbody>
                         <?php 
-                        // 先将数据按日期建立索引，方便查找前一天的数据
+                        // 先将数据按日期建立索引，方便查找前一天的数据（仅用于极端兜底场景）
                         $statsByDate = [];
                         foreach ($recentStats as $s) {
                             $statsByDate[$s['usage_date']] = $s;
@@ -292,13 +292,12 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                 $displayRemainingBandwidth = $stat['remaining_bandwidth'];
                             }
                             
-                            // 计算当日使用量：优先使用数据库中已计算好的 daily_usage
-                            // 数据库的 daily_usage 已经通过快照增量正确计算，包含了流量重置的处理
-                            if (!$isToday && isset($stat['daily_usage']) && $stat['daily_usage'] > 0) {
-                                // 历史数据：直接使用数据库中的 daily_usage（已通过快照增量计算）
+                            // 计算当日使用量：**始终**优先使用数据库中已计算好的 daily_usage
+                            // daily_usage 已通过快照增量计算，包含跨日流量与流量重置的完整处理
+                            if (isset($stat['daily_usage'])) {
                                 $calculatedDailyUsage = $stat['daily_usage'];
                             } else {
-                                // 今日数据或没有 daily_usage：使用传统计算方法
+                                // 极端兜底：只有在没有 daily_usage 字段（非常早期数据）时，才使用传统差值算法
                                 $previousDate = date('Y-m-d', strtotime($currentDate . ' -1 day'));
                                 
                                 // 查找前一天的数据
