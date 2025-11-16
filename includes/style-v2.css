@@ -20,6 +20,11 @@ body {
 .container {
     max-width: 1400px;
     margin: 0 auto;
+    padding: 0 20px 40px;
+}
+
+/* Header uses its own container spacing; avoid extra bottom padding here */
+.header .container {
     padding: 0 20px;
 }
 
