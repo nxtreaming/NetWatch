@@ -163,6 +163,11 @@ body {
   padding: 0 20px 40px;
 }
 
+/* Header uses its own container spacing; avoid extra bottom padding here */
+.header .container {
+  padding: 0 20px;
+}
+
 /* Header */
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
