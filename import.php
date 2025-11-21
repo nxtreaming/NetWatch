@@ -70,6 +70,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
         /* 页面特有样式 */
+        .section {
+            background: var(--color-panel);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid var(--color-border);
+        }
+        
+        .section h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--color-primary);
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .section ul {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+        
+        .section li {
+            margin-bottom: 10px;
+        }
+        
+        .section li:last-child {
+            margin-bottom: 0;
+        }
+        
         .import-option .form-group {
             margin-bottom: 0;
         }
@@ -87,11 +118,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             resize: vertical;
             font-family: 'Courier New', monospace;
             display: block;
+            background: var(--color-panel-light);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            padding: 12px;
+            border-radius: 4px;
         }
         
         .form-group input[type="file"] {
             width: 100%;
             display: block;
+            color: var(--color-text);
         }
         
         .import-options {
@@ -113,6 +150,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 15px;
             color: var(--color-primary);
             font-weight: 600;
+        }
+        
+        .alert {
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid;
+        }
+        
+        .alert h3, .alert h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--color-success);
+            color: var(--color-text);
+        }
+        
+        .alert-success h3 {
+            color: var(--color-success);
+        }
+        
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--color-danger);
+            color: var(--color-text);
+        }
+        
+        .alert-error strong {
+            color: var(--color-danger);
+        }
+        
+        .help-text {
+            font-size: 13px;
+            color: var(--color-muted);
+            margin-top: 8px;
+            line-height: 1.5;
         }
         
         .import-divider {
@@ -170,9 +246,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .stat-item {
             text-align: center;
             padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--color-panel);
             border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--color-border);
         }
         
         .stat-number {
@@ -194,12 +270,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 10px;
             border-radius: 5px;
             margin-top: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--color-border);
         }
         
         .error-item {
             padding: 5px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--color-border);
             font-size: 13px;
             color: var(--color-text);
         }
@@ -337,7 +413,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <div class="section">
             <h2>导入说明</h2>
-            <ul style="line-height: 1.6; margin-left: 20px;">
+            <ul>
                 <li><strong>支持的代理类型:</strong> socks5, http</li>
                 <li><strong>格式要求:</strong> 每行一个代理，使用冒号分隔各个字段</li>
                 <li><strong>必需字段:</strong> IP地址、端口、类型</li>
