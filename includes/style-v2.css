@@ -100,12 +100,24 @@ body {
     display: flex;
     align-items: center;
     gap: 20px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .header-right .nav-menu {
     margin-top: 0;
 }
 
+.header-nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.header-nav-buttons .btn {
+    min-height: 36px;
+}
 
 .user-info {
     display: flex;
@@ -150,14 +162,12 @@ body {
     box-shadow: 0 15px 30px rgba(15, 23, 42, 0.55);
 }
 
-
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
     margin: 18px 0 14px;
 }
-
 
 .stat-card {
     background: var(--color-panel);
@@ -194,7 +204,6 @@ body {
     opacity: 1;
 }
 
-
 .nav-card {
     display: flex;
     align-items: center;
@@ -211,7 +220,6 @@ body {
     justify-content: center;
     text-align: center;
 }
-
 
 .nav-btn {
     display: block;
@@ -238,7 +246,6 @@ body {
     transform: translateY(-5px);
 }
 
-
 .stat-inline {
     font-size: 15px;
     font-weight: 600;
@@ -255,7 +262,6 @@ body {
 .offline { color: var(--color-danger); }
 .unknown { color: var(--color-warning); }
 .total { color: var(--color-accent); }
-
 
 .section {
     background: var(--color-panel-light);
@@ -297,6 +303,18 @@ body {
 .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 14px 24px rgba(37, 99, 235, 0.35);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--color-text);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: none;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
 }
 
 .btn:focus-visible {
@@ -360,7 +378,6 @@ body {
 }
 
 /* 状态筛选样式 */
-
 .status-filter-container {
     display: flex;
     align-items: center;
@@ -371,13 +388,11 @@ body {
     border-radius: 20px;
 }
 
-
 .filter-label {
     font-weight: 600;
     color: var(--color-muted);
     font-size: 13px;
 }
-
 
 .filter-btn {
     background: transparent;
@@ -432,7 +447,6 @@ body {
     padding: 8px 14px;
 }
 
-
 #search-input {
     padding: 10px 14px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -453,7 +467,6 @@ body {
     border-color: rgba(59, 130, 246, 0.6);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
-
 
 .search-btn {
     background: linear-gradient(120deg, #22c55e, #16a34a);
