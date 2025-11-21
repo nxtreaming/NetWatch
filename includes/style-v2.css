@@ -580,6 +580,7 @@ table {
 #proxies-table td:nth-child(2) {
     width: 150px;
     text-align: center;
+    font-size: 12px;
 }
 
 #proxies-table th:nth-child(3),
@@ -592,6 +593,7 @@ table {
 #proxies-table td:nth-child(4) {
     width: 120px;
     text-align: center;
+    font-size: 12px;
 }
 
 #proxies-table th:nth-child(5),
