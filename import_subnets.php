@@ -82,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 ?>
-<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -98,21 +97,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .btn-add {
-            background: #28a745;
+            background: var(--color-success);
             padding: 8px 16px;
             font-size: 12px;
         }
         
         .btn-add:hover {
-            background: #218838;
+            background: #0ea572;
         }
         
         .subnet-item {
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--color-border);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 15px;
-            background: #f8f9fa;
+            background: var(--color-panel);
         }
         
         .subnet-header {
@@ -124,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .subnet-title {
             font-weight: 600;
-            color: #495057;
+            color: var(--color-text);
         }
         
         .ip-inputs {
@@ -135,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .help-text {
             font-size: 13px;
-            color: #666;
+            color: var(--color-muted);
             margin-top: 5px;
         }
         
@@ -149,8 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .stat-item {
             text-align: center;
             padding: 15px;
-            background: #f8f9fa;
+            background: var(--color-panel);
             border-radius: 8px;
+            border: 1px solid var(--color-border);
         }
         
         .stat-number {
@@ -161,17 +161,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .stat-label {
             font-size: 12px;
-            color: #666;
+            color: var(--color-muted);
             margin-top: 5px;
         }
         
         .example {
-            background: #f8f9fa;
+            background: var(--color-panel);
             padding: 10px;
             border-radius: 5px;
             font-size: 13px;
             margin-top: 10px;
             border-left: 4px solid var(--color-primary);
+            color: var(--color-text);
         }
     </style>
 </head>

@@ -70,128 +70,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
         /* 页面特有样式 */
-        .container {
-            max-width: 800px;
-        }
-        
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-        
-        .nav {
-            margin: 20px 0;
-        }
-        
-        .nav a {
-            color: #667eea;
-            text-decoration: none;
-            margin-right: 20px;
-            font-weight: 500;
-        }
-        
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        
-        .section {
-            background: white;
-            margin: 20px 0;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 30px;
-        }
-        
-        .section h2 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 20px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #555;
-        }
-        
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-        
         .form-group textarea {
             height: 200px;
             resize: vertical;
             font-family: 'Courier New', monospace;
         }
         
-        .btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-        
-        .btn:hover {
-            background: #5a6fd8;
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            margin-left: 10px;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        
-        .alert {
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .help-text {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
-        }
-        
         .example {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
             padding: 15px;
             border-radius: 5px;
             margin: 15px 0;
             font-family: 'Courier New', monospace;
             font-size: 13px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--color-primary);
+            color: var(--color-text);
         }
         
         .stats {
@@ -204,35 +97,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .stat-item {
             text-align: center;
             padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .stat-number {
             font-size: 24px;
             font-weight: bold;
-            color: #667eea;
+            color: var(--color-primary);
         }
         
         .stat-label {
             font-size: 12px;
-            color: #666;
+            color: var(--color-muted);
             margin-top: 5px;
         }
         
         .error-list {
             max-height: 200px;
             overflow-y: auto;
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
             padding: 10px;
             border-radius: 5px;
             margin-top: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .error-item {
             padding: 5px 0;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 13px;
+            color: var(--color-text);
         }
         
         .error-item:last-child {
