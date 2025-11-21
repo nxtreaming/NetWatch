@@ -267,18 +267,18 @@ $recentLogs = $monitor->getRecentLogs(20);
                     <tbody>
                         <?php foreach ($proxies as $proxy): ?>
                         <tr>
-                            <td><?php echo $proxy['id']; ?></td>
-                            <td><?php echo htmlspecialchars($proxy['ip']); ?></td>
-                            <td><?php echo strtoupper($proxy['type']); ?></td>
-                            <td>
+                            <td data-label="ID"><?php echo $proxy['id']; ?></td>
+                            <td data-label="IP"><?php echo htmlspecialchars($proxy['ip']); ?></td>
+                            <td data-label="类型"><?php echo strtoupper($proxy['type']); ?></td>
+                            <td data-label="状态">
                                 <span class="status-badge status-<?php echo $proxy['status']; ?>">
                                     <?php echo $proxy['status']; ?>
                                 </span>
                             </td>
-                            <td><?php echo number_format($proxy['response_time'], 2); ?>ms</td>
-                            <td><?php echo $proxy['failure_count']; ?></td>
-                            <td><?php echo formatTime($proxy['last_check'], 'm-d H:i'); // 自动从UTC转换为北京时间 ?></td>
-                            <td>
+                            <td data-label="响应时间"><?php echo number_format($proxy['response_time'], 2); ?>ms</td>
+                            <td data-label="失败次数"><?php echo $proxy['failure_count']; ?></td>
+                            <td data-label="最后检查"><?php echo formatTime($proxy['last_check'], 'm-d H:i'); // 自动从UTC转换为北京时间 ?></td>
+                            <td data-label="操作">
                                 <button class="btn btn-small" onclick="checkProxy(<?php echo $proxy['id']; ?>)">检查</button>
                             </td>
                         </tr>
