@@ -6,6 +6,7 @@
 require_once 'config.php';
 require_once 'auth.php';
 require_once 'monitor.php';
+require_once 'includes/functions.php';
 
 // 检查登录状态
 Auth::requireLogin();
@@ -66,35 +67,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代理导入 - NetWatch</title>
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
+        /* 页面特有样式 */
         .container {
             max-width: 800px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
         }
         
         .header p {
@@ -266,15 +243,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="header">
         <div class="container">
-            <h1>📥 代理导入</h1>
-            <p>批量导入代理服务器配置</p>
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>📥 代理导入</h1>
+                    <p>批量导入代理服务器配置</p>
+                </div>
+                <?php if (Auth::isLoginEnabled()): ?>
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="index.php?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
+                        </div>
+                        <div class="session-time">登录时间：<?php 
+                            $loginTime = Auth::getLoginTime();
+                            echo $loginTime ? date('m-d H:i', $loginTime) : 'N/A';
+                        ?></div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导航链接 -->
+    <div class="container">
+        <div class="nav-links">
+            <a href="index.php" class="nav-link">🏠 主页</a>
+            <a href="import.php" class="nav-link active">📥 代理导入</a>
+            <a href="import_subnets.php" class="nav-link">🌐 子网导入</a>
+            <a href="token_manager.php" class="nav-link">🔑 Token管理</a>
+            <a href="api_demo.php" class="nav-link">📖 API示例</a>
+            <a href="proxy-status/" class="nav-link">📊 流量监控</a>
         </div>
     </div>
     
     <div class="container">
-        <div class="nav">
-            <a href="index.php">← 返回监控面板</a>
-        </div>
         
         <?php if (isset($result)): ?>
         <div class="alert alert-success">

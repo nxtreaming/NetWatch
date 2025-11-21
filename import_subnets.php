@@ -83,127 +83,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 ?>
 <!DOCTYPE html>
-<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>子网代理导入 - NetWatch</title>
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-        
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-        
-        .nav {
-            margin: 20px 0;
-        }
-        
-        .nav a {
-            color: #667eea;
-            text-decoration: none;
-            margin-right: 20px;
-            font-weight: 500;
-        }
-        
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        
-        .section {
-            background: white;
-            margin: 20px 0;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 30px;
-        }
-        
-        .section h2 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 20px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #555;
-            font-size: 14px;
-        }
-        
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-        
+        /* 页面特有样式 - 表单和子网配置 */
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 15px;
             align-items: end;
-        }
-        
-        .btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            margin: 4px;
-        }
-        
-        .btn:hover {
-            background: #5a6fd8;
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
         }
         
         .btn-add {
@@ -216,24 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #218838;
         }
         
-        .alert {
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
         .subnet-item {
             border: 1px solid #e9ecef;
             border-radius: 8px;
@@ -244,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .subnet-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
@@ -283,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .stat-number {
             font-size: 24px;
             font-weight: bold;
-            color: #667eea;
+            color: var(--color-primary);
         }
         
         .stat-label {
@@ -298,75 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 5px;
             font-size: 13px;
             margin-top: 10px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header-left {
-            flex: 1;
-        }
-        
-        .header-right {
-            flex: 1;
-            text-align: right;
-        }
-        
-        .user-info {
-            margin-bottom: 10px;
-        }
-        
-        .user-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        
-        .username {
-            font-weight: 600;
-            color: #495057;
-        }
-        
-        .logout-btn {
-            color: #667eea;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        
-        .logout-btn:hover {
-            text-decoration: underline;
-        }
-        
-        .session-time {
-            font-size: 13px;
-            color: #666;
-        }
-        
-        .nav-links {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .nav-link {
-            color: #667eea;
-            text-decoration: none;
-            margin-right: 20px;
-            font-weight: 500;
-        }
-        
-        .nav-link.active {
-            color: #495057;
-        }
-        
-        .nav-link:hover {
-            text-decoration: underline;
+            border-left: 4px solid var(--color-primary);
         }
     </style>
 </head>
