@@ -89,6 +89,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
         /* 页面特有样式 - 表单和子网配置 */
+        .section {
+            padding: 25px;
+        }
+        
+        .section h2 {
+            margin-bottom: 20px;
+        }
+        
         .form-row {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -146,6 +154,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
+        }
+        
+        .ip-inputs .form-group {
+            margin-bottom: 0;
+        }
+        
+        .ip-inputs .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--color-text);
+        }
+        
+        .ip-inputs .form-group input {
+            width: 100%;
         }
         
         .help-text {
