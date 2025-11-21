@@ -70,10 +70,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
         /* 页面特有样式 */
+        .import-option .form-group {
+            margin-bottom: 0;
+        }
+        
+        .import-option .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: var(--color-text);
+        }
+        
         .form-group textarea {
+            width: 100%;
             height: 200px;
             resize: vertical;
             font-family: 'Courier New', monospace;
+            display: block;
+        }
+        
+        .form-group input[type="file"] {
+            width: 100%;
+            display: block;
         }
         
         .import-options {
