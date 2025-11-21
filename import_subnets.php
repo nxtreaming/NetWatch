@@ -118,6 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-row .form-group input,
         .form-row .form-group select {
             width: 100%;
+            background: var(--color-panel-light);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            padding: 8px 12px;
+            border-radius: 4px;
         }
         
         .btn-add {
@@ -169,6 +174,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .ip-inputs .form-group input {
             width: 100%;
+            background: var(--color-panel-light);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            padding: 8px 12px;
+            border-radius: 4px;
         }
         
         .help-text {
