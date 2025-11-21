@@ -20,26 +20,10 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
     <title>API 使用示例 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        .demo-section {
-            background: var(--color-panel);
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid var(--color-border);
-        }
-        
-        .demo-section h3 {
-            color: var(--color-primary);
-            margin-bottom: 15px;
+        /* 使用全局section样式，只定义页面特有的样式 */
+        .section h3 {
             border-bottom: 2px solid var(--color-primary);
             padding-bottom: 10px;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        
-        .demo-section p {
-            color: var(--color-text);
-            line-height: 1.6;
         }
         
         .endpoint-box {
@@ -207,7 +191,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
 
     <div class="container">
         <!-- API概述 -->
-        <div class="demo-section">
+        <div class="section">
             <h3>📖 API 概述</h3>
             <p>NetWatch提供RESTful API接口，允许通过Token授权获取代理服务器信息。API支持多种格式输出，适用于各种应用场景。</p>
             
@@ -218,7 +202,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         </div>
 
         <!-- 认证方式 -->
-        <div class="demo-section">
+        <div class="section">
             <h3>🔐 认证方式</h3>
             <p>API支持三种Token传递方式：</p>
             
@@ -239,7 +223,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         </div>
 
         <!-- 在线测试工具 -->
-        <div class="demo-section">
+        <div class="section">
             <h3>🧪 测试工具</h3>
             
             <div class="test-form">
@@ -291,7 +275,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         </div>
 
         <!-- 代码示例 -->
-        <div class="demo-section">
+        <div class="section">
             <h3>💻 代码示例</h3>
             
             <h4>PHP示例:</h4>
@@ -373,7 +357,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?acti
         </div>
 
         <!-- API端点详情 -->
-        <div class="demo-section">
+        <div class="section">
             <h3>📋 API端点详情</h3>
             
             <div class="endpoint-box">
