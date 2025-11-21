@@ -21,9 +21,14 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
         /* 使用全局section样式，只定义页面特有的样式 */
+        .section {
+            padding: 25px;
+        }
+        
         .section h3 {
             border-bottom: 2px solid var(--color-primary);
             padding-bottom: 10px;
+            margin-top: 0;
         }
         
         .endpoint-box {
