@@ -1,19 +1,21 @@
-/* ===== Proxy Status Styles ===== */
+/* ===== Proxy Status Styles - 深色主题 ===== */
 /* Info and warning banners */
 .info-banner {
-  background: #e7f3ff;
+  background: rgba(59, 130, 246, 0.1);
   padding: 12px;
   border-radius: 6px;
   margin-bottom: 15px;
-  color: #0066cc;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
 }
 
 .warning-banner {
-  background: #fff3cd;
+  background: rgba(245, 158, 11, 0.1);
   padding: 20px;
   border-radius: 6px;
   text-align: center;
-  color: #856404;
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 /* Spacing utilities */
@@ -22,7 +24,7 @@
 
 /* Tip text under chart title */
 .tip-text {
-  color: #999;
+  color: var(--color-muted);
   font-size: 13px;
   margin-bottom: 10px;
 }
@@ -92,14 +94,21 @@
 
 .form-label {
   font-weight: 600;
-  color: #555;
+  color: var(--color-text);
 }
 
 .form-input {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 14px;
+  background: var(--color-panel-light);
+  color: var(--color-text);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 
 /* Buttons */
@@ -112,13 +121,18 @@
   font-weight: 600;
 }
 
-.btn-primary { background: #667eea; }
-.btn-secondary { background: #6c757d; }
+.btn-primary { background: var(--color-primary); }
+.btn-secondary { background: var(--color-muted); }
 
-/* Table row highlight (same as inline) */
+.btn:hover {
+  opacity: 0.9;
+}
+
+/* Table row highlight */
 .row-highlight {
-  background: #fff3cd;
+  background: rgba(245, 158, 11, 0.1);
   font-weight: 600;
+  border: 1px solid var(--color-warning);
 }
 
 /* Green dot style used for today marker */
@@ -144,85 +158,8 @@
   color: #999;
 }
 
-/* ===== Base layout (migrated from index.php <style>) ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #f5f5f5;
-  min-height: 100vh;
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 20px 40px;
-}
-
-/* Header uses its own container spacing; avoid extra bottom padding here */
-.header .container {
-  padding: 0 20px;
-}
-
-/* Header */
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 20px 0;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
-}
-
-.header-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1px;
-}
-
-.header-left { flex: 1; }
-
-.header h1 {
-  font-size: 1.5em;
-  margin-bottom: 1px;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-}
-
-.header p { font-size: 1.0em; opacity: 0.9; }
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 10px 20px;
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-}
-
-.user-info span { color: white; font-weight: 600; }
-
-/* Header actions (buttons/links) */
-.nav-btn,
-.logout-btn {
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.3);
-  color: white;
-  text-decoration: none;
-  border-radius: 6px;
-  font-weight: 600;
-  transition: background 0.3s ease;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.nav-btn:hover,
-.logout-btn:hover { background: rgba(255, 255, 255, 0.4); }
+/* ===== Base layout - 使用深色主题 ===== */
+/* 这些样式已由 style-v2.css 提供，这里只保留页面特有的覆盖 */
 
 /* Stats grids */
 .stats-grid,
@@ -234,16 +171,18 @@ body {
 .stats-grid { margin-bottom: 20px; }
 .stats-grid2 { margin-bottom: 10px; }
 
-/* Statistic cards */
+/* Statistic cards - 深色主题 */
 .stat-card {
-  background: white;
+  background: var(--color-panel);
   border-radius: 12px;
   padding: 15px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  border: 1px solid var(--color-border);
 }
 
+.stat-card h2,
 .stat-card h3 {
-  color: #666;
+  color: var(--color-muted);
   font-size: 0.9em;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -253,38 +192,40 @@ body {
 .stat-card .value {
   font-size: 1.5em;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 5px;
 }
 
-.stat-card .label { color: #999; font-size: 0.9em; }
-.stat-card.primary .value { color: #667eea; }
-.stat-card.success .value { color: #48bb78; }
-.stat-card.warning .value { color: #ed8936; }
-.stat-card.danger .value { color: #f56565; }
+.stat-card .label { color: var(--color-muted); font-size: 0.9em; }
+.stat-card.primary .value { color: var(--color-primary); }
+.stat-card.success .value { color: var(--color-success); }
+.stat-card.warning .value { color: var(--color-warning); }
+.stat-card.danger .value { color: var(--color-danger); }
 
-/* Progress section */
+/* Progress section - 深色主题 */
 .progress-section {
-  background: white;
+  background: var(--color-panel);
   border-radius: 12px;
   padding: 15px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  border: 1px solid var(--color-border);
   margin-bottom: 20px;
 }
 
-.progress-section h2 { color: #333; margin-bottom: 10px; }
+.progress-section h2 { color: var(--color-text); margin-bottom: 10px; }
 
 .progress-bar-container {
-  background: #e2e8f0;
+  background: var(--color-panel-light);
   border-radius: 10px;
   height: 40px;
   overflow: hidden;
   position: relative;
+  border: 1px solid var(--color-border);
 }
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   transition: width 0.5s ease;
   display: flex;
   align-items: center;
@@ -292,15 +233,16 @@ body {
   color: white;
   font-weight: bold;
 }
-.progress-bar.warning { background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%); }
-.progress-bar.danger  { background: linear-gradient(90deg, #f56565 0%, #e53e3e 100%); }
+.progress-bar.warning { background: var(--color-warning); }
+.progress-bar.danger  { background: var(--color-danger); }
 
-/* Chart section */
+/* Chart section - 深色主题 */
 .chart-section {
-  background: white;
+  background: var(--color-panel);
   border-radius: 12px;
   padding: 15px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  border: 1px solid var(--color-border);
 }
 
 /* Chart container scrollbar */
@@ -315,32 +257,32 @@ body {
 .chart-container::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
 
 /* Section headings */
-.chart-section h2 { color: #333; margin-bottom: 20px; }
+.chart-section h2 { color: var(--color-text); margin-bottom: 20px; }
 
-/* Table */
+/* Table - 深色主题 */
 table { width: 100%; border-collapse: collapse; }
 table th,
-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
 table th {
-  background: #f7fafc;
-  color: #4a5568;
+  background: var(--color-panel-light);
+  color: var(--color-muted);
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.85em;
   letter-spacing: 0.5px;
 }
-table tr:hover { background: #f7fafc; }
+table tr:hover { background: var(--color-panel-light); }
 
 /* Footer/help text */
-.update-time { text-align: center; color: #666; margin-top: 30px; }
-.auto-refresh { text-align: center; color: #666; margin-top: 10px; font-size: 0.9em; }
+.update-time { text-align: center; color: var(--color-muted); margin-top: 30px; }
+.auto-refresh { text-align: center; color: var(--color-muted); margin-top: 10px; font-size: 0.9em; }
 
 /* Animations */
 .refresh-indicator {
   display: inline-block;
   width: 10px;
   height: 10px;
-  background: #48bb78;
+  background: var(--color-success);
   border-radius: 50%;
   margin-right: 5px;
   animation: pulse 2s infinite;
@@ -351,17 +293,13 @@ table tr:hover { background: #f7fafc; }
   50% { opacity: 0.5; }
 }
 
+/* Table empty state */
+.table-empty {
+  color: var(--color-muted);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
-  .header { margin-bottom: 20px; }
-  .header-wrapper { flex-direction: column; align-items: center; gap: 0px; }
-  .header-left { text-align: center; width: 100%; }
-  .header h1 { font-size: 20px; }
-  .header p { font-size: 14px; }
-  .user-info { position: static; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; padding: 8px 12px; margin-top: 15px; font-size: 12px; }
-  .user-info span { order: 1; }
-  .nav-btn { order: 0; padding: 6px 12px; font-size: 12px; }
-  .logout-btn { order: 2; padding: 6px 12px; font-size: 12px; }
   .stats-grid { grid-template-columns: 1fr; }
   .stat-card .value { font-size: 1.5em; }
   .progress-section, .chart-section { padding: 20px; }
