@@ -205,15 +205,6 @@ $recentLogs = $monitor->getRecentLogs(20);
             <div class="stat-card">
                 <div class="stat-inline total">平均时间: <?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>
             </div>
-            <div class="stat-card nav-card">
-                <a href="proxy-status/" class="nav-btn">动态IP池监控</a>
-            </div>
-            <div class="stat-card nav-card">
-                <a href="token_manager.php" class="nav-btn">Token管理</a>
-            </div>
-            <div class="stat-card nav-card">
-                <a href="import_subnets.php" class="nav-btn">导入代理</a>
-            </div>
         </div>
         
         <!-- 检测功能 -->
