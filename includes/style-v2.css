@@ -167,7 +167,7 @@ body {
     text-align: center;
     transition: transform 0.2s, border 0.2s;
     border: 1px solid rgba(255, 255, 255, 0.04);
-    min-height: 54px;
+    min-height: 45px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -202,7 +202,7 @@ body {
     padding: 0;
     position: relative;
     z-index: 1;
-    min-height: 54px;
+    min-height: 45px;
 }
 
 .nav-card .nav-btn {
@@ -578,66 +578,66 @@ table {
 #proxies-table th:first-child,
 #proxies-table td:first-child {
     width: 60px;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #proxies-table th:nth-child(2) {
     width: 150px;
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #proxies-table td:nth-child(2) {
     width: 150px;
     text-align: center;
-    font-size: 10px;
+    font-size: 14px;
 }
 
 #proxies-table th:nth-child(3),
 #proxies-table td:nth-child(3) {
     width: 100px;
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #proxies-table th:nth-child(4) {
     width: 120px;
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #proxies-table td:nth-child(4) {
     width: 120px;
     text-align: center;
-    font-size: 10px;
+    font-size: 14px;
 }
 
 #proxies-table th:nth-child(5),
 #proxies-table td:nth-child(5) {
     width: 120px;
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #proxies-table th:nth-child(6),
 #proxies-table td:nth-child(6) {
     width: 100px;
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #proxies-table th:nth-child(7),
 #proxies-table td:nth-child(7) {
     width: 150px;
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #proxies-table th:nth-child(8),
 #proxies-table td:nth-child(8) {
     width: 100px; /* Actions column */
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 th {
@@ -796,11 +796,12 @@ tr:hover {
     #proxies-table th:nth-child(1),
     #proxies-table td:nth-child(1) {
         width: 20%;
+        font-size: 13px;
     }
     
     #proxies-table th:nth-child(2) {
         width: 35%;
-        font-size: 12px;
+        font-size: 14px;
     }
     
     #proxies-table td:nth-child(2) {
@@ -811,7 +812,7 @@ tr:hover {
     #proxies-table th:nth-child(4) {
         width: 35%;
         text-align: center;
-        font-size: 12px;
+        font-size: 14px;
     }
     
     #proxies-table td:nth-child(4) {
