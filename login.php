@@ -73,6 +73,19 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NetWatch - 用户登录</title>
     <style>
+        :root {
+            --color-bg: #0f172a;
+            --color-panel: #111c32;
+            --color-panel-light: #14213d;
+            --color-border: rgba(255, 255, 255, 0.08);
+            --color-text: #e2e8f0;
+            --color-muted: #94a3b8;
+            --color-primary: #3b82f6;
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -81,18 +94,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--color-bg);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--color-text);
         }
         
         .login-container {
-            background: white;
+            background: var(--color-panel);
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px rgba(8, 15, 40, 0.35);
+            border: 1px solid var(--color-border);
             width: 100%;
             max-width: 400px;
             text-align: center;
@@ -101,12 +116,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         .logo {
             font-size: 32px;
             font-weight: bold;
-            color: #333;
+            color: var(--color-text);
             margin-bottom: 10px;
         }
         
         .subtitle {
-            color: #666;
+            color: var(--color-muted);
             margin-bottom: 30px;
             font-size: 14px;
         }
@@ -118,80 +133,81 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            color: #333;
+            margin-bottom: 8px;
+            color: var(--color-text);
             font-weight: 500;
         }
         
         .form-group input {
             width: 100%;
             padding: 12px 15px;
-            border: 2px solid #e1e5e9;
+            border: 1px solid var(--color-border);
             border-radius: 8px;
             font-size: 14px;
+            background: var(--color-panel-light);
+            color: var(--color-text);
             transition: border-color 0.3s ease;
         }
         
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--color-primary);
         }
         
         .login-btn {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--color-primary);
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             font-weight: 500;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: opacity 0.2s ease;
         }
         
         .login-btn:hover {
-            transform: translateY(-1px);
+            opacity: 0.9;
         }
         
         .login-btn:active {
-            transform: translateY(0);
+            opacity: 0.8;
         }
         
         .alert {
-            padding: 12px;
-            border-radius: 6px;
+            padding: 12px 15px;
+            border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
+            border: 1px solid;
         }
         
         .alert-error {
-            background-color: #fee;
-            color: #c33;
-            border: 1px solid #fcc;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--color-danger);
+            border-color: var(--color-danger);
         }
         
         .alert-success {
-            background-color: #efe;
-            color: #363;
-            border: 1px solid #cfc;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--color-success);
+            border-color: var(--color-success);
         }
         
         .alert-warning {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--color-warning);
+            border-color: var(--color-warning);
         }
         
         .footer {
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid #eee;
-            color: #999;
+            border-top: 1px solid var(--color-border);
+            color: var(--color-muted);
             font-size: 12px;
         }
-        
-
     </style>
 </head>
 <body>
