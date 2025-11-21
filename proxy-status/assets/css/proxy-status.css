@@ -162,14 +162,20 @@
 /* 这些样式已由 style-v2.css 提供，这里只保留页面特有的覆盖 */
 
 /* Stats grids */
-.stats-grid,
-.stats-grid2 {
+.stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
+  margin-bottom: 20px;
 }
-.stats-grid { margin-bottom: 20px; }
-.stats-grid2 { margin-bottom: 10px; }
+
+/* 流量详情区域 - 卡片占满整个宽度 */
+.stats-grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 10px;
+}
 
 /* Statistic cards - 深色主题 */
 .stat-card {
