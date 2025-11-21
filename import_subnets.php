@@ -91,9 +91,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* 页面特有样式 - 表单和子网配置 */
         .form-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 15px;
-            align-items: end;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-row .form-group {
+            margin-bottom: 0;
+        }
+        
+        .form-row .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--color-text);
+        }
+        
+        .form-row .form-group input,
+        .form-row .form-group select {
+            width: 100%;
         }
         
         .btn-add {
