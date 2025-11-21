@@ -161,7 +161,7 @@ body {
 
 .stat-card {
     background: var(--color-panel);
-    padding: 12px 14px;
+    padding: 6px 7px;
     border-radius: 12px;
     box-shadow: 0 10px 24px rgba(8, 15, 40, 0.25);
     text-align: center;
