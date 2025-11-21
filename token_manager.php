@@ -449,12 +449,35 @@ $tokens = $db->getAllTokens();
             <div class="header-content">
                 <div class="header-left">
                     <h1>🔑 Token 管理</h1>
+                    <p>API Token 授权管理系统</p>
                 </div>
+                <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
-                    <a href="index.php" class="btn btn-secondary">返回首页</a>
-                    <a href="api_demo.php" class="btn btn-secondary">API示例</a>
+                    <div class="user-info">
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="index.php?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
+                        </div>
+                        <div class="session-time">登录时间：<?php 
+                            $loginTime = Auth::getLoginTime();
+                            echo $loginTime ? date('m-d H:i', $loginTime) : 'N/A';
+                        ?></div>
+                    </div>
                 </div>
+                <?php endif; ?>
             </div>
+        </div>
+    </div>
+    
+    <!-- 导航链接 -->
+    <div class="container">
+        <div class="nav-links">
+            <a href="index.php" class="nav-link">🏠 主页</a>
+            <a href="import.php" class="nav-link">📥 代理导入</a>
+            <a href="import_subnets.php" class="nav-link">🌐 子网导入</a>
+            <a href="token_manager.php" class="nav-link active">🔑 Token管理</a>
+            <a href="api_demo.php" class="nav-link">📖 API示例</a>
+            <a href="proxy-status/" class="nav-link">📊 流量监控</a>
         </div>
     </div>
 

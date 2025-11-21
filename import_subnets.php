@@ -7,6 +7,7 @@
 require_once 'config.php';
 require_once 'auth.php';
 require_once 'monitor.php';
+require_once 'includes/functions.php';
 
 // 检查登录状态
 Auth::requireLogin();
@@ -299,22 +300,115 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 10px;
             border-left: 4px solid #667eea;
         }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            flex: 1;
+        }
+        
+        .header-right {
+            flex: 1;
+            text-align: right;
+        }
+        
+        .user-info {
+            margin-bottom: 10px;
+        }
+        
+        .user-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .username {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .logout-btn {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .logout-btn:hover {
+            text-decoration: underline;
+        }
+        
+        .session-time {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .nav-links {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .nav-link {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: 500;
+        }
+        
+        .nav-link.active {
+            color: #495057;
+        }
+        
+        .nav-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="container">
-            <h1>🌐 子网代理导入</h1>
-            <p>批量导入子网的代理服务器配置</p>
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🌐 子网代理导入</h1>
+                    <p>批量导入子网的代理服务器配置</p>
+                </div>
+                <?php if (Auth::isLoginEnabled()): ?>
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="index.php?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
+                        </div>
+                        <div class="session-time">登录时间：<?php 
+                            $loginTime = Auth::getLoginTime();
+                            echo $loginTime ? date('m-d H:i', $loginTime) : 'N/A';
+                        ?></div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导航链接 -->
+    <div class="container">
+        <div class="nav-links">
+            <a href="index.php" class="nav-link">🏠 主页</a>
+            <a href="import.php" class="nav-link">📥 代理导入</a>
+            <a href="import_subnets.php" class="nav-link active">🌐 子网导入</a>
+            <a href="token_manager.php" class="nav-link">🔑 Token管理</a>
+            <a href="api_demo.php" class="nav-link">📖 API示例</a>
+            <a href="proxy-status/" class="nav-link">📊 流量监控</a>
         </div>
     </div>
     
     <div class="container">
-        <div class="nav">
-            <a href="index.php">← 返回首页</a>
-            <a href="import.php">单个代理导入</a>
-        </div>
-        
         <?php if (isset($result)): ?>
         <div class="alert alert-success">
             <h3>导入完成</h3>
