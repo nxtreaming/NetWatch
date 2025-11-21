@@ -77,16 +77,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .import-options {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 30px;
-            align-items: start;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
             margin-bottom: 30px;
         }
         
         .import-option {
             background: var(--color-panel);
-            padding: 20px;
+            padding: 25px;
             border-radius: 8px;
             border: 1px solid var(--color-border);
         }
@@ -95,16 +94,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 16px;
             margin-bottom: 15px;
             color: var(--color-primary);
+            font-weight: 600;
         }
         
         .import-divider {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--color-muted);
-            padding-top: 60px;
+            padding: 10px 0;
+            position: relative;
+        }
+        
+        .import-divider::before,
+        .import-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--color-border);
+        }
+        
+        .import-divider::before {
+            margin-right: 15px;
+        }
+        
+        .import-divider::after {
+            margin-left: 15px;
         }
         
         .form-actions {
