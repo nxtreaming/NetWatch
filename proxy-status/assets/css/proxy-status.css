@@ -111,6 +111,22 @@
   border-color: var(--color-primary);
 }
 
+/* 日期输入框图标优化 */
+input[type="date"].form-input {
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+input[type="date"].form-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* Buttons */
 .btn {
   padding: 8px 16px;
