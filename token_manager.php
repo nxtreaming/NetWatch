@@ -113,26 +113,30 @@ $tokens = $db->getAllTokens();
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
         .token-manager {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            /* 使用全局容器宽度，与index.php保持一致 */
         }
         
         .section {
             margin-bottom: 30px;
+            background: var(--color-panel);
+            border-radius: 8px;
+            padding: 25px;
+            border: 1px solid var(--color-border);
         }
         
         .section h3 {
-            margin-top: 20px;
+            margin-top: 0;
             margin-bottom: 20px;
-            padding: 0 20px;
+            color: var(--color-primary);
+            font-size: 18px;
+            font-weight: 600;
         }
         
         .create-token-form {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
             padding: 20px;
             border-radius: 8px;
-            margin: 0 20px 20px 20px;
+            border: 1px solid var(--color-border);
         }
         
         .form-row {
@@ -148,25 +152,26 @@ $tokens = $db->getAllTokens();
         
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--color-text);
         }
         
         .form-group input, .form-group select {
             width: 100%;
             padding: 8px 12px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--color-border);
             border-radius: 4px;
             font-size: 14px;
+            background: var(--color-panel-light);
+            color: var(--color-text);
         }
         
         .table-container {
-            background: white;
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 0 20px 20px 20px;
+            border: 1px solid var(--color-border);
         }
         
         .token-table {
@@ -178,19 +183,25 @@ $tokens = $db->getAllTokens();
         .token-table td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--color-border);
+            color: var(--color-text);
         }
         
         .token-table th {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
             font-weight: 600;
-            color: #333;
+            color: var(--color-primary);
+        }
+        
+        .token-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
         }
         
         .token-value {
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
             font-size: 12px;
-            background: #f1f3f4;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-primary);
             padding: 4px 8px;
             border-radius: 4px;
             max-width: 200px;
@@ -207,13 +218,15 @@ $tokens = $db->getAllTokens();
         }
         
         .status-valid {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--color-success);
+            border: 1px solid var(--color-success);
         }
         
         .status-expired {
-            background: #f8d7da;
-            color: #721c24;
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--color-danger);
+            border: 1px solid var(--color-danger);
         }
         
         .action-buttons {
@@ -231,10 +244,10 @@ $tokens = $db->getAllTokens();
             display: inline-block;
         }
         
-        .btn-primary { background: #007bff; color: white; }
-        .btn-warning { background: #ffc107; color: #212529; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-success { background: #28a745; color: white; }
+        .btn-primary { background: var(--color-primary); color: white; }
+        .btn-warning { background: var(--color-warning); color: #212529; }
+        .btn-danger { background: var(--color-danger); color: white; }
+        .btn-success { background: var(--color-success); color: white; }
         
         .btn-small:hover {
             opacity: 0.8;
