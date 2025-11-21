@@ -2,6 +2,7 @@
 require_once 'auth.php';
 require_once 'config.php';
 require_once 'database.php';
+require_once 'includes/functions.php';
 
 // 强制登录检查
 Auth::requireLogin();
@@ -19,38 +20,44 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
     <title>API 使用示例 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        .demo-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
         .demo-section {
-            background: white;
-            padding: 20px;
+            background: var(--color-panel);
+            padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid var(--color-border);
         }
         
         .demo-section h3 {
-            color: #333;
+            color: var(--color-primary);
             margin-bottom: 15px;
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid var(--color-primary);
             padding-bottom: 10px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .demo-section p {
+            color: var(--color-text);
+            line-height: 1.6;
         }
         
         .endpoint-box {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--color-border);
             border-radius: 4px;
             padding: 15px;
             margin: 10px 0;
         }
         
+        .endpoint-box strong {
+            color: var(--color-text);
+        }
+        
         .endpoint-url {
-            font-family: monospace;
-            background: #e9ecef;
+            font-family: 'Courier New', monospace;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-primary);
             padding: 8px 12px;
             border-radius: 4px;
             margin: 8px 0;
@@ -58,7 +65,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         }
         
         .code-block {
-            background: #2d3748;
+            background: #1a202c;
             color: #e2e8f0;
             padding: 15px;
             border-radius: 4px;
@@ -66,13 +73,15 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
             font-size: 13px;
             overflow-x: auto;
             margin: 10px 0;
+            border: 1px solid var(--color-border);
         }
         
         .test-form {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
             padding: 15px;
             border-radius: 4px;
             margin: 15px 0;
+            border: 1px solid var(--color-border);
         }
         
         .form-group {
@@ -81,32 +90,36 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--color-text);
         }
         
         .form-group select,
         .form-group input {
             width: 100%;
             padding: 8px 12px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--color-border);
             border-radius: 4px;
+            background: var(--color-panel-light);
+            color: var(--color-text);
         }
         
         .response-area {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--color-border);
             padding: 15px;
             border-radius: 4px;
             min-height: 100px;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
             font-size: 13px;
             white-space: pre-wrap;
             word-break: break-all;
+            color: var(--color-text);
         }
         
         .btn-test {
-            background: #28a745;
+            background: var(--color-success);
             color: white;
             padding: 8px 16px;
             border: none;
@@ -116,7 +129,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         }
         
         .btn-test:hover {
-            background: #218838;
+            background: #0ea572;
         }
         
         .status-indicator {
@@ -127,9 +140,9 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
             margin-right: 8px;
         }
         
-        .status-success { background: #28a745; }
-        .status-error { background: #dc3545; }
-        .status-warning { background: #ffc107; }
+        .status-success { background: var(--color-success); }
+        .status-error { background: var(--color-danger); }
+        .status-warning { background: var(--color-warning); }
         
         .format-tabs {
             display: flex;
@@ -139,16 +152,18 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         
         .format-tab {
             padding: 8px 16px;
-            background: #e9ecef;
-            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--color-border);
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            color: var(--color-text);
         }
         
         .format-tab.active {
-            background: #007bff;
+            background: var(--color-primary);
             color: white;
+            border-color: var(--color-primary);
         }
     </style>
 </head>
@@ -157,17 +172,40 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         <div class="container">
             <div class="header-content">
                 <div class="header-left">
-                    <h1>🔧 API 使用示例</h1>
+                    <h1>📖 API 使用示例</h1>
+                    <p>RESTful API接口文档与在线测试</p>
                 </div>
+                <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
-                    <a href="index.php" class="btn btn-secondary">返回主页</a>
-                    <a href="token_manager.php" class="btn btn-primary">Token管理</a>
+                    <div class="user-info">
+                        <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <a href="index.php?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
+                        </div>
+                        <div class="session-time">登录时间：<?php 
+                            $loginTime = Auth::getLoginTime();
+                            echo $loginTime ? date('m-d H:i', $loginTime) : 'N/A';
+                        ?></div>
+                    </div>
                 </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
+    
+    <!-- 导航链接 -->
+    <div class="container">
+        <div class="nav-links">
+            <a href="index.php" class="nav-link">🏠 主页</a>
+            <a href="import.php" class="nav-link">📥 代理导入</a>
+            <a href="import_subnets.php" class="nav-link">🌐 子网导入</a>
+            <a href="token_manager.php" class="nav-link">🔑 Token管理</a>
+            <a href="api_demo.php" class="nav-link active">📖 API示例</a>
+            <a href="proxy-status/" class="nav-link">📊 流量监控</a>
+        </div>
+    </div>
 
-    <div class="demo-container">
+    <div class="container">
         <!-- API概述 -->
         <div class="demo-section">
             <h3>📖 API 概述</h3>
