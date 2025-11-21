@@ -570,10 +570,15 @@ table {
     word-break: break-word;
 }
 
+#proxies-table th {
+    font-size: 12px;
+}
+
 /* Set specific widths for columns */
 #proxies-table th:first-child,
 #proxies-table td:first-child {
     width: 60px;
+    font-size: 12px;
 }
 
 #proxies-table th:nth-child(2) {
@@ -592,6 +597,7 @@ table {
 #proxies-table td:nth-child(3) {
     width: 100px;
     text-align: center;
+    font-size: 12px;
 }
 
 #proxies-table th:nth-child(4) {
@@ -610,24 +616,28 @@ table {
 #proxies-table td:nth-child(5) {
     width: 120px;
     text-align: center;
+    font-size: 12px;
 }
 
 #proxies-table th:nth-child(6),
 #proxies-table td:nth-child(6) {
     width: 100px;
     text-align: center;
+    font-size: 12px;
 }
 
 #proxies-table th:nth-child(7),
 #proxies-table td:nth-child(7) {
     width: 150px;
     text-align: center;
+    font-size: 12px;
 }
 
 #proxies-table th:nth-child(8),
 #proxies-table td:nth-child(8) {
     width: 100px; /* Actions column */
     text-align: center;
+    font-size: 12px;
 }
 
 th {
