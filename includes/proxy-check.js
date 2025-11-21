@@ -1,7 +1,11 @@
 // 注意：fetchApi 和 getApiUrl 函数已在 utils.js 中定义，此处不再重复定义
 
-function checkProxy(proxyId) {
-    const btn = event.target;
+function checkProxy(proxyId, btn) {
+    btn = btn || (typeof event !== 'undefined' ? event.target : null);
+    if (!btn) {
+        console.warn('checkProxy: button element missing, aborting.');
+        return;
+    }
     const originalText = btn.textContent;
     btn.textContent = '检查中...';
     btn.disabled = true;

@@ -279,7 +279,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                             <td data-label="失败次数"><?php echo $proxy['failure_count']; ?></td>
                             <td data-label="最后检查"><?php echo formatTime($proxy['last_check'], 'm-d H:i'); // 自动从UTC转换为北京时间 ?></td>
                             <td data-label="操作">
-                                <button class="btn btn-small" onclick="checkProxy(<?php echo $proxy['id']; ?>)">检查</button>
+                                <button class="btn btn-small" onclick="checkProxy(<?php echo $proxy['id']; ?>, this)">检查</button>
                             </td>
                         </tr>
                         <?php endforeach; ?>

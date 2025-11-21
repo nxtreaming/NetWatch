@@ -182,6 +182,7 @@ body {
     background: var(--color-card-gradient);
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 .stat-card:hover {
@@ -199,6 +200,8 @@ body {
     align-items: center;
     justify-content: center;
     padding: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .nav-card .nav-btn {
@@ -324,6 +327,7 @@ body {
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), transparent, rgba(255, 255, 255, 0.2));
     opacity: 0;
     transition: opacity 0.35s ease;
+    pointer-events: none;
 }
 
 .btn-parallel:hover,
