@@ -116,13 +116,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .form-row .form-group input,
-        .form-row .form-group select {
+        .form-row .form-group select,
+        .form-group select,
+        .form-group input {
             width: 100%;
             background: var(--color-panel-light);
             color: var(--color-text);
             border: 1px solid var(--color-border);
             padding: 8px 12px;
             border-radius: 4px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--color-text);
         }
         
         .btn-add {
