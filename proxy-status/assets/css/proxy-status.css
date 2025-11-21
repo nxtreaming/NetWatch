@@ -118,13 +118,22 @@ input[type="date"].form-input {
 }
 
 input[type="date"].form-input::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
-  opacity: 0.8;
+  filter: invert(1) brightness(1.5) !important;
+  cursor: pointer !important;
+  opacity: 0.9 !important;
+  background: transparent !important;
 }
 
 input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
+  opacity: 1 !important;
+  filter: invert(1) brightness(2) !important;
+}
+
+/* Firefox 日期输入框优化 */
+input[type="date"].form-input::-moz-calendar-picker-indicator {
+  filter: invert(1) brightness(1.5) !important;
+  cursor: pointer !important;
+  opacity: 0.9 !important;
 }
 
 /* Buttons */
