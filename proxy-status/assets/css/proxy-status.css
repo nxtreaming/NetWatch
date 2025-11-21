@@ -175,12 +175,21 @@
 .stat-card {
   background: var(--color-panel);
   border-radius: 12px;
-  padding: 15px;
+  padding: 20px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
 }
 
-.stat-card h2,
+.stat-card h2 {
+  color: var(--color-text);
+  font-size: 1em;
+  font-weight: 600;
+  margin-bottom: 15px;
+  margin-top: 0;
+}
+
 .stat-card h3 {
   color: var(--color-muted);
   font-size: 0.9em;
@@ -190,13 +199,20 @@
 }
 
 .stat-card .value {
-  font-size: 1.5em;
+  font-size: 2em;
   font-weight: bold;
   color: var(--color-text);
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  line-height: 1.2;
 }
 
-.stat-card .label { color: var(--color-muted); font-size: 0.9em; }
+.stat-card .label { 
+  color: var(--color-muted); 
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .stat-card.primary .value { color: var(--color-primary); }
 .stat-card.success .value { color: var(--color-success); }
 .stat-card.warning .value { color: var(--color-warning); }
