@@ -112,10 +112,6 @@ $tokens = $db->getAllTokens();
     <title>API Token 管理 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
     <style>
-        .token-manager {
-            /* 使用全局容器宽度，与index.php保持一致 */
-        }
-        
         .section {
             margin-bottom: 30px;
             background: var(--color-panel);
@@ -254,18 +250,8 @@ $tokens = $db->getAllTokens();
         }
         
         @media (max-width: 768px) {
-            .token-manager {
-                padding: 10px;
-            }
-            
             .section h3 {
-                padding: 0 10px;
                 font-size: 18px;
-            }
-            
-            .create-token-form,
-            .table-container {
-                margin: 0 10px 20px 10px;
             }
             
             .form-row {
@@ -494,7 +480,7 @@ $tokens = $db->getAllTokens();
         </div>
     </div>
 
-    <div class="token-manager">
+    <div class="container">
         <!-- 创建Token表单 -->
         <div class="section">
             <h3>创建新Token</h3>
