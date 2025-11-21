@@ -48,6 +48,11 @@ body {
     padding: 0 20px;
 }
 
+/* 导航链接容器特殊padding，减少底部空白 */
+.container:has(.nav-links) {
+    padding: 0 24px 0;
+}
+
 .header h1 {
     font-size: 28px;
     margin-bottom: 6px;
