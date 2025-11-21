@@ -127,14 +127,37 @@
         scales: {
           y: {
             beginAtZero: true,
-            title: { display: false, text: '每5分钟流量消耗', font: { size: 14, weight: 'bold' } },
-            ticks: { stepSize: 1000, callback: (v) => v + ' MB', font: { size: 12 } },
-            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+            title: { 
+              display: false, 
+              text: '每5分钟流量消耗', 
+              font: { size: 14, weight: 'bold' },
+              color: '#94a3b8'
+            },
+            ticks: { 
+              stepSize: 1000, 
+              callback: (v) => v + ' MB', 
+              font: { size: 12 },
+              color: '#94a3b8'
+            },
+            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+            border: { color: 'rgba(255, 255, 255, 0.1)' }
           },
           x: {
-            title: { display: false, text: '时间', font: { size: 14, weight: 'bold' } },
-            ticks: { font: { size: 11 }, maxRotation: 45, minRotation: 0, autoSkip: true },
-            grid: { display: false }
+            title: { 
+              display: false, 
+              text: '时间', 
+              font: { size: 14, weight: 'bold' },
+              color: '#94a3b8'
+            },
+            ticks: { 
+              font: { size: 11 }, 
+              maxRotation: 45, 
+              minRotation: 0, 
+              autoSkip: true,
+              color: '#94a3b8'
+            },
+            grid: { display: false },
+            border: { color: 'rgba(255, 255, 255, 0.1)' }
           }
         }
       }
