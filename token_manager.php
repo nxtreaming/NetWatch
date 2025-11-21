@@ -367,35 +367,44 @@ $tokens = $db->getAllTokens();
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
         }
         
         .token-modal-content {
-            background-color: #fefefe;
+            background: var(--color-panel);
             margin: 10% auto;
             padding: 30px;
             border-radius: 8px;
             width: 90%;
             max-width: 600px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border: 1px solid var(--color-border);
         }
         
         .token-modal h3 {
-            color: #28a745;
+            color: var(--color-success);
             margin-bottom: 20px;
             text-align: center;
         }
         
+        .token-modal p {
+            color: var(--color-text);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
         .token-display {
-            background: #f8f9fa;
-            border: 2px solid #28a745;
-            border-radius: 4px;
+            background: var(--color-panel-light);
             padding: 15px;
-            margin: 20px 0;
+            border-radius: 4px;
             font-family: monospace;
             font-size: 14px;
             word-break: break-all;
-            position: relative;
+            margin: 20px 0;
+            border: 2px solid var(--color-success);
+            text-align: center;
+            color: var(--color-primary);
         }
         
         .token-actions {
@@ -406,7 +415,7 @@ $tokens = $db->getAllTokens();
         }
         
         .btn-copy-token {
-            background: #007bff;
+            background: var(--color-primary);
             color: white;
             padding: 10px 20px;
             border: none;
@@ -416,11 +425,11 @@ $tokens = $db->getAllTokens();
         }
         
         .btn-copy-token:hover {
-            background: #0056b3;
+            opacity: 0.8;
         }
         
         .btn-close-modal {
-            background: #6c757d;
+            background: var(--color-muted);
             color: white;
             padding: 10px 20px;
             border: none;
@@ -430,11 +439,11 @@ $tokens = $db->getAllTokens();
         }
         
         .btn-close-modal:hover {
-            background: #545b62;
+            opacity: 0.8;
         }
         
         .copy-success {
-            color: #28a745;
+            color: var(--color-success);
             font-size: 12px;
             margin-top: 10px;
             text-align: center;

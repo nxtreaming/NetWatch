@@ -77,6 +77,13 @@ body {
     gap: 20px;
 }
 
+.nav-links {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
 .nav-link {
     color: var(--color-text);
     text-decoration: none;
