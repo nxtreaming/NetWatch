@@ -76,6 +76,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-family: 'Courier New', monospace;
         }
         
+        .import-options {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 30px;
+            align-items: start;
+            margin-bottom: 30px;
+        }
+        
+        .import-option {
+            background: var(--color-panel);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+        }
+        
+        .import-option h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: var(--color-primary);
+        }
+        
+        .import-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-muted);
+            padding-top: 60px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            padding-top: 20px;
+            border-top: 1px solid var(--color-border);
+        }
+        
         .example {
             background: rgba(255, 255, 255, 0.05);
             padding: 15px;
@@ -133,6 +171,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .error-item:last-child {
             border-bottom: none;
+        }
+        
+        @media (max-width: 768px) {
+            .import-options {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .import-divider {
+                padding-top: 0;
+            }
         }
     </style>
 </head>
@@ -211,31 +260,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h2>导入代理配置</h2>
             
             <form method="post" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="import_text">从文本导入</label>
-                    <textarea name="import_text" id="import_text" placeholder="请输入代理配置，每行一个..."></textarea>
-                    <div class="help-text">
-                        格式: IP:端口:类型:用户名:密码 (用户名和密码可选)
-                    </div>
-                    <div class="example">
+                <div class="import-options">
+                    <div class="import-option">
+                        <h3>选项 1: 从文本导入</h3>
+                        <div class="form-group">
+                            <label for="import_text">粘贴代理配置</label>
+                            <textarea name="import_text" id="import_text" placeholder="请输入代理配置，每行一个..."></textarea>
+                            <div class="help-text">
+                                格式: IP:端口:类型:用户名:密码 (用户名和密码可选)
+                            </div>
+                            <div class="example">
 示例:<br>
 192.168.1.100:1080:socks5<br>
 192.168.1.101:8080:http:username:password<br>
 10.0.0.1:1080:socks5:user:pass<br>
 # 这是注释行，会被忽略
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="import-divider">或</div>
+                    
+                    <div class="import-option">
+                        <h3>选项 2: 从文件导入</h3>
+                        <div class="form-group">
+                            <label for="import_file">选择文件</label>
+                            <input type="file" name="import_file" id="import_file" accept=".txt,.csv">
+                            <div class="help-text">
+                                支持 .txt 和 .csv 文件，格式与上面相同
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="import_file">或从文件导入</label>
-                    <input type="file" name="import_file" id="import_file" accept=".txt,.csv">
-                    <div class="help-text">
-                        支持 .txt 和 .csv 文件，格式与上面相同
-                    </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn">开始导入</button>
+                    <button type="button" class="btn btn-secondary" onclick="clearForm()">清空表单</button>
                 </div>
-                
-                <button type="submit" class="btn">开始导入</button>
-                <button type="button" class="btn btn-secondary" onclick="clearForm()">清空表单</button>
             </form>
         </div>
         
