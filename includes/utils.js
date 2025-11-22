@@ -1,3 +1,121 @@
+// 自定义深色主题确认框函数
+function showCustomConfirm(message, onConfirm, onCancel) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7); z-index: 10000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px);
+    `;
+    
+    const confirmBox = document.createElement('div');
+    confirmBox.style.cssText = `
+        background: #111c32; padding: 30px; border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        max-width: 450px; min-width: 320px; text-align: center;
+        font-size: 15px; line-height: 1.8;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    `;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = message;
+    messageDiv.style.cssText = `
+        margin-bottom: 25px; color: #e2e8f0;
+    `;
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+        display: flex; gap: 12px; justify-content: center;
+    `;
+    
+    const confirmButton = document.createElement('button');
+    confirmButton.textContent = '确定';
+    confirmButton.style.cssText = `
+        background: #3b82f6; color: white; border: none;
+        padding: 10px 24px; border-radius: 6px; cursor: pointer;
+        font-size: 14px; font-weight: 500;
+        transition: background 0.3s ease; flex: 1; max-width: 120px;
+    `;
+    
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = '取消';
+    cancelButton.style.cssText = `
+        background: #64748b; color: white; border: none;
+        padding: 10px 24px; border-radius: 6px; cursor: pointer;
+        font-size: 14px; font-weight: 500;
+        transition: background 0.3s ease; flex: 1; max-width: 120px;
+    `;
+    
+    confirmButton.onmouseover = () => confirmButton.style.background = '#2563eb';
+    confirmButton.onmouseout = () => confirmButton.style.background = '#3b82f6';
+    cancelButton.onmouseover = () => cancelButton.style.background = '#475569';
+    cancelButton.onmouseout = () => cancelButton.style.background = '#64748b';
+    
+    confirmButton.onclick = () => {
+        document.body.removeChild(overlay);
+        if (onConfirm) onConfirm();
+    };
+    
+    cancelButton.onclick = () => {
+        document.body.removeChild(overlay);
+        if (onCancel) onCancel();
+    };
+    
+    buttonContainer.appendChild(confirmButton);
+    buttonContainer.appendChild(cancelButton);
+    confirmBox.appendChild(messageDiv);
+    confirmBox.appendChild(buttonContainer);
+    overlay.appendChild(confirmBox);
+    document.body.appendChild(overlay);
+}
+
+// 自定义深色主题提示框函数
+function showCustomAlert(message, callback) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7); z-index: 10000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px);
+    `;
+    
+    const alertBox = document.createElement('div');
+    alertBox.style.cssText = `
+        background: #111c32; padding: 30px; border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        max-width: 500px; min-width: 320px; text-align: center;
+        font-size: 15px; line-height: 1.8;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    `;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+    messageDiv.style.cssText = `
+        margin-bottom: 25px; color: #e2e8f0; white-space: pre-wrap;
+    `;
+    
+    const okButton = document.createElement('button');
+    okButton.textContent = '确定';
+    okButton.style.cssText = `
+        background: #3b82f6; color: white; border: none;
+        padding: 10px 24px; border-radius: 6px; cursor: pointer;
+        font-size: 14px; font-weight: 500;
+        transition: background 0.3s ease;
+    `;
+    
+    okButton.onmouseover = () => okButton.style.background = '#2563eb';
+    okButton.onmouseout = () => okButton.style.background = '#3b82f6';
+    okButton.onclick = () => {
+        document.body.removeChild(overlay);
+        if (callback) callback();
+    };
+    
+    alertBox.appendChild(messageDiv);
+    alertBox.appendChild(okButton);
+    overlay.appendChild(alertBox);
+    document.body.appendChild(overlay);
+}
+
 // 获取正确的API路径（使用相对路径，自动适应任何部署环境）- 与proxy-check.js共享
 function getApiUrl(params) {
     // 使用相对路径 'index.php' 而不是绝对路径 '/index.php'

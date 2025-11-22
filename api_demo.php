@@ -169,7 +169,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
                     <div class="user-info">
                         <div class="user-row">
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="index.php?action=logout" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
+                            <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='index.php?action=logout'); return false;">退出</a>
                         </div>
                         <div class="session-time">登录时间：<?php 
                             $loginTime = Auth::getLoginTime();
