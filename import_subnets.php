@@ -249,10 +249,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
                             <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='index.php?action=logout'); return false;">退出</a>
                         </div>
-                        <div class="session-time">登录时间：<?php 
-                            $loginTime = Auth::getLoginTime();
-                            echo $loginTime ? date('m-d H:i', $loginTime) : 'N/A';
-                        ?></div>
                     </div>
                 </div>
                 <?php endif; ?>
