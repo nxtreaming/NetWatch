@@ -476,11 +476,11 @@ $tokens = $db->getAllTokens();
     <!-- 导航链接 -->
     <div class="container">
         <div class="nav-links">
-            <a href="index.php" class="nav-link">🏠 主页</a>
-            <a href="import.php" class="nav-link">📥 代理导入</a>
-            <a href="import_subnets.php" class="nav-link">🌐 子网导入</a>
-            <a href="api_demo.php" class="nav-link">📖 API示例</a>
-            <a href="proxy-status/" class="nav-link">📊 流量监控</a>
+            <a href="index.php" class="nav-link">主页</a>
+            <a href="import.php" class="nav-link">代理导入</a>
+            <a href="import_subnets.php" class="nav-link">子网导入</a>
+            <a href="api_demo.php" class="nav-link">API示例</a>
+            <a href="proxy-status/" class="nav-link">流量监控</a>
         </div>
     </div>
 
