@@ -302,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="header-content">
                 <div class="header-left">
                     <h1>📥 代理导入</h1>
-                    <p>批量导入代理服务器配置</p>
+                    <p>导入代理服务器</p>
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">

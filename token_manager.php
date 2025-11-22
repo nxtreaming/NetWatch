@@ -457,7 +457,7 @@ $tokens = $db->getAllTokens();
             <div class="header-content">
                 <div class="header-left">
                     <h1>🔑 Token 管理</h1>
-                    <p>API Token 授权管理系统</p>
+                    <p>Token授权管理</p>
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">

@@ -240,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="header-content">
                 <div class="header-left">
                     <h1>🌐 子网代理导入</h1>
-                    <p>批量导入子网的代理服务器配置</p>
+                    <p>导入子网代理服务器</p>
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
