@@ -444,5 +444,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
     </script>
+    <script src="includes/utils.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

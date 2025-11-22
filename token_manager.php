@@ -766,5 +766,6 @@ $tokens = $db->getAllTokens();
             }
         });
     </script>
+    <script src="includes/utils.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

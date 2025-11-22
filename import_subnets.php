@@ -515,5 +515,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    parseInt(parts[3]);
         }
     </script>
+    <script src="includes/utils.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

@@ -18,6 +18,7 @@
       echo json_encode($bootstrap, JSON_UNESCAPED_UNICODE);
     ?>
     </script>
+    <script src="../includes/utils.js?v=<?php echo time(); ?>"></script>
     </div>
 </body>
 </html>
