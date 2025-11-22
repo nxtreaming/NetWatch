@@ -68,46 +68,49 @@ function showCustomAlert(message) {
         justify-content: center;
     `;
     
-    // 创建提示框
+    // 创建提示框 - 深色主题
     const alertBox = document.createElement('div');
     alertBox.style.cssText = `
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        max-width: 400px;
-        min-width: 300px;
+        background: #111c32;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+        max-width: 450px;
+        min-width: 320px;
         text-align: center;
-        font-size: 14px;
-        line-height: 1.5;
+        font-size: 15px;
+        line-height: 1.6;
+        border: 1px solid rgba(255, 255, 255, 0.08);
     `;
     
     // 创建消息内容
     const messageDiv = document.createElement('div');
     messageDiv.innerHTML = message;
     messageDiv.style.cssText = `
-        margin-bottom: 20px;
-        color: #333;
+        margin-bottom: 25px;
+        color: #e2e8f0;
     `;
     
     // 创建确定按钮
     const okButton = document.createElement('button');
     okButton.textContent = '确定';
     okButton.style.cssText = `
-        background: #667eea;
+        background: #3b82f6;
         color: white;
         border: none;
-        padding: 8px 20px;
-        border-radius: 5px;
+        padding: 10px 24px;
+        border-radius: 6px;
         cursor: pointer;
         font-size: 14px;
         margin: 0 auto;
         display: block;
+        font-weight: 500;
+        transition: background 0.3s ease;
     `;
     
     // 按钮悬停效果
-    okButton.onmouseover = () => okButton.style.background = '#5a6fd8';
-    okButton.onmouseout = () => okButton.style.background = '#667eea';
+    okButton.onmouseover = () => okButton.style.background = '#2563eb';
+    okButton.onmouseout = () => okButton.style.background = '#3b82f6';
     
     // 点击确定关闭提示框
     okButton.onclick = () => document.body.removeChild(overlay);
