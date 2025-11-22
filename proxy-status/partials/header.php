@@ -15,14 +15,7 @@
             <div class="header-content">
                 <div class="header-left">
                     <h1>📊 流量监控</h1>
-                    <p>动态IP池流量监控<?php 
-                        if ($realtimeData['updated_at']) {
-                            // 将UTC时间转换为北京时间（UTC+8）
-                            $utcTime = strtotime($realtimeData['updated_at']);
-                            $beijingTime = $utcTime + (8 * 3600);
-                            echo ' - 更新: ' . date('m-d H:i', $beijingTime);
-                        }
-                    ?></p>
+                    <p>动态IP池流量监控</p>
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
