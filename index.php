@@ -10,13 +10,6 @@ require_once 'monitor.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
 
-// 并行检测配置常量
-define('PARALLEL_MAX_PROCESSES', 24);   // 最大并行进程数
-define('PARALLEL_BATCH_SIZE', 200);     // 每批次代理数量
-
-// 设置时区为中国标准时间
-date_default_timezone_set('Asia/Shanghai');
-
 // 检查登录状态
 Auth::requireLogin();
 
@@ -100,6 +93,25 @@ if (isset($_GET['ajax'])) {
             exit;
         }
         
+        // CSRF Token验证（对于修改数据的操作）
+        $modifyingActions = ['check', 'checkAll', 'checkBatch', 'checkFailedProxies', 
+                             'startParallelCheck', 'cancelParallelCheck', 'createTestData',
+                             'startOfflineParallelCheck', 'cancelOfflineParallelCheck'];
+        
+        if (in_array($action, $modifyingActions)) {
+            $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+            
+            if (!Auth::validateCsrfToken($csrfToken)) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'csrf_validation_failed',
+                    'message' => 'CSRF验证失败，请刷新页面后重试'
+                ]);
+                exit;
+            }
+        }
+        
         // 注意：不在这里设置Content-Type header
         // 让各个handler根据需要自己设置（特别是checkBatch需要特殊的header配置）
         
@@ -148,6 +160,10 @@ $recentLogs = $monitor->getRecentLogs(20);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NetWatch - 网络监控系统</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
+    <script>
+        // 将CSRF Token注入到全局变量
+        window.csrfToken = '<?php echo Auth::getCsrfToken(); ?>';
+    </script>
 </head>
 <body>
     <div class="header">

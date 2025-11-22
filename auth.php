@@ -160,6 +160,40 @@ class Auth {
     }
     
     /**
+     * 生成CSRF Token
+     */
+    public static function generateCsrfToken() {
+        self::startSession();
+        
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        
+        return $_SESSION['csrf_token'];
+    }
+    
+    /**
+     * 验证CSRF Token
+     */
+    public static function validateCsrfToken($token) {
+        self::startSession();
+        
+        if (!isset($_SESSION['csrf_token'])) {
+            return false;
+        }
+        
+        return hash_equals($_SESSION['csrf_token'], $token);
+    }
+    
+    /**
+     * 获取当前CSRF Token
+     */
+    public static function getCsrfToken() {
+        self::startSession();
+        return $_SESSION['csrf_token'] ?? self::generateCsrfToken();
+    }
+    
+    /**
      * 要求用户登录（重定向到登录页面）
      */
     public static function requireLogin() {

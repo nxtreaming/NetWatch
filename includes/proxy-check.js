@@ -58,6 +58,12 @@ function checkProxy(proxyId, btn) {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
+                // CSRF验证失败，提示用户刷新页面
+                if (data.error === 'csrf_validation_failed') {
+                    alert('安全验证失败，页面即将刷新');
+                    location.reload();
+                    return;
+                }
                 alert('检查失败: ' + data.error);
             } else {
                 // 刷新页面以显示最新状态

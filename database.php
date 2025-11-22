@@ -5,10 +5,15 @@
 
 class Database {
     private $pdo;
+    private static $tablesCreated = false;
     
     public function __construct() {
         $this->connect();
-        $this->createTables();
+        // 只在首次实例化时创建表，避免重复检查
+        if (!self::$tablesCreated) {
+            $this->createTables();
+            self::$tablesCreated = true;
+        }
     }
     
     private function connect() {
@@ -117,12 +122,22 @@ class Database {
             UNIQUE(snapshot_date, snapshot_time)
         );
         
+        -- 代理表索引优化
         CREATE INDEX IF NOT EXISTS idx_proxies_status ON proxies(status);
+        CREATE INDEX IF NOT EXISTS idx_proxies_ip ON proxies(ip);
+        CREATE INDEX IF NOT EXISTS idx_proxies_updated_at ON proxies(updated_at);
+        CREATE INDEX IF NOT EXISTS idx_proxies_ip_port ON proxies(ip, port);
+        
+        -- 检查日志索引
         CREATE INDEX IF NOT EXISTS idx_check_logs_proxy_id ON check_logs(proxy_id);
         CREATE INDEX IF NOT EXISTS idx_check_logs_checked_at ON check_logs(checked_at);
+        
+        -- API Token索引
         CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);
         CREATE INDEX IF NOT EXISTS idx_api_tokens_expires ON api_tokens(expires_at);
         CREATE INDEX IF NOT EXISTS idx_token_assignments_token ON token_proxy_assignments(token_id);
+        
+        -- 流量统计索引
         CREATE INDEX IF NOT EXISTS idx_traffic_stats_date ON traffic_stats(usage_date);
         CREATE INDEX IF NOT EXISTS idx_traffic_realtime_updated ON traffic_realtime(updated_at);
         CREATE INDEX IF NOT EXISTS idx_traffic_snapshots_date ON traffic_snapshots(snapshot_date);

@@ -152,6 +152,7 @@ function fetchApi(params, options = {}) {
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json, */*',
+            'X-CSRF-Token': window.csrfToken || '',  // 添加CSRF Token
             ...options.headers
         },
         credentials: 'same-origin', // 确保发送cookies

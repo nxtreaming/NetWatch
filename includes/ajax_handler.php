@@ -182,9 +182,9 @@ class AjaxHandler {
             // 记录开始时间
             $startTime = microtime(true);
             
-            // 检查是否有缓存（缓存5分钟）
-            $cacheFile = 'cache_proxy_count.txt';
-            $cacheTime = 300; // 5分钟
+            // 检查是否有缓存
+            $cacheFile = defined('PROXY_COUNT_CACHE_FILE') ? PROXY_COUNT_CACHE_FILE : 'cache_proxy_count.txt';
+            $cacheTime = defined('PROXY_COUNT_CACHE_TIME') ? PROXY_COUNT_CACHE_TIME : 300;
             $useCache = false;
             
             if (file_exists($cacheFile)) {
@@ -512,7 +512,7 @@ class AjaxHandler {
             $searchTerm = $_GET['term'] ?? '';
             $statusFilter = $_GET['status'] ?? '';
             $page = max(1, intval($_GET['page'] ?? 1));
-            $perPage = 200;
+            $perPage = defined('PROXIES_PER_PAGE') ? PROXIES_PER_PAGE : 200;
             
             // 直接使用数据库对象实现搜索和筛选
             $db = new Database();

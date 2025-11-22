@@ -53,3 +53,15 @@ define('TRAFFIC_API_PROXY_PASSWORD', 'Passwd');  // HTTP代理密码
 define('TRAFFIC_API_PROXY_PORT', 12323);  // HTTP代理端口
 define('TRAFFIC_UPDATE_INTERVAL', 300);  // 流量更新间隔（秒），默认5分钟
 define('TRAFFIC_TOTAL_LIMIT_GB', 1000);  // 总流量限制（GB），设置为0表示不限制
+
+// 并行检测配置
+define('PARALLEL_MAX_PROCESSES', 24);   // 最大并行进程数
+define('PARALLEL_BATCH_SIZE', 200);     // 每批次代理数量
+
+// 缓存配置
+define('CACHE_DIR', __DIR__ . '/cache/');  // 缓存目录
+define('PROXY_COUNT_CACHE_FILE', 'cache_proxy_count.txt');  // 代理数量缓存文件名
+define('PROXY_COUNT_CACHE_TIME', 300);  // 代理数量缓存时间（秒），默认5分钟
+
+// 分页配置
+define('PROXIES_PER_PAGE', 200);  // 每页显示的代理数量
