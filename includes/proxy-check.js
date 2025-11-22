@@ -1,5 +1,49 @@
 // 注意：fetchApi 和 getApiUrl 函数已在 utils.js 中定义，此处不再重复定义
 
+// 自定义深色主题提示框函数
+function showCustomAlert(message) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7); z-index: 10000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px);
+    `;
+    
+    const alertBox = document.createElement('div');
+    alertBox.style.cssText = `
+        background: #111c32; padding: 30px; border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        max-width: 500px; min-width: 320px; text-align: center;
+        font-size: 15px; line-height: 1.8;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    `;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+    messageDiv.style.cssText = `
+        margin-bottom: 25px; color: #e2e8f0; white-space: pre-wrap;
+    `;
+    
+    const okButton = document.createElement('button');
+    okButton.textContent = '确定';
+    okButton.style.cssText = `
+        background: #3b82f6; color: white; border: none;
+        padding: 10px 24px; border-radius: 6px; cursor: pointer;
+        font-size: 14px; font-weight: 500;
+        transition: background 0.3s ease;
+    `;
+    
+    okButton.onmouseover = () => okButton.style.background = '#2563eb';
+    okButton.onmouseout = () => okButton.style.background = '#3b82f6';
+    okButton.onclick = () => document.body.removeChild(overlay);
+    
+    alertBox.appendChild(messageDiv);
+    alertBox.appendChild(okButton);
+    overlay.appendChild(alertBox);
+    document.body.appendChild(overlay);
+}
+
 function checkProxy(proxyId, btn) {
     btn = btn || (typeof event !== 'undefined' ? event.target : null);
     if (!btn) {
@@ -142,7 +186,7 @@ async function checkAllProxies() {
         }
         
         if (totalProxies === 0) {
-            alert('没有找到代理数据，请先导入代理。');
+            showCustomAlert('没有找到代理数据，请先导入代理。');
             document.body.removeChild(progressDiv);
             document.body.removeChild(overlay);
             btn.textContent = originalText;
@@ -247,23 +291,22 @@ async function checkAllProxies() {
                 document.body.removeChild(progressDiv);
                 document.body.removeChild(overlay);
                 
-                alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个${alertMessage}\n\n页面将自动刷新显示最新状态`);
+                showCustomAlert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个${alertMessage}\n\n页面将自动刷新显示最新状态`);
+                setTimeout(() => location.reload(), 1500);
                 
             } catch (alertError) {
                 document.body.removeChild(progressDiv);
                 document.body.removeChild(overlay);
-                alert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
+                showCustomAlert(`✅ 检查完成！\n\n总计: ${checkedCount} 个代理\n在线: ${onlineCount} 个\n离线: ${offlineCount} 个\n\n页面将自动刷新显示最新状态`);
+                setTimeout(() => location.reload(), 1500);
             }
-            
-            // 刷新页面显示最新状态
-            location.reload();
         }
     } catch (error) {
         if (!cancelled) {
             document.body.removeChild(progressDiv);
             document.body.removeChild(overlay);
             console.error('检查所有代理失败:', error);
-            alert('❌ 检查失败: ' + error.message);
+            showCustomAlert('❌ 检查失败: ' + error.message);
         }
     } finally {
         if (!cancelled) {
@@ -487,10 +530,10 @@ async function checkAllProxiesParallel() {
                                     document.body.removeChild(progressDiv);
                                     document.body.removeChild(overlay);
                                     
-                                    alert(`🎉 并行检测完成！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n页面将自动刷新显示最新状态`);
+                                    showCustomAlert(`🎉 并行检测完成！\n\n总计: ${progressData.total_checked} 个代理\n在线: ${progressData.total_online} 个\n离线: ${progressData.total_offline} 个\n\n页面将自动刷新显示最新状态`);
                                     
                                     // 刷新页面显示最新状态
-                                    location.reload();
+                                    setTimeout(() => location.reload(), 1500);
                                 } else {
                                     // 最终安全检查失败，不显示对话框，继续等待
                                     return;
@@ -564,7 +607,7 @@ async function checkAllProxiesParallel() {
             document.body.removeChild(progressDiv);
             document.body.removeChild(overlay);
             // 并行检测失败
-            alert('❌ 并行检测失败: ' + error.message);
+            showCustomAlert('❌ 并行检测失败: ' + error.message);
         }
     } finally {
         if (!cancelled) {
