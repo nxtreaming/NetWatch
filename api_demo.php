@@ -162,7 +162,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
             <div class="header-content">
                 <div class="header-left">
                     <h1>📖 API 使用示例</h1>
-                    <p>RESTful API接口文档与在线测试</p>
+                    <p>API接口文档与测试</p>
                 </div>
                 <?php if (Auth::isLoginEnabled()): ?>
                 <div class="header-right">
