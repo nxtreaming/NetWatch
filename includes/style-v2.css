@@ -92,7 +92,7 @@ body {
 .nav-link {
     color: var(--color-text);
     text-decoration: none;
-    padding: 10px 18px;
+    padding: 5px 9px;
     border-radius: 999px;
     font-size: 14px;
     transition: all 0.3s ease;
