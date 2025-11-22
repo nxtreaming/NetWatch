@@ -326,7 +326,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container">
         <div class="nav-links">
             <a href="index.php" class="nav-link">🏠 主页</a>
-            <a href="import.php" class="nav-link active">📥 代理导入</a>
             <a href="import_subnets.php" class="nav-link">🌐 子网导入</a>
             <a href="token_manager.php" class="nav-link">🔑 Token管理</a>
             <a href="api_demo.php" class="nav-link">📖 API示例</a>

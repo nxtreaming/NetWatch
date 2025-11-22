@@ -189,7 +189,6 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
             <a href="import.php" class="nav-link">📥 代理导入</a>
             <a href="import_subnets.php" class="nav-link">🌐 子网导入</a>
             <a href="token_manager.php" class="nav-link">🔑 Token管理</a>
-            <a href="api_demo.php" class="nav-link active">📖 API示例</a>
             <a href="proxy-status/" class="nav-link">📊 流量监控</a>
         </div>
     </div>

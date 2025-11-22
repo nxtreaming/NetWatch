@@ -178,7 +178,6 @@ $recentLogs = $monitor->getRecentLogs(20);
     <!-- 导航链接 -->
     <div class="container">
         <div class="nav-links">
-            <a href="index.php" class="nav-link active">🏠 主页</a>
             <a href="import.php" class="nav-link">📥 代理导入</a>
             <a href="import_subnets.php" class="nav-link">🌐 子网导入</a>
             <a href="token_manager.php" class="nav-link">🔑 Token管理</a>
