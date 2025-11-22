@@ -151,22 +151,23 @@ function showParallelProgress(data) {
     progressDiv.id = 'check-progress';
     progressDiv.style.cssText = `
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background: white; padding: 30px; border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000;
+        background: #111c32; padding: 30px; border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 1000;
         text-align: center; min-width: 300px; max-width: 500px;
         font-family: Arial, sans-serif;
+        border: 1px solid rgba(255, 255, 255, 0.08);
     `;
     
     progressDiv.innerHTML = `
-        <h3 style="margin: 0 0 20px 0; color: #333;">${title}</h3>
-        <div id="progress-info" style="margin-bottom: 15px; color: #666;">正在启动检测...</div>
-        <div style="background: #f0f0f0; border-radius: 10px; height: 20px; margin: 15px 0; overflow: hidden;">
-            <div id="progress-bar" style="background: ${progressColor}; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+        <h3 style="margin: 0 0 20px 0; color: #e2e8f0;">${title}</h3>
+        <div id="progress-info" style="margin-bottom: 15px; color: #94a3b8;">正在启动检测...</div>
+        <div style="background: #14213d; border-radius: 10px; height: 20px; margin: 15px 0; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div id="progress-bar" style="background: ${isOfflineMode ? '#f59e0b' : '#10b981'}; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
         </div>
-        <div id="batch-info" style="margin: 15px 0; color: #666; font-size: 14px;">
+        <div id="batch-info" style="margin: 15px 0; color: #94a3b8; font-size: 14px;">
             总批次: ${data.total_batches} | 已完成: 0
         </div>
-        <button onclick="cancelCheck()" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">
+        <button onclick="cancelCheck()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; transition: background 0.3s ease;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
             取消检测
         </button>
     `;
