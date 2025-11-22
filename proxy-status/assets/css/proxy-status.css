@@ -346,4 +346,17 @@ table tr:hover { background: var(--color-panel-light); }
   .date-query-form button[type="submit"] { flex-shrink: 0; white-space: nowrap; padding: 8px 12px !important; font-size: 13px; }
   .date-query-form a { width: 100%; text-align: center; margin-top: 5px; }
   .date-query-form input[type="hidden"] { display: none; }
+  
+  /* 移动端隐藏总流量限制和剩余流量卡片 */
+  .hide-on-mobile {
+    display: none !important;
+  }
+  
+  /* 移动端隐藏表格中的总流量和剩余流量列 */
+  table th:nth-child(4),
+  table td:nth-child(4),
+  table th:nth-child(5),
+  table td:nth-child(5) {
+    display: none;
+  }
 }
