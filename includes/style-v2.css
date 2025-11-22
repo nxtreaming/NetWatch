@@ -3,7 +3,11 @@
     --color-panel: #111c32;
     --color-panel-light: #14213d;
     --color-border: rgba(255, 255, 255, 0.08);
-    --color-text: #e2e8f0;
+    --color-border-subtle: rgba(255, 255, 255, 0.05);
+    --color-border-strong: rgba(255, 255, 255, 0.12);
+    --color-border-hover: rgba(59, 130, 246, 0.3);
+    --color-text: #f1f5f9;
+    --color-text-secondary: #cbd5e1;
     --color-muted: #94a3b8;
     --color-primary: #3b82f6;
     --color-primary-dark: #2563eb;
@@ -13,6 +17,7 @@
     --color-danger: #ef4444;
     --color-card-gradient: linear-gradient(135deg, rgba(63,94,251,0.25) 0%, rgba(70,252,184,0.15) 100%);
     --shadow-soft: 0 20px 40px rgba(8, 15, 40, 0.35);
+    --color-focus: rgba(59, 130, 246, 0.4);
 }
 
 * {
@@ -33,7 +38,7 @@ body {
     background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.25), rgba(79, 70, 229, 0.25));
     color: var(--color-text);
     padding: 10px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--color-border);
     backdrop-filter: blur(20px);
 }
 
@@ -102,10 +107,11 @@ body {
 
 .nav-link:hover,
 .nav-link.active {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(59, 130, 246, 0.25);
     color: white;
-    border-color: rgba(59, 130, 246, 0.4);
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.45);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
+    transform: translateY(-1px);
 }
 
 .header-right {
@@ -270,10 +276,22 @@ body {
     white-space: nowrap;
 }
 
-.online { color: var(--color-success); }
-.offline { color: var(--color-danger); }
-.unknown { color: var(--color-warning); }
-.total { color: var(--color-accent); }
+.online { 
+    color: #6ee7b7;
+    text-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}
+.offline { 
+    color: #fca5a5;
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+.unknown { 
+    color: #fdba74;
+    text-shadow: 0 0 8px rgba(249, 115, 22, 0.3);
+}
+.total { 
+    color: #67e8f9;
+    text-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
+}
 
 .section {
     background: var(--color-panel-light);
@@ -287,7 +305,7 @@ body {
 .section-header {
     background: rgba(255, 255, 255, 0.02);
     padding: 18px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -421,9 +439,10 @@ body {
 }
 
 .filter-btn.active {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(59, 130, 246, 0.25);
     color: white;
-    border-color: rgba(59, 130, 246, 0.4);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 .search-container {
@@ -483,6 +502,13 @@ body {
 .search-btn {
     background: linear-gradient(120deg, #22c55e, #16a34a);
     box-shadow: 0 14px 22px rgba(34, 197, 94, 0.25);
+    transition: all 0.3s ease;
+}
+
+.search-btn:hover {
+    background: linear-gradient(120deg, #16a34a, #15803d);
+    box-shadow: 0 18px 28px rgba(34, 197, 94, 0.35);
+    transform: translateY(-2px);
 }
 
 .clear-btn {
@@ -495,6 +521,8 @@ body {
 .clear-btn:hover {
     color: white;
     border-color: rgba(148, 163, 184, 0.7);
+    background: rgba(148, 163, 184, 0.1);
+    transform: translateY(-1px);
 }
 
 .search-info {
@@ -590,7 +618,7 @@ table {
 #proxies-table td {
     padding: 16px 18px;
     text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--color-border-subtle);
     vertical-align: middle;
     word-break: break-word;
 }
@@ -672,7 +700,8 @@ th {
 }
 
 tr:hover {
-    background: rgba(148, 163, 184, 0.05);
+    background: rgba(59, 130, 246, 0.08);
+    transition: background 0.2s ease;
 }
 
 .status-badge {
@@ -685,18 +714,21 @@ tr:hover {
 }
 
 .status-online {
-    background: rgba(16, 185, 129, 0.15);
-    color: #34d399;
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .status-offline {
-    background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
+    background: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .status-unknown {
-    background: rgba(249, 115, 22, 0.2);
-    color: #fb923c;
+    background: rgba(249, 115, 22, 0.25);
+    color: #fdba74;
+    border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
 .refresh-btn {
@@ -772,15 +804,17 @@ tr:hover {
 }
 
 .page-btn:hover {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.4);
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
     color: white;
+    transform: translateY(-1px);
 }
 
 .page-btn.active {
     background: var(--color-primary);
     color: white;
     border-color: transparent;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 @media (max-width: 1024px) {
