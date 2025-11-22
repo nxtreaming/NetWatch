@@ -359,4 +359,10 @@ table tr:hover { background: var(--color-panel-light); }
   table td:nth-child(5) {
     display: none;
   }
+  
+  /* 移动端表格字体大小 */
+  table th,
+  table td {
+    font-size: 12px;
+  }
 }
