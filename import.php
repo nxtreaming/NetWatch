@@ -128,7 +128,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input[type="file"] {
             width: 100%;
             display: block;
+            padding: 12px;
+            background: var(--color-panel-light);
             color: var(--color-text);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .form-group input[type="file"]::file-selector-button {
+            padding: 8px 16px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input[type="file"]::file-selector-button:hover {
+            background: var(--color-primary-dark);
+            transform: translateY(-1px);
         }
         
         .import-options {
