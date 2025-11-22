@@ -161,65 +161,12 @@ function fetchApi(params, options = {}) {
     return fetch(url, defaultOptions);
 }
 
-// 自动刷新
-setInterval(refreshStats, 30000); // 30秒刷新统计
-setInterval(refreshLogs, 60000);  // 60秒刷新日志
-
-function refreshStats() {
-    fetchApi('ajax=1&action=stats')
-        .then(response => response.json())
-        .then(data => {
-            const totalEl = document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-inline');
-            const onlineEl = document.querySelector('.stats-grid .stat-card:nth-child(2) .stat-inline');
-            const offlineEl = document.querySelector('.stats-grid .stat-card:nth-child(3) .stat-inline');
-            const unknownEl = document.querySelector('.stats-grid .stat-card:nth-child(4) .stat-inline');
-            const timeEl = document.querySelector('.stats-grid .stat-card:nth-child(5) .stat-inline');
-            
-            if (totalEl) totalEl.textContent = '总数: ' + data.total;
-            if (onlineEl) onlineEl.textContent = '在线: ' + data.online;
-            if (offlineEl) offlineEl.textContent = '离线: ' + data.offline;
-            if (unknownEl) unknownEl.textContent = '未知: ' + data.unknown;
-            if (timeEl) timeEl.textContent = '时间: ' + Math.round(data.avg_response_time) + 'ms';
-        })
-        .catch(error => console.error('刷新统计失败:', error));
-}
-
-function refreshLogs() {
-    fetchApi('ajax=1&action=logs')
-        .then(response => response.json())
-        .then(data => {
-            const container = document.getElementById('logs-container');
-            container.innerHTML = '';
-            
-            data.forEach(log => {
-                const div = document.createElement('div');
-                div.className = 'log-entry';
-                
-                const time = new Date(log.checked_at).toLocaleString('zh-CN', {
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-                
-                let html = `
-                    <span class="log-time">${time}</span>
-                    <span class="log-status log-${log.status}">${log.status.toUpperCase()}</span>
-                    <span>${log.ip}:${log.port}</span>
-                    <span>(${parseFloat(log.response_time).toFixed(2)}ms)</span>
-                `;
-                
-                if (log.error_message) {
-                    html += `<span style="color: #f44336;"> - ${log.error_message}</span>`;
-                }
-                
-                div.innerHTML = html;
-                container.appendChild(div);
-            });
-        })
-        .catch(error => console.error('刷新日志失败:', error));
-}
+// 注意：已移除自动刷新功能
+// 原因：
+// 1. 统计数据和日志只有在执行检测后才会变化
+// 2. 检测完成后页面会自动刷新，无需定时刷新
+// 3. 定时刷新浪费服务器资源和网络带宽
+// 4. 用户体验没有实际提升
 
 
 // 调试函数：查看数据库中的实际状态值
