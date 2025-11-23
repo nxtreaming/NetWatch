@@ -283,6 +283,9 @@
 
     const statsByDate = {};
     stats.forEach(s => { statsByDate[s.usage_date] = s; });
+    
+    // 获取今日日期，用于判断是否显示绿色点
+    const today = TODAY || new Date().toISOString().split('T')[0];
 
     let html = '';
     stats.forEach(stat => {
@@ -307,10 +310,14 @@
 
       const isHighlighted = !!centerDate && stat.usage_date === centerDate;
       const rowClass = isHighlighted ? 'row-highlight' : '';
+      
+      // 判断是否为今日数据，添加绿色点标识
+      const isToday = currentDate === today;
+      const todayIndicator = isToday ? ' <span class="dot-green">●</span>' : '';
 
       html += `
         <tr class="${rowClass}">
-          <td>${stat.usage_date}</td>
+          <td>${stat.usage_date}${todayIndicator}</td>
           <td>${dailyUsage} GB</td>
           <td>${usedBandwidth} GB</td>
           <td>${totalBandwidth} GB</td>
