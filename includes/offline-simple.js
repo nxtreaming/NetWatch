@@ -51,6 +51,94 @@ async function checkOfflineProxiesParallel() {
     }
 }
 
+// 完成对话框函数，支持HTML内容和自动刷新
+function showCompletionDialog(message, autoReload = false) {
+    // 创建遮罩层
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    // 创建提示框 - 深色主题
+    const alertBox = document.createElement('div');
+    alertBox.style.cssText = `
+        background: #111c32;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+        max-width: 450px;
+        min-width: 320px;
+        text-align: center;
+        font-size: 15px;
+        line-height: 1.6;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    `;
+    
+    // 创建消息内容
+    const messageDiv = document.createElement('div');
+    messageDiv.innerHTML = message;
+    messageDiv.style.cssText = `
+        margin-bottom: 25px;
+        color: #e2e8f0;
+    `;
+    
+    // 创建确定按钮
+    const okButton = document.createElement('button');
+    okButton.textContent = '确定';
+    okButton.style.cssText = `
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        margin: 0 auto;
+        display: block;
+        font-weight: 500;
+        transition: background 0.3s ease;
+    `;
+    
+    // 按钮悬停效果
+    okButton.onmouseover = () => okButton.style.background = '#2563eb';
+    okButton.onmouseout = () => okButton.style.background = '#3b82f6';
+    
+    // 点击确定关闭提示框
+    okButton.onclick = () => {
+        document.body.removeChild(overlay);
+        if (autoReload) {
+            location.reload();
+        }
+    };
+    
+    // 组装提示框
+    alertBox.appendChild(messageDiv);
+    alertBox.appendChild(okButton);
+    overlay.appendChild(alertBox);
+    
+    // 添加到页面
+    document.body.appendChild(overlay);
+    
+    // 点击遮罩层也可以关闭
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+            if (autoReload) {
+                location.reload();
+            }
+        }
+    };
+}
+
 // 自定义提示框函数，支持HTML内容和居中按钮
 function showCustomAlert(message) {
     // 创建遮罩层
@@ -225,9 +313,15 @@ function startProgressMonitoring(sessionId, isOfflineMode) {
                     if (isOfflineMode) {
                         const recovered = progressData.total_online || 0;
                         const stillOffline = progressData.total_offline || 0;
-                        alert(`✅ 离线代理检测完成！\n\n已恢复: ${recovered} 个\n仍离线: ${stillOffline} 个\n\n页面将刷新`);
+                        showCompletionDialog(
+                            `✅ 离线代理检测完成！<br><br>已恢复: <strong>${recovered}</strong> 个<br>仍离线: <strong>${stillOffline}</strong> 个<br><br>页面将刷新`,
+                            true
+                        );
                     } else {
-                        alert(`✅ 并行检测完成！\n\n在线: ${progressData.total_online}\n离线: ${progressData.total_offline}\n\n页面将刷新`);
+                        showCompletionDialog(
+                            `✅ 并行检测完成！<br><br>在线: <strong>${progressData.total_online}</strong><br>离线: <strong>${progressData.total_offline}</strong><br><br>页面将刷新`,
+                            true
+                        );
                     }
                     
                     window.isOfflineMode = false;
@@ -243,8 +337,7 @@ function startProgressMonitoring(sessionId, isOfflineMode) {
     setTimeout(() => {
         if (!cancelled) {
             clearInterval(progressInterval);
-            alert('检测超时，页面将刷新');
-            location.reload();
+            showCompletionDialog('⏱️ 检测超时，页面将刷新', true);
         }
     }, 10 * 60 * 1000);
 }
