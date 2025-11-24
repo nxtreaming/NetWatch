@@ -365,4 +365,9 @@ table tr:hover { background: var(--color-panel-light); }
   table td {
     font-size: 12px;
   }
+  
+  /* 移动端自动刷新提示增加下边距 */
+  .auto-refresh {
+    margin-bottom: 20px;
+  }
 }
