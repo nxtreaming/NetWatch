@@ -299,7 +299,7 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 /* Table - 深色主题 */
 table { width: 100%; border-collapse: collapse; }
 table th,
-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
+table td { padding: 8px; text-align: left; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
 table th {
   background: var(--color-panel-light);
   color: var(--color-muted);

@@ -616,7 +616,7 @@ table {
 
 #proxies-table th,
 #proxies-table td {
-    padding: 16px 18px;
+    padding: 8px 8px;
     text-align: left;
     border-bottom: 1px solid var(--color-border-subtle);
     vertical-align: middle;
