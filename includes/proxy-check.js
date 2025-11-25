@@ -384,14 +384,14 @@ async function checkAllProxiesParallel() {
     progressDiv.innerHTML = `
         <h3 style="margin: 0 0 ${margin} 0; color: #e2e8f0; font-size: ${titleSize}; font-weight: 700;">🚀 并行检测所有代理</h3>
         <div id="parallel-progress-info" style="margin-bottom: ${isMobile ? '20px' : '25px'}; color: #94a3b8; font-size: ${textSize}; line-height: 1.6; word-break: break-word;">正在启动并行检测引擎...</div>
-        <div style="background: #14213d; border-radius: ${isMobile ? '15px' : '20px'}; height: ${progressHeight}; margin: ${isMobile ? '20px' : '35px'} 0; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="background: #14213d; border-radius: ${isMobile ? '15px' : '20px'}; height: ${progressHeight}; margin: ${isMobile ? '10px' : '25px'} 0; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08);">
             <div id="parallel-progress-bar" style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: 0%; transition: width 0.8s ease; border-radius: ${isMobile ? '13px' : '18px'}; position: relative;">
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 700; font-size: ${isMobile ? '12px' : '16px'}; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);" id="parallel-progress-percent">0%</div>
             </div>
         </div>
-        <div id="parallel-progress-stats" style="font-size: ${textSize}; color: #e2e8f0; margin-bottom: ${isMobile ? '20px' : '30px'}; padding: ${isMobile ? '15px' : '20px'}; background: #14213d; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.08); word-break: break-word;">准备启动...</div>
-        <div id="parallel-batch-info" style="font-size: ${smallTextSize}; color: #e2e8f0; margin-bottom: ${isMobile ? '20px' : '25px'}; padding: ${isMobile ? '12px' : '15px'}; background: rgba(245, 158, 11, 0.1); border-radius: 10px; border: 1px solid #f59e0b; word-break: break-word;">批次信息加载中...</div>
-        <div style="display: flex; justify-content: center; gap: ${gap}; margin-top: ${isMobile ? '20px' : '25px'};">
+        <div id="parallel-progress-stats" style="font-size: ${textSize}; color: #e2e8f0; margin-bottom: ${isMobile ? '10px' : '20px'}; padding: ${isMobile ? '15px' : '20px'}; background: #14213d; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.08); word-break: break-word;">准备启动...</div>
+        <div id="parallel-batch-info" style="font-size: ${smallTextSize}; color: #e2e8f0; margin-bottom: ${isMobile ? '10px' : '15px'}; padding: ${isMobile ? '12px' : '15px'}; background: rgba(245, 158, 11, 0.1); border-radius: 10px; border: 1px solid #f59e0b; word-break: break-word;">批次信息加载中...</div>
+        <div style="display: flex; justify-content: center; gap: ${gap}; margin-top: ${isMobile ? '10px' : '15px'};">
             <button id="cancel-parallel-check" style="padding: ${buttonPadding}; background: #ef4444; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: ${buttonSize}; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.background='#dc2626'; ${isMobile ? '' : 'this.style.transform=\'scale(1.05)\''};" onmouseout="this.style.background='#ef4444'; ${isMobile ? '' : 'this.style.transform=\'scale(1)\''};">取消检测</button>
         </div>
     `;
