@@ -373,12 +373,12 @@ async function checkAllProxiesParallel() {
     // 移动端适配的HTML内容
     const isMobile = window.innerWidth <= 768;
     const titleSize = isMobile ? '22px' : '28px';
-    const textSize = isMobile ? '14px' : '18px';
-    const smallTextSize = isMobile ? '13px' : '16px';
+    const textSize = isMobile ? '14px' : '16px';
+    const smallTextSize = isMobile ? '13px' : '15px';
     const buttonPadding = isMobile ? '10px 20px' : '15px 30px';
     const buttonSize = isMobile ? '16px' : '18px';
-    const progressHeight = isMobile ? '30px' : '35px';
-    const margin = isMobile ? '20px' : '30px';
+    const progressHeight = isMobile ? '15px' : '25px';
+    const margin = isMobile ? '10px' : '15px';
     const gap = isMobile ? '15px' : '20px';
     
     progressDiv.innerHTML = `
