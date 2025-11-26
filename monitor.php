@@ -312,15 +312,11 @@ class NetworkMonitor {
     
     /**
      * 根据ID获取代理（内部使用，包含敏感信息）
+     * @param int $id 代理ID
+     * @return array|null 代理信息或null
      */
-    public function getProxyById($id) {
-        $proxies = $this->db->getAllProxies();
-        foreach ($proxies as $proxy) {
-            if ($proxy['id'] == $id) {
-                return $proxy;
-            }
-        }
-        return null;
+    public function getProxyById(int $id): ?array {
+        return $this->db->getProxyById($id);
     }
     
     /**

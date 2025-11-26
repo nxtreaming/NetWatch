@@ -127,10 +127,13 @@ class Database {
         CREATE INDEX IF NOT EXISTS idx_proxies_ip ON proxies(ip);
         CREATE INDEX IF NOT EXISTS idx_proxies_updated_at ON proxies(updated_at);
         CREATE INDEX IF NOT EXISTS idx_proxies_ip_port ON proxies(ip, port);
+        CREATE INDEX IF NOT EXISTS idx_proxies_status_response ON proxies(status, response_time);
+        CREATE INDEX IF NOT EXISTS idx_proxies_failure_count ON proxies(failure_count);
         
         -- 检查日志索引
         CREATE INDEX IF NOT EXISTS idx_check_logs_proxy_id ON check_logs(proxy_id);
         CREATE INDEX IF NOT EXISTS idx_check_logs_checked_at ON check_logs(checked_at);
+        CREATE INDEX IF NOT EXISTS idx_check_logs_proxy_checked ON check_logs(proxy_id, checked_at);
         
         -- API Token索引
         CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);
@@ -179,6 +182,19 @@ class Database {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$perPage, $offset]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * 根据ID获取单个代理（高效直接查询）
+     * @param int $id 代理ID
+     * @return array|null 代理信息或null
+     */
+    public function getProxyById(int $id): ?array {
+        $sql = "SELECT * FROM proxies WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?: null;
     }
     
     public function updateProxyStatus($id, $status, $responseTime = 0, $errorMessage = null) {
@@ -345,17 +361,12 @@ class Database {
     }
     
     /**
-     * 搜索代理
-     * @param string $searchTerm 搜索词，支持IP地址或网段
-     * @param int $page 页码
-     * @param int $perPage 每页数量
+     * 构建搜索条件（公共方法，消除代码重复）
+     * @param string $searchTerm 搜索词
      * @param string $statusFilter 状态筛选
-     * @return array 搜索结果
+     * @return array ['conditions' => [], 'params' => []]
      */
-    public function searchProxies($searchTerm, $page = 1, $perPage = 200, $statusFilter = '') {
-        $offset = ($page - 1) * $perPage;
-        
-        // 构建查询条件
+    private function buildSearchConditions(string $searchTerm, string $statusFilter = ''): array {
         $conditions = [];
         $params = [];
         
@@ -381,6 +392,25 @@ class Database {
             $params[] = $statusFilter;
         }
         
+        return ['conditions' => $conditions, 'params' => $params];
+    }
+    
+    /**
+     * 搜索代理
+     * @param string $searchTerm 搜索词，支持IP地址或网段
+     * @param int $page 页码
+     * @param int $perPage 每页数量
+     * @param string $statusFilter 状态筛选
+     * @return array 搜索结果
+     */
+    public function searchProxies($searchTerm, $page = 1, $perPage = 200, $statusFilter = '') {
+        $offset = ($page - 1) * $perPage;
+        
+        // 使用公共方法构建条件
+        $result = $this->buildSearchConditions($searchTerm, $statusFilter);
+        $conditions = $result['conditions'];
+        $params = $result['params'];
+        
         // 构建 SQL 查询
         $sql = "SELECT * FROM proxies";
         if (!empty($conditions)) {
@@ -404,31 +434,10 @@ class Database {
      * @return int 搜索结果总数
      */
     public function getSearchCount($searchTerm, $statusFilter = '') {
-        // 构建查询条件
-        $conditions = [];
-        $params = [];
-        
-        // 处理搜索条件
-        if (!empty($searchTerm)) {
-            // 检查是否是网段搜索
-            if (strpos($searchTerm, '.x') !== false || substr($searchTerm, -1) === '.') {
-                // 网段搜索
-                $networkPrefix = str_replace(['.x', 'x'], ['', ''], $searchTerm);
-                $networkPrefix = rtrim($networkPrefix, '.');
-                $conditions[] = "ip LIKE ?";
-                $params[] = $networkPrefix . '.%';
-            } else {
-                // 精确IP搜索或部分匹配
-                $conditions[] = "ip LIKE ?";
-                $params[] = '%' . $searchTerm . '%';
-            }
-        }
-        
-        // 处理状态筛选
-        if (!empty($statusFilter)) {
-            $conditions[] = "status = ?";
-            $params[] = $statusFilter;
-        }
+        // 使用公共方法构建条件
+        $result = $this->buildSearchConditions($searchTerm, $statusFilter);
+        $conditions = $result['conditions'];
+        $params = $result['params'];
         
         // 构建 SQL 查询
         $sql = "SELECT COUNT(*) as count FROM proxies";
