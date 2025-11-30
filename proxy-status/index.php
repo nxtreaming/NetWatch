@@ -347,10 +347,11 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             }
                             
                             // 计算当日使用量
-                            // 对于每月1日（跨月），当日使用 = 当月累计（因为是新月份第一天）
-                            if ($isFirstDayOfMonth) {
-                                // 跨月：当日使用 = 当月累计流量（使用实时值）
+                            // 对于每月1日（跨月）或今日，当日使用 = 当月累计
+                            if ($isFirstDayOfMonth || $currentDate === $todayStr) {
+                                // 跨月或今日：当日使用 = 当月累计流量（使用实时值）
                                 $calculatedDailyUsage = $rawUsedBandwidth;
+                                echo "<div style='background:green;color:white;'>CALC: isFirstDay=$isFirstDayOfMonth, calculatedDailyUsage=$calculatedDailyUsage</div>";
                             } elseif (isset($stat['daily_usage'])) {
                                 // 历史数据：使用数据库中已计算好的 daily_usage
                                 $calculatedDailyUsage = $stat['daily_usage'];
