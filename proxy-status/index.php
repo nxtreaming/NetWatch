@@ -338,13 +338,12 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             
                             // 今日数据：强制使用实时计算值，保持与顶部一致
                             $todayStr = date('Y-m-d');
-                            // DEBUG: 输出比较值
-                            echo "<!-- DEBUG: currentDate=[$currentDate] todayStr=[$todayStr] equal=" . ($currentDate === $todayStr ? 'YES' : 'NO') . " totalTraffic=$totalTraffic -->\n";
                             if ($currentDate === $todayStr) {
                                 // 强制覆盖为实时值
                                 $rawUsedBandwidth = $totalTraffic;
-                                // DEBUG标记
-                                $debugToday = true;
+                                echo "<div style='background:red;color:white;padding:5px;'>DEBUG: 今日匹配! currentDate=$currentDate, todayStr=$todayStr, totalTraffic=$totalTraffic, rawUsedBandwidth=$rawUsedBandwidth</div>";
+                            } else {
+                                echo "<div style='background:gray;color:white;padding:2px;font-size:12px;'>DEBUG: $currentDate != $todayStr</div>";
                             }
                             
                             // 计算当日使用量
