@@ -383,8 +383,8 @@ class TrafficMonitor {
         // 如果是每月1日，不与上月最后一天做差值，直接计算当天的增量
         if ($isFirstDayOfMonth) {
             $this->logger->info("检测到跨月：{$date} 是每月1日，不与上月数据做差值计算");
-            // 从第一个快照开始计算当天的增量
-            $startIndex = 0;
+            // 从第二个快照开始计算增量（第一个快照作为当天基准点）
+            $startIndex = 1;
         } elseif ($yesterdayLastSnapshot && !empty($snapshots)) {
             // 非跨月：如果有前一天的最后快照，计算第一个点的增量
             $firstSnapshot = $snapshots[0];
