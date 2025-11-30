@@ -125,11 +125,8 @@ if ($prevMonthLastSnapshot) {
         $monthlyTxBytes = $monthlyTx;
     }
     
-    // 计算当月总流量
-    $monthlyUsed = $totalTrafficRaw - ($prevRxBytes + $prevTxBytes) / (1024*1024*1024);
-    if ($monthlyUsed >= 0) {
-        $totalTraffic = $monthlyUsed;
-    }
+    // 计算当月总流量（使用分别计算的RX+TX，保持一致性）
+    $totalTraffic = ($monthlyRxBytes + $monthlyTxBytes) / (1024*1024*1024);
 } else {
     // 没有上月快照数据，尝试使用 traffic_stats 表
     $prevMonthLastDayData = $trafficMonitor->getStatsForDate($lastDayOfPrevMonth);
@@ -336,7 +333,11 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             if ($isToday) {
                                 $calculatedDailyUsage = $totalTraffic;
                                 $displayUsedBandwidth = $totalTraffic;
-                                echo "<!-- TODAY MATCH: $currentDate = $today, using $totalTraffic -->";
+                            }
+                            
+                            // 调试：显示最终输出值
+                            if ($isToday) {
+                                echo "<div style='background:blue;color:white;padding:3px;'>FINAL: displayUsedBandwidth=$displayUsedBandwidth, totalTraffic=$totalTraffic</div>";
                             }
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
