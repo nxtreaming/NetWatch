@@ -138,11 +138,24 @@ if ($prevMonthLastSnapshot) {
     }
 }
 
-// 如果搜索结果包含今日，用实时数据替换
+// 计算今日使用量（实时流量 - 昨天最后快照），避免丢失 23:55~00:00 的数据
 $todayStr = date('Y-m-d');
+$yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+$yesterdayLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($yesterdayStr);
+if ($yesterdayLastSnapshot) {
+    $yesterdayTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024*1024*1024);
+    $todayDailyUsage = $totalTrafficRaw - $yesterdayTotal;
+    if ($todayDailyUsage < 0) {
+        $todayDailyUsage = $totalTraffic; // 异常情况，使用当月累计
+    }
+} else {
+    $todayDailyUsage = $totalTraffic; // 没有昨天快照，使用当月累计
+}
+
+// 如果搜索结果包含今日，用实时计算的数据替换
 foreach ($recentStats as &$stat) {
     if ($stat['usage_date'] === $todayStr) {
-        $stat['daily_usage'] = $totalTraffic;
+        $stat['daily_usage'] = $todayDailyUsage;
         $stat['used_bandwidth'] = $totalTraffic;
         break;
     }
@@ -334,8 +347,8 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             $currentDate = $stat['usage_date'];
                             $isToday = ($currentDate === $todayDate);
                             
-                            // 今日用实时值，其他用数据库值
-                            $calculatedDailyUsage = $isToday ? $totalTraffic : (isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth']);
+                            // 今日用实时计算值，其他用数据库值
+                            $calculatedDailyUsage = $isToday ? $todayDailyUsage : (isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth']);
                             $displayUsedBandwidth = $isToday ? $totalTraffic : $stat['used_bandwidth'];
                             $displayTotalBandwidth = $stat['total_bandwidth'];
                             $displayRemainingBandwidth = $stat['remaining_bandwidth'];
