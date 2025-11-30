@@ -125,7 +125,7 @@ if ($prevMonthLastSnapshot) {
         $monthlyTxBytes = $monthlyTx;
     }
     
-    // 计算当月总流量（使用分别计算的RX+TX，保持一致性）
+    // 计算当月总流量（$monthlyRxBytes和$monthlyTxBytes已经是字节，需要转GB）
     $totalTraffic = ($monthlyRxBytes + $monthlyTxBytes) / (1024*1024*1024);
 } else {
     // 没有上月快照数据，尝试使用 traffic_stats 表
@@ -137,6 +137,17 @@ if ($prevMonthLastSnapshot) {
         }
     }
 }
+
+// 如果搜索结果包含今日，用实时数据替换
+$todayStr = date('Y-m-d');
+foreach ($recentStats as &$stat) {
+    if ($stat['usage_date'] === $todayStr) {
+        $stat['daily_usage'] = $totalTraffic;
+        $stat['used_bandwidth'] = $totalTraffic;
+        break;
+    }
+}
+unset($stat);
 
 // 定义百分比变量供后续使用
 $percentage = $realtimeData['usage_percentage'];
@@ -321,19 +332,19 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                         foreach ($recentStats as $stat): 
                             $currentDate = $stat['usage_date'];
                             $todayDate = date('Y-m-d');
-                            $isCurrentDateToday = ($currentDate === $todayDate);
                             
                             // 今日用实时值，其他用数据库值
-                            if ($isCurrentDateToday) {
+                            if ($currentDate === $todayDate) {
                                 $calculatedDailyUsage = $totalTraffic;
                                 $displayUsedBandwidth = $totalTraffic;
+                                $isToday = true;
                             } else {
                                 $calculatedDailyUsage = isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth'];
                                 $displayUsedBandwidth = $stat['used_bandwidth'];
+                                $isToday = false;
                             }
                             $displayTotalBandwidth = $stat['total_bandwidth'];
                             $displayRemainingBandwidth = $stat['remaining_bandwidth'];
-                            $isToday = $isCurrentDateToday;
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
                             <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span class="dot-green">●</span>'; ?></td>
