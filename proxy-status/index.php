@@ -336,6 +336,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             if ($isToday) {
                                 $calculatedDailyUsage = $totalTraffic;
                                 $displayUsedBandwidth = $totalTraffic;
+                                echo "<!-- TODAY MATCH: $currentDate = $today, using $totalTraffic -->";
                             }
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
