@@ -342,8 +342,8 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
                             <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span class="dot-green">●</span>'; ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?><?php if($isToday) echo "<!--RAW1:$calculatedDailyUsage-->"; ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($displayUsedBandwidth); ?><?php if($isToday) echo "<!--RAW2:$displayUsedBandwidth-->"; ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($displayUsedBandwidth); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayTotalBandwidth); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayRemainingBandwidth); ?></td>
                         </tr>
