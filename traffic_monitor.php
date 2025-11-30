@@ -208,31 +208,40 @@ class TrafficMonitor {
         // 计算今日使用量：使用快照增量累加，避免流量重置导致的数据丢失
         $dailyUsage = $this->calculateDailyUsageFromSnapshots($today);
         
+        // 检测是否是每月1日（跨月）
+        $isFirstDayOfMonth = (date('d') === '01');
+        
         // 如果快照数据不足，回退到简单计算
         if ($dailyUsage === false) {
-            $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
-            $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
-            
-            if ($yesterdayData) {
-                $dailyUsage = $totalUsedGB - $yesterdayData['used_bandwidth'];
-                
-                // 检测流量重置或API数据异常：如果计算结果为负
-                if ($dailyUsage < 0) {
-                    $difference = abs($dailyUsage);
-                    
-                    // 只有差值 >= 100GB 才认为是真正的流量重置
-                    if ($difference >= 100) {
-                        $dailyUsage = $totalUsedGB;
-                        $this->logger->warning("检测到流量重置（差值{$difference}GB >= 100GB），当日使用量可能不准确（丢失跨日流量）");
-                    } else {
-                        // 差值 < 100GB，可能是API数据异常，跳过本次更新
-                        $this->logger->warning("API数据异常：今天累计值({$totalUsedGB}GB)比昨天({$yesterdayData['used_bandwidth']}GB)少{$difference}GB，但不足100GB阈值，跳过本次更新");
-                        return false;
-                    }
-                }
-            } else {
-                // 没有昨天的数据，使用今天的累计值作为当日使用量
+            // 如果是每月1日，不与上月数据做差值
+            if ($isFirstDayOfMonth) {
                 $dailyUsage = $totalUsedGB;
+                $this->logger->info("跨月（每月1日）：使用当天累计值({$totalUsedGB}GB)作为当日使用量");
+            } else {
+                $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
+                $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
+                
+                if ($yesterdayData) {
+                    $dailyUsage = $totalUsedGB - $yesterdayData['used_bandwidth'];
+                    
+                    // 检测流量重置或API数据异常：如果计算结果为负
+                    if ($dailyUsage < 0) {
+                        $difference = abs($dailyUsage);
+                        
+                        // 只有差值 >= 100GB 才认为是真正的流量重置
+                        if ($difference >= 100) {
+                            $dailyUsage = $totalUsedGB;
+                            $this->logger->warning("检测到流量重置（差值{$difference}GB >= 100GB），当日使用量可能不准确（丢失跨日流量）");
+                        } else {
+                            // 差值 < 100GB，可能是API数据异常，跳过本次更新
+                            $this->logger->warning("API数据异常：今天累计值({$totalUsedGB}GB)比昨天({$yesterdayData['used_bandwidth']}GB)少{$difference}GB，但不足100GB阈值，跳过本次更新");
+                            return false;
+                        }
+                    }
+                } else {
+                    // 没有昨天的数据，使用今天的累计值作为当日使用量
+                    $dailyUsage = $totalUsedGB;
+                }
             }
         }
         
@@ -353,6 +362,9 @@ class TrafficMonitor {
             return false;
         }
         
+        // 检测是否是每月1日（跨月）
+        $isFirstDayOfMonth = (date('d', strtotime($date)) === '01');
+        
         // 获取前一天最后一个快照（23:55）作为基准点
         $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
         $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
@@ -364,8 +376,13 @@ class TrafficMonitor {
         
         $totalDailyUsage = 0;
         
-        // 如果有前一天的最后快照，计算第一个点的增量
-        if ($yesterdayLastSnapshot && !empty($snapshots)) {
+        // 如果是每月1日，不与上月最后一天做差值，直接计算当天的增量
+        if ($isFirstDayOfMonth) {
+            $this->logger->info("检测到跨月：{$date} 是每月1日，不与上月数据做差值计算");
+            // 从第一个快照开始计算当天的增量
+            $startIndex = 0;
+        } elseif ($yesterdayLastSnapshot && !empty($snapshots)) {
+            // 非跨月：如果有前一天的最后快照，计算第一个点的增量
             $firstSnapshot = $snapshots[0];
             $increment = ($firstSnapshot['total_bytes'] - $yesterdayLastSnapshot['total_bytes']) / (1024 * 1024 * 1024);
             
@@ -429,6 +446,15 @@ class TrafficMonitor {
      */
     public function getRecentStats($days = 30) {
         return $this->db->getRecentTrafficStats($days);
+    }
+    
+    /**
+     * 获取指定日期的流量统计
+     * @param string $date 日期 (Y-m-d)
+     * @return array|null
+     */
+    public function getStatsForDate($date) {
+        return $this->db->getDailyTrafficStats($date);
     }
     
     /**
