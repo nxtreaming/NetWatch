@@ -245,13 +245,17 @@ class TrafficMonitor {
             }
         }
         
-        // 检测流量重置：如果当日使用量大于当前累计值，说明发生了重置
-        // 这种情况下，用当日使用量作为"已用流量"，因为这是新周期的起点
+        // 计算要存储的"已用流量"值
+        // 关键：每月1日存储当月累计值，而不是原始累计值
         $displayUsedGB = $totalUsedGB;
         $trafficReset = false;
         $skipUpdate = false;  // 是否跳过本次更新（API数据异常时）
         
-        if ($dailyUsage > $totalUsedGB) {
+        if ($isFirstDayOfMonth) {
+            // 每月1日：存储当月累计值（= 当日使用量）
+            $displayUsedGB = $dailyUsage;
+            $this->logger->info("跨月（每月1日）：存储当月累计值 {$dailyUsage}GB（而不是原始累计值 {$totalUsedGB}GB）");
+        } elseif ($dailyUsage > $totalUsedGB) {
             // 当日使用量包含了重置前的流量，使用当日使用量作为显示值
             $displayUsedGB = $dailyUsage;
             $trafficReset = true;

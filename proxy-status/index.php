@@ -372,28 +372,20 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             }
                             
                             // 计算已用流量显示值
-                            // 简化逻辑：
-                            // 1. 查询历史日期范围时：直接使用数据库原始数据
-                            // 2. 默认显示最近32天时：当前月份显示当月累计，历史月份显示原始数据
+                            // 核心逻辑：
+                            // 1. 今日数据：始终显示当月累计（$totalTraffic）
+                            // 2. 每月1日：当月累计 = 当日使用量
+                            // 3. 其他情况：使用数据库原始数据
                             
-                            if ($queryDate) {
-                                // 查询历史日期范围：直接使用数据库原始数据
-                                $displayUsedBandwidth = $rawUsedBandwidth;
+                            if ($isToday) {
+                                // 今日数据：始终显示当月累计
+                                $displayUsedBandwidth = $totalTraffic;
+                            } elseif ($isFirstDayOfMonth) {
+                                // 每月1日：当月累计就是当日使用量
+                                $displayUsedBandwidth = $calculatedDailyUsage;
                             } else {
-                                // 默认显示最近32天
-                                $currentMonthStr = date('Y-m');  // 当前月份 (如 2025-12)
-                                $dataMonthStr = date('Y-m', strtotime($currentDate));  // 数据所属月份
-                                
-                                if ($dataMonthStr === $currentMonthStr && $isToday) {
-                                    // 今日数据：$rawUsedBandwidth 已经是 $totalTraffic（当月累计）
-                                    $displayUsedBandwidth = $rawUsedBandwidth;
-                                } elseif ($dataMonthStr === $currentMonthStr && $isFirstDayOfMonth) {
-                                    // 每月1日：当月累计就是当日使用量
-                                    $displayUsedBandwidth = $calculatedDailyUsage;
-                                } else {
-                                    // 其他情况：使用数据库原始数据
-                                    $displayUsedBandwidth = $rawUsedBandwidth;
-                                }
+                                // 其他情况：使用数据库原始数据
+                                $displayUsedBandwidth = $rawUsedBandwidth;
                             }
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
