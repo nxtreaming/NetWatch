@@ -372,49 +372,28 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             }
                             
                             // 计算已用流量显示值
-                            // 只有当前月份的数据需要显示"当月累计"，历史月份显示原始累计值
-                            $currentMonthStr = date('Y-m');  // 当前月份 (如 2025-12)
-                            $dataMonthStr = date('Y-m', strtotime($currentDate));  // 数据所属月份
+                            // 简化逻辑：
+                            // 1. 查询历史日期范围时：直接使用数据库原始数据
+                            // 2. 默认显示最近32天时：当前月份显示当月累计，历史月份显示原始数据
                             
-                            if ($dataMonthStr === $currentMonthStr) {
-                                // 当前月份的数据：显示当月累计
-                                if ($isFirstDayOfMonth) {
+                            if ($queryDate) {
+                                // 查询历史日期范围：直接使用数据库原始数据
+                                $displayUsedBandwidth = $rawUsedBandwidth;
+                            } else {
+                                // 默认显示最近32天
+                                $currentMonthStr = date('Y-m');  // 当前月份 (如 2025-12)
+                                $dataMonthStr = date('Y-m', strtotime($currentDate));  // 数据所属月份
+                                
+                                if ($dataMonthStr === $currentMonthStr && $isToday) {
+                                    // 今日数据：$rawUsedBandwidth 已经是 $totalTraffic（当月累计）
+                                    $displayUsedBandwidth = $rawUsedBandwidth;
+                                } elseif ($dataMonthStr === $currentMonthStr && $isFirstDayOfMonth) {
                                     // 每月1日：当月累计就是当日使用量
                                     $displayUsedBandwidth = $calculatedDailyUsage;
-                                } elseif ($isToday) {
-                                    // 今日数据：$rawUsedBandwidth 已经是 $totalTraffic（当月累计），直接使用
-                                    $displayUsedBandwidth = $rawUsedBandwidth;
                                 } else {
-                                    // 非今日的当月数据：需要计算当月累计
-                                    $firstDayOfMonthDate = date('Y-m-01', strtotime($currentDate));
-                                    $lastDayOfPrevMonthDate = date('Y-m-d', strtotime($firstDayOfMonthDate . ' -1 day'));
-                                    
-                                    // 优先从当前数据集查找，如果没有则单独查询数据库
-                                    $prevMonthUsedBandwidth = null;
-                                    if (isset($statsByDate[$lastDayOfPrevMonthDate])) {
-                                        $prevMonthUsedBandwidth = $statsByDate[$lastDayOfPrevMonthDate]['used_bandwidth'];
-                                    } else {
-                                        // 单独查询上月最后一天的数据
-                                        $prevMonthData = $trafficMonitor->getStatsForDate($lastDayOfPrevMonthDate);
-                                        if ($prevMonthData && isset($prevMonthData['used_bandwidth'])) {
-                                            $prevMonthUsedBandwidth = $prevMonthData['used_bandwidth'];
-                                        }
-                                    }
-                                    
-                                    if ($prevMonthUsedBandwidth !== null) {
-                                        $displayUsedBandwidth = $rawUsedBandwidth - $prevMonthUsedBandwidth;
-                                        // 如果结果为负（可能是数据异常），使用原始值
-                                        if ($displayUsedBandwidth < 0) {
-                                            $displayUsedBandwidth = $rawUsedBandwidth;
-                                        }
-                                    } else {
-                                        // 没有上月最后一天的数据，使用原始累计值
-                                        $displayUsedBandwidth = $rawUsedBandwidth;
-                                    }
+                                    // 其他情况：使用数据库原始数据
+                                    $displayUsedBandwidth = $rawUsedBandwidth;
                                 }
-                            } else {
-                                // 历史月份的数据：显示原始累计值
-                                $displayUsedBandwidth = $rawUsedBandwidth;
                             }
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
