@@ -381,8 +381,11 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                 if ($isFirstDayOfMonth) {
                                     // 每月1日：当月累计就是当日使用量
                                     $displayUsedBandwidth = $calculatedDailyUsage;
+                                } elseif ($isToday) {
+                                    // 今日数据：$rawUsedBandwidth 已经是 $totalTraffic（当月累计），直接使用
+                                    $displayUsedBandwidth = $rawUsedBandwidth;
                                 } else {
-                                    // 非每月1日：计算当月累计
+                                    // 非今日的当月数据：需要计算当月累计
                                     $firstDayOfMonthDate = date('Y-m-01', strtotime($currentDate));
                                     $lastDayOfPrevMonthDate = date('Y-m-d', strtotime($firstDayOfMonthDate . ' -1 day'));
                                     
