@@ -245,17 +245,34 @@ class TrafficMonitor {
             }
         }
         
-        // 计算要存储的"已用流量"值
-        // 关键：每月1日存储当月累计值，而不是原始累计值
+        // 计算要存储的"已用流量"值（当月累计）
         $displayUsedGB = $totalUsedGB;
         $trafficReset = false;
-        $skipUpdate = false;  // 是否跳过本次更新（API数据异常时）
+        $skipUpdate = false;
         
+        // 每月1日或当月其他日期：计算当月累计值
         if ($isFirstDayOfMonth) {
-            // 每月1日：存储当月累计值（= 当日使用量）
+            // 每月1日：当月累计 = 当日使用量
             $displayUsedGB = $dailyUsage;
-            $this->logger->info("跨月（每月1日）：存储当月累计值 {$dailyUsage}GB（而不是原始累计值 {$totalUsedGB}GB）");
-        } elseif ($dailyUsage > $totalUsedGB) {
+            $this->logger->info("跨月（每月1日）：存储当月累计值 {$dailyUsage}GB");
+        } else {
+            // 非每月1日：当月累计 = 原始值 - 上月最后一天的原始值
+            $firstDayOfMonth = date('Y-m-01');
+            $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
+            $prevMonthLastSnapshot = $this->db->getLastSnapshotOfDay($lastDayOfPrevMonth);
+            
+            if ($prevMonthLastSnapshot) {
+                $prevMonthTotal = $prevMonthLastSnapshot['total_bytes'] / (1024 * 1024 * 1024);
+                $displayUsedGB = $totalUsedGB - $prevMonthTotal;
+                if ($displayUsedGB < 0) {
+                    $displayUsedGB = $totalUsedGB;  // 异常情况，使用原始值
+                }
+                $this->logger->info("当月累计：{$displayUsedGB}GB = {$totalUsedGB}GB - {$prevMonthTotal}GB（上月最后快照）");
+            }
+            // 如果没有上月快照，保持使用原始值
+        }
+        
+        if ($dailyUsage > $totalUsedGB) {
             // 当日使用量包含了重置前的流量，使用当日使用量作为显示值
             $displayUsedGB = $dailyUsage;
             $trafficReset = true;
@@ -383,8 +400,9 @@ class TrafficMonitor {
         // 如果是每月1日，不与上月最后一天做差值，直接计算当天的增量
         if ($isFirstDayOfMonth) {
             $this->logger->info("检测到跨月：{$date} 是每月1日，不与上月数据做差值计算");
-            // 从第二个快照开始计算增量（第一个快照作为当天基准点）
-            $startIndex = 1;
+            // 从第一个快照开始，但不累加第一个快照的绝对值，只计算增量
+            $startIndex = 1;  // 从第二个快照开始计算增量
+            // 注意：这里不累加第一个快照的值，因为那是上月累计
         } elseif ($yesterdayLastSnapshot && !empty($snapshots)) {
             // 非跨月：如果有前一天的最后快照，计算第一个点的增量
             $firstSnapshot = $snapshots[0];
