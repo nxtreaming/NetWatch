@@ -83,16 +83,33 @@ if (!$realtimeData) {
 }
 
 // 计算总流量（统一计算逻辑，避免重复）
-$totalTraffic = 0;
+$totalTrafficRaw = 0;  // API返回的原始累计值
 if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes']) && 
     ($realtimeData['rx_bytes'] > 0 || $realtimeData['tx_bytes'] > 0)) {
     // 优先使用原始字节数计算
     $rxBytes = floatval($realtimeData['rx_bytes']);
     $txBytes = floatval($realtimeData['tx_bytes']);
-    $totalTraffic = ($rxBytes + $txBytes) / (1024*1024*1024);
+    $totalTrafficRaw = ($rxBytes + $txBytes) / (1024*1024*1024);
 } elseif (isset($realtimeData['used_bandwidth'])) {
     // 备选：使用已计算的 used_bandwidth
-    $totalTraffic = floatval($realtimeData['used_bandwidth']);
+    $totalTrafficRaw = floatval($realtimeData['used_bandwidth']);
+}
+
+// 计算当月累计流量（从本月1日开始）
+$totalTraffic = $totalTrafficRaw;  // 默认使用原始值
+$today = date('Y-m-d');
+$firstDayOfMonth = date('Y-m-01');
+$lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
+
+// 获取上月最后一天的数据，用于计算当月累计
+$prevMonthLastDayData = $trafficMonitor->getStatsForDate($lastDayOfPrevMonth);
+if ($prevMonthLastDayData && isset($prevMonthLastDayData['used_bandwidth'])) {
+    $monthlyUsed = $totalTrafficRaw - $prevMonthLastDayData['used_bandwidth'];
+    // 如果结果为正，使用当月累计值
+    if ($monthlyUsed >= 0) {
+        $totalTraffic = $monthlyUsed;
+    }
+    // 如果结果为负（可能是流量重置），保持使用原始值
 }
 
 // 定义百分比变量供后续使用
@@ -279,15 +296,21 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             $currentDate = $stat['usage_date'];
                             $isToday = ($currentDate === $today);
                             
+                            // 检测是否是每月1日（跨月）
+                            $isFirstDayOfMonth = (date('d', strtotime($currentDate)) === '01');
+                            
+                            // 检测当前日期所属月份，用于计算当月累计
+                            $currentMonth = date('Y-m', strtotime($currentDate));
+                            
                             // 如果是今日数据，使用实时数据；否则使用历史快照
                             if ($isToday) {
                                 // 今日数据：使用页面顶部已计算的总流量
-                                $displayUsedBandwidth = $totalTraffic;
+                                $rawUsedBandwidth = $totalTraffic;
                                 $displayTotalBandwidth = $realtimeData['total_bandwidth'];
                                 $displayRemainingBandwidth = $realtimeData['remaining_bandwidth'];
                             } else {
                                 // 历史数据：使用数据库快照
-                                $displayUsedBandwidth = $stat['used_bandwidth'];
+                                $rawUsedBandwidth = $stat['used_bandwidth'];
                                 $displayTotalBandwidth = $stat['total_bandwidth'];
                                 $displayRemainingBandwidth = $stat['remaining_bandwidth'];
                             }
@@ -300,19 +323,52 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                 // 极端兜底：只有在没有 daily_usage 字段（非常早期数据）时，才使用传统差值算法
                                 $previousDate = date('Y-m-d', strtotime($currentDate . ' -1 day'));
                                 
-                                // 查找前一天的数据
-                                if (isset($statsByDate[$previousDate])) {
-                                    // 有前一天的数据，计算当日增量
+                                // 如果是每月1日，不与上月数据做差值
+                                if ($isFirstDayOfMonth) {
+                                    // 跨月：使用当天累计值作为当日使用量
+                                    $calculatedDailyUsage = $rawUsedBandwidth;
+                                } elseif (isset($statsByDate[$previousDate])) {
+                                    // 非跨月：有前一天的数据，计算当日增量
                                     $previousDayUsed = $statsByDate[$previousDate]['used_bandwidth'];
-                                    $calculatedDailyUsage = $displayUsedBandwidth - $previousDayUsed;
+                                    $calculatedDailyUsage = $rawUsedBandwidth - $previousDayUsed;
                                     
                                     // 如果计算结果为负（流量重置），使用当天的累计值
                                     if ($calculatedDailyUsage < 0) {
-                                        $calculatedDailyUsage = $displayUsedBandwidth;
+                                        $calculatedDailyUsage = $rawUsedBandwidth;
                                     }
                                 } else {
                                     // 没有前一天的数据，使用当天累计值
-                                    $calculatedDailyUsage = $displayUsedBandwidth;
+                                    $calculatedDailyUsage = $rawUsedBandwidth;
+                                }
+                            }
+                            
+                            // 计算当月累计已用流量
+                            // 每月1日：当月累计 = 当日使用量
+                            // 其他日期：当月累计 = 当月1日到当前日期的累计
+                            if ($isFirstDayOfMonth) {
+                                // 每月1日：当月累计就是当日使用量
+                                $displayUsedBandwidth = $calculatedDailyUsage;
+                            } else {
+                                // 非每月1日：计算当月累计
+                                // 找到当月1日的数据
+                                $firstDayOfMonth = date('Y-m-01', strtotime($currentDate));
+                                
+                                if (isset($statsByDate[$firstDayOfMonth])) {
+                                    // 有当月1日的数据：当月累计 = 当前累计 - 上月最后一天累计
+                                    $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
+                                    if (isset($statsByDate[$lastDayOfPrevMonth])) {
+                                        $displayUsedBandwidth = $rawUsedBandwidth - $statsByDate[$lastDayOfPrevMonth]['used_bandwidth'];
+                                        // 如果结果为负（可能是数据异常），使用原始值
+                                        if ($displayUsedBandwidth < 0) {
+                                            $displayUsedBandwidth = $rawUsedBandwidth;
+                                        }
+                                    } else {
+                                        // 没有上月最后一天的数据，使用原始累计值
+                                        $displayUsedBandwidth = $rawUsedBandwidth;
+                                    }
+                                } else {
+                                    // 没有当月1日的数据，使用原始累计值
+                                    $displayUsedBandwidth = $rawUsedBandwidth;
                                 }
                             }
                         ?>
