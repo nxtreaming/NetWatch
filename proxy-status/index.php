@@ -374,11 +374,17 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                 }
                             }
                             
-                            // 已用流量：直接使用数据库存储的值（已经是当月累计）
+                            // 已用流量：使用计算后的值
                             $displayUsedBandwidth = $rawUsedBandwidth;
+                            
+                            // 今日数据：当日使用和已用流量都用实时值
+                            if ($currentDate === $todayStr) {
+                                $calculatedDailyUsage = $totalTraffic;
+                                $displayUsedBandwidth = $totalTraffic;
+                            }
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
-                            <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span class="dot-green">●</span>'; ?><?php if (isset($debugToday)) echo ' [RT]'; unset($debugToday); ?></td>
+                            <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span class="dot-green">●</span>'; ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayUsedBandwidth); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayTotalBandwidth); ?></td>
