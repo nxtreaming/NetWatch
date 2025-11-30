@@ -324,61 +324,16 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                         foreach ($recentStats as $stat): 
                             $currentDate = $stat['usage_date'];
                             $isToday = ($currentDate === $today);
-                            
-                            // 检测是否是每月1日（跨月）
                             $isFirstDayOfMonth = (date('d', strtotime($currentDate)) === '01');
                             
-                            // 检测当前日期所属月份，用于计算当月累计
-                            $currentMonth = date('Y-m', strtotime($currentDate));
-                            
-                            // 统一使用数据库值
-                            $rawUsedBandwidth = $stat['used_bandwidth'];
+                            // 默认使用数据库值
+                            $calculatedDailyUsage = isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth'];
+                            $displayUsedBandwidth = $stat['used_bandwidth'];
                             $displayTotalBandwidth = $stat['total_bandwidth'];
                             $displayRemainingBandwidth = $stat['remaining_bandwidth'];
                             
-                            // 今日数据：强制使用实时计算值，保持与顶部一致
-                            $todayStr = date('Y-m-d');
-                            if ($currentDate === $todayStr) {
-                                // 强制覆盖为实时值
-                                $rawUsedBandwidth = $totalTraffic;
-                                echo "<div style='background:red;color:white;padding:5px;'>DEBUG: 今日匹配! currentDate=$currentDate, todayStr=$todayStr, totalTraffic=$totalTraffic, rawUsedBandwidth=$rawUsedBandwidth</div>";
-                            } else {
-                                echo "<div style='background:gray;color:white;padding:2px;font-size:12px;'>DEBUG: $currentDate != $todayStr</div>";
-                            }
-                            
-                            // 计算当日使用量
-                            // 对于每月1日（跨月）或今日，当日使用 = 当月累计
-                            if ($isFirstDayOfMonth || $currentDate === $todayStr) {
-                                // 跨月或今日：当日使用 = 当月累计流量（使用实时值）
-                                $calculatedDailyUsage = $rawUsedBandwidth;
-                                echo "<div style='background:green;color:white;'>CALC: isFirstDay=$isFirstDayOfMonth, calculatedDailyUsage=$calculatedDailyUsage</div>";
-                            } elseif (isset($stat['daily_usage'])) {
-                                // 历史数据：使用数据库中已计算好的 daily_usage
-                                $calculatedDailyUsage = $stat['daily_usage'];
-                            } else {
-                                // 极端兜底：只有在没有 daily_usage 字段（非常早期数据）时，才使用传统差值算法
-                                $previousDate = date('Y-m-d', strtotime($currentDate . ' -1 day'));
-                                
-                                if (isset($statsByDate[$previousDate])) {
-                                    // 有前一天的数据，计算当日增量
-                                    $previousDayUsed = $statsByDate[$previousDate]['used_bandwidth'];
-                                    $calculatedDailyUsage = $rawUsedBandwidth - $previousDayUsed;
-                                    
-                                    // 如果计算结果为负（流量重置），使用当天的累计值
-                                    if ($calculatedDailyUsage < 0) {
-                                        $calculatedDailyUsage = $rawUsedBandwidth;
-                                    }
-                                } else {
-                                    // 没有前一天的数据，使用当天累计值
-                                    $calculatedDailyUsage = $rawUsedBandwidth;
-                                }
-                            }
-                            
-                            // 已用流量：使用计算后的值
-                            $displayUsedBandwidth = $rawUsedBandwidth;
-                            
-                            // 今日数据：当日使用和已用流量都用实时值
-                            if ($currentDate === $todayStr) {
+                            // 今日数据：强制使用实时值
+                            if ($isToday) {
                                 $calculatedDailyUsage = $totalTraffic;
                                 $displayUsedBandwidth = $totalTraffic;
                             }
