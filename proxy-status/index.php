@@ -371,22 +371,23 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                 }
                             }
                             
-                            // 计算当月累计已用流量
-                            // 每月1日：当月累计 = 当日使用量
-                            // 其他日期：当月累计 = 当月1日到当前日期的累计
-                            if ($isFirstDayOfMonth) {
-                                // 每月1日：当月累计就是当日使用量
-                                $displayUsedBandwidth = $calculatedDailyUsage;
-                            } else {
-                                // 非每月1日：计算当月累计
-                                // 找到当月1日的数据
-                                $firstDayOfMonth = date('Y-m-01', strtotime($currentDate));
-                                
-                                if (isset($statsByDate[$firstDayOfMonth])) {
-                                    // 有当月1日的数据：当月累计 = 当前累计 - 上月最后一天累计
-                                    $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
-                                    if (isset($statsByDate[$lastDayOfPrevMonth])) {
-                                        $displayUsedBandwidth = $rawUsedBandwidth - $statsByDate[$lastDayOfPrevMonth]['used_bandwidth'];
+                            // 计算已用流量显示值
+                            // 只有当前月份的数据需要显示"当月累计"，历史月份显示原始累计值
+                            $currentMonthStr = date('Y-m');  // 当前月份 (如 2025-12)
+                            $dataMonthStr = date('Y-m', strtotime($currentDate));  // 数据所属月份
+                            
+                            if ($dataMonthStr === $currentMonthStr) {
+                                // 当前月份的数据：显示当月累计
+                                if ($isFirstDayOfMonth) {
+                                    // 每月1日：当月累计就是当日使用量
+                                    $displayUsedBandwidth = $calculatedDailyUsage;
+                                } else {
+                                    // 非每月1日：计算当月累计
+                                    $firstDayOfMonthDate = date('Y-m-01', strtotime($currentDate));
+                                    $lastDayOfPrevMonthDate = date('Y-m-d', strtotime($firstDayOfMonthDate . ' -1 day'));
+                                    
+                                    if (isset($statsByDate[$lastDayOfPrevMonthDate])) {
+                                        $displayUsedBandwidth = $rawUsedBandwidth - $statsByDate[$lastDayOfPrevMonthDate]['used_bandwidth'];
                                         // 如果结果为负（可能是数据异常），使用原始值
                                         if ($displayUsedBandwidth < 0) {
                                             $displayUsedBandwidth = $rawUsedBandwidth;
@@ -395,10 +396,10 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                         // 没有上月最后一天的数据，使用原始累计值
                                         $displayUsedBandwidth = $rawUsedBandwidth;
                                     }
-                                } else {
-                                    // 没有当月1日的数据，使用原始累计值
-                                    $displayUsedBandwidth = $rawUsedBandwidth;
                                 }
+                            } else {
+                                // 历史月份的数据：显示原始累计值
+                                $displayUsedBandwidth = $rawUsedBandwidth;
                             }
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
