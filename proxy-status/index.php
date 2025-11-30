@@ -101,15 +101,41 @@ $today = date('Y-m-d');
 $firstDayOfMonth = date('Y-m-01');
 $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
 
-// 获取上月最后一天的数据，用于计算当月累计
-$prevMonthLastDayData = $trafficMonitor->getStatsForDate($lastDayOfPrevMonth);
-if ($prevMonthLastDayData && isset($prevMonthLastDayData['used_bandwidth'])) {
-    $monthlyUsed = $totalTrafficRaw - $prevMonthLastDayData['used_bandwidth'];
-    // 如果结果为正，使用当月累计值
+// 当月 RX 和 TX（默认使用原始值）
+$monthlyRxBytes = isset($realtimeData['rx_bytes']) ? floatval($realtimeData['rx_bytes']) : 0;
+$monthlyTxBytes = isset($realtimeData['tx_bytes']) ? floatval($realtimeData['tx_bytes']) : 0;
+
+// 获取上月最后一天的最后一个快照，用于计算当月累计
+$prevMonthLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($lastDayOfPrevMonth);
+if ($prevMonthLastSnapshot) {
+    // 计算当月 RX
+    $prevRxBytes = floatval($prevMonthLastSnapshot['rx_bytes']);
+    $monthlyRx = $monthlyRxBytes - $prevRxBytes;
+    if ($monthlyRx >= 0) {
+        $monthlyRxBytes = $monthlyRx;
+    }
+    
+    // 计算当月 TX
+    $prevTxBytes = floatval($prevMonthLastSnapshot['tx_bytes']);
+    $monthlyTx = $monthlyTxBytes - $prevTxBytes;
+    if ($monthlyTx >= 0) {
+        $monthlyTxBytes = $monthlyTx;
+    }
+    
+    // 计算当月总流量
+    $monthlyUsed = $totalTrafficRaw - ($prevRxBytes + $prevTxBytes) / (1024*1024*1024);
     if ($monthlyUsed >= 0) {
         $totalTraffic = $monthlyUsed;
     }
-    // 如果结果为负（可能是流量重置），保持使用原始值
+} else {
+    // 没有上月快照数据，尝试使用 traffic_stats 表
+    $prevMonthLastDayData = $trafficMonitor->getStatsForDate($lastDayOfPrevMonth);
+    if ($prevMonthLastDayData && isset($prevMonthLastDayData['used_bandwidth'])) {
+        $monthlyUsed = $totalTrafficRaw - $prevMonthLastDayData['used_bandwidth'];
+        if ($monthlyUsed >= 0) {
+            $totalTraffic = $monthlyUsed;
+        }
+    }
 }
 
 // 定义百分比变量供后续使用
@@ -168,12 +194,12 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             <div class="stats-grid2 mt-20">
                 <div class="stat-card gradient-purple">
                     <h3>⬇️ 接收流量 (RX)</h3>
-                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['rx_bytes'] / (1024*1024*1024)); ?></div>
+                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($monthlyRxBytes / (1024*1024*1024)); ?></div>
                 </div>
                 
                 <div class="stat-card gradient-pink">
                     <h3>⬆️ 发送流量 (TX)</h3>
-                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['tx_bytes'] / (1024*1024*1024)); ?></div>
+                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($monthlyTxBytes / (1024*1024*1024)); ?></div>
                 </div>
                 
                 <?php if (isset($realtimeData['port']) && $realtimeData['port'] > 0): ?>
