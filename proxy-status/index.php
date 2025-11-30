@@ -334,8 +334,12 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             $displayRemainingBandwidth = $stat['remaining_bandwidth'];
                             
                             // 今日数据：强制使用实时计算值，保持与顶部一致
-                            if ($currentDate === date('Y-m-d') && $totalTraffic > 0) {
+                            $todayStr = date('Y-m-d');
+                            if ($currentDate === $todayStr) {
+                                // 强制覆盖为实时值
                                 $rawUsedBandwidth = $totalTraffic;
+                                // DEBUG标记
+                                $debugToday = true;
                             }
                             
                             // 计算当日使用量
@@ -372,7 +376,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             $displayUsedBandwidth = $rawUsedBandwidth;
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
-                            <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span class="dot-green">●</span>'; ?></td>
+                            <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span class="dot-green">●</span>'; ?><?php if (isset($debugToday)) echo ' [RT]'; unset($debugToday); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayUsedBandwidth); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayTotalBandwidth); ?></td>
