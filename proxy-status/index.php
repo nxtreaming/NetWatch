@@ -138,18 +138,26 @@ if ($prevMonthLastSnapshot) {
     }
 }
 
-// 计算今日使用量（实时流量 - 昨天最后快照），避免丢失 23:55~00:00 的数据
+// 计算今日使用量
 $todayStr = date('Y-m-d');
-$yesterdayStr = date('Y-m-d', strtotime('-1 day'));
-$yesterdayLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($yesterdayStr);
-if ($yesterdayLastSnapshot) {
-    $yesterdayTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024*1024*1024);
-    $todayDailyUsage = $totalTrafficRaw - $yesterdayTotal;
-    if ($todayDailyUsage < 0) {
-        $todayDailyUsage = $totalTraffic; // 异常情况，使用当月累计
-    }
+$isFirstDayOfMonth = (date('d') === '01');
+
+if ($isFirstDayOfMonth) {
+    // 每月1日：当日使用 = 当月累计（本月第一天）
+    $todayDailyUsage = $totalTraffic;
 } else {
-    $todayDailyUsage = $totalTraffic; // 没有昨天快照，使用当月累计
+    // 非每月1日：当日使用 = 实时流量 - 昨天最后快照（避免丢失 23:55~00:00 数据）
+    $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+    $yesterdayLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($yesterdayStr);
+    if ($yesterdayLastSnapshot) {
+        $yesterdayTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024*1024*1024);
+        $todayDailyUsage = $totalTrafficRaw - $yesterdayTotal;
+        if ($todayDailyUsage < 0) {
+            $todayDailyUsage = $totalTraffic;
+        }
+    } else {
+        $todayDailyUsage = $totalTraffic;
+    }
 }
 
 // 如果搜索结果包含今日，用实时计算的数据替换
