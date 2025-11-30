@@ -328,19 +328,14 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             // 检测当前日期所属月份，用于计算当月累计
                             $currentMonth = date('Y-m', strtotime($currentDate));
                             
-                            // 今日数据用实时计算值，历史数据用数据库值
-                            // 注意：不管是否在查询历史日期范围，今日数据始终用实时值
-                            // DEBUG: echo "<!-- currentDate=$currentDate, today=$today, isToday=" . ($isToday ? 'true' : 'false') . ", totalTraffic=$totalTraffic -->";
-                            if ($currentDate === date('Y-m-d')) {
-                                // 今日：使用顶部已计算的当月累计值，保持一致
+                            // 统一使用数据库值
+                            $rawUsedBandwidth = $stat['used_bandwidth'];
+                            $displayTotalBandwidth = $stat['total_bandwidth'];
+                            $displayRemainingBandwidth = $stat['remaining_bandwidth'];
+                            
+                            // 今日数据：强制使用实时计算值，保持与顶部一致
+                            if ($currentDate === date('Y-m-d') && $totalTraffic > 0) {
                                 $rawUsedBandwidth = $totalTraffic;
-                                $displayTotalBandwidth = $realtimeData['total_bandwidth'];
-                                $displayRemainingBandwidth = $realtimeData['remaining_bandwidth'];
-                            } else {
-                                // 历史：使用数据库值
-                                $rawUsedBandwidth = $stat['used_bandwidth'];
-                                $displayTotalBandwidth = $stat['total_bandwidth'];
-                                $displayRemainingBandwidth = $stat['remaining_bandwidth'];
                             }
                             
                             // 计算当日使用量
