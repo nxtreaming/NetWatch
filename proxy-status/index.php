@@ -330,7 +330,8 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             
                             // 今日数据用实时计算值，历史数据用数据库值
                             // 注意：不管是否在查询历史日期范围，今日数据始终用实时值
-                            if ($isToday) {
+                            // DEBUG: echo "<!-- currentDate=$currentDate, today=$today, isToday=" . ($isToday ? 'true' : 'false') . ", totalTraffic=$totalTraffic -->";
+                            if ($currentDate === date('Y-m-d')) {
                                 // 今日：使用顶部已计算的当月累计值，保持一致
                                 $rawUsedBandwidth = $totalTraffic;
                                 $displayTotalBandwidth = $realtimeData['total_bandwidth'];
