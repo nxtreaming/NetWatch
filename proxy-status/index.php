@@ -320,30 +320,25 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                         
                         foreach ($recentStats as $stat): 
                             $currentDate = $stat['usage_date'];
-                            $isToday = ($currentDate === $today);
-                            $isFirstDayOfMonth = (date('d', strtotime($currentDate)) === '01');
+                            $todayDate = date('Y-m-d');
+                            $isCurrentDateToday = ($currentDate === $todayDate);
                             
-                            // 默认使用数据库值
-                            $calculatedDailyUsage = isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth'];
-                            $displayUsedBandwidth = $stat['used_bandwidth'];
-                            $displayTotalBandwidth = $stat['total_bandwidth'];
-                            $displayRemainingBandwidth = $stat['remaining_bandwidth'];
-                            
-                            // 今日数据：强制使用实时值
-                            if ($isToday) {
+                            // 今日用实时值，其他用数据库值
+                            if ($isCurrentDateToday) {
                                 $calculatedDailyUsage = $totalTraffic;
                                 $displayUsedBandwidth = $totalTraffic;
+                            } else {
+                                $calculatedDailyUsage = isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth'];
+                                $displayUsedBandwidth = $stat['used_bandwidth'];
                             }
-                            
-                            // 调试：显示最终输出值
-                            if ($isToday) {
-                                echo "<div style='background:blue;color:white;padding:3px;'>FINAL: displayUsedBandwidth=$displayUsedBandwidth, totalTraffic=$totalTraffic</div>";
-                            }
+                            $displayTotalBandwidth = $stat['total_bandwidth'];
+                            $displayRemainingBandwidth = $stat['remaining_bandwidth'];
+                            $isToday = $isCurrentDateToday;
                         ?>
                         <tr <?php if ($queryDate && $stat['usage_date'] === $queryDate) echo 'class="row-highlight"'; ?>>
                             <td><?php echo htmlspecialchars($stat['usage_date']); ?><?php if ($isToday) echo ' <span class="dot-green">●</span>'; ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?></td>
-                            <td><?php echo $trafficMonitor->formatBandwidth($displayUsedBandwidth); ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($calculatedDailyUsage); ?><?php if($isToday) echo "<!--RAW1:$calculatedDailyUsage-->"; ?></td>
+                            <td><?php echo $trafficMonitor->formatBandwidth($displayUsedBandwidth); ?><?php if($isToday) echo "<!--RAW2:$displayUsedBandwidth-->"; ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayTotalBandwidth); ?></td>
                             <td><?php echo $trafficMonitor->formatBandwidth($displayRemainingBandwidth); ?></td>
                         </tr>
