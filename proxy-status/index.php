@@ -386,8 +386,20 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                                     $firstDayOfMonthDate = date('Y-m-01', strtotime($currentDate));
                                     $lastDayOfPrevMonthDate = date('Y-m-d', strtotime($firstDayOfMonthDate . ' -1 day'));
                                     
+                                    // 优先从当前数据集查找，如果没有则单独查询数据库
+                                    $prevMonthUsedBandwidth = null;
                                     if (isset($statsByDate[$lastDayOfPrevMonthDate])) {
-                                        $displayUsedBandwidth = $rawUsedBandwidth - $statsByDate[$lastDayOfPrevMonthDate]['used_bandwidth'];
+                                        $prevMonthUsedBandwidth = $statsByDate[$lastDayOfPrevMonthDate]['used_bandwidth'];
+                                    } else {
+                                        // 单独查询上月最后一天的数据
+                                        $prevMonthData = $trafficMonitor->getStatsForDate($lastDayOfPrevMonthDate);
+                                        if ($prevMonthData && isset($prevMonthData['used_bandwidth'])) {
+                                            $prevMonthUsedBandwidth = $prevMonthData['used_bandwidth'];
+                                        }
+                                    }
+                                    
+                                    if ($prevMonthUsedBandwidth !== null) {
+                                        $displayUsedBandwidth = $rawUsedBandwidth - $prevMonthUsedBandwidth;
                                         // 如果结果为负（可能是数据异常），使用原始值
                                         if ($displayUsedBandwidth < 0) {
                                             $displayUsedBandwidth = $rawUsedBandwidth;
