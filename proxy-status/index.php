@@ -329,20 +329,14 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                         // 获取今日日期，用于判断是否显示实时数据
                         $today = date('Y-m-d');
                         
+                        $todayDate = date('Y-m-d');
                         foreach ($recentStats as $stat): 
                             $currentDate = $stat['usage_date'];
-                            $todayDate = date('Y-m-d');
+                            $isToday = ($currentDate === $todayDate);
                             
                             // 今日用实时值，其他用数据库值
-                            if ($currentDate === $todayDate) {
-                                $calculatedDailyUsage = $totalTraffic;
-                                $displayUsedBandwidth = $totalTraffic;
-                                $isToday = true;
-                            } else {
-                                $calculatedDailyUsage = isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth'];
-                                $displayUsedBandwidth = $stat['used_bandwidth'];
-                                $isToday = false;
-                            }
+                            $calculatedDailyUsage = $isToday ? $totalTraffic : (isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth']);
+                            $displayUsedBandwidth = $isToday ? $totalTraffic : $stat['used_bandwidth'];
                             $displayTotalBandwidth = $stat['total_bandwidth'];
                             $displayRemainingBandwidth = $stat['remaining_bandwidth'];
                         ?>
