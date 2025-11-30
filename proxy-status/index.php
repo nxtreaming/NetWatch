@@ -330,9 +330,11 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                         $today = date('Y-m-d');
                         
                         $todayDate = date('Y-m-d');
+                        echo "<!-- DEBUG: todayDate=$todayDate, totalTraffic=$totalTraffic -->";
                         foreach ($recentStats as $stat): 
                             $currentDate = $stat['usage_date'];
                             $isToday = ($currentDate === $todayDate);
+                            echo "<!-- ROW: currentDate=$currentDate, isToday=" . ($isToday ? 'YES' : 'NO') . " -->";
                             
                             // 今日用实时值，其他用数据库值
                             $calculatedDailyUsage = $isToday ? $totalTraffic : (isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth']);
