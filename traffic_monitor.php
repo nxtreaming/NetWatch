@@ -4,6 +4,9 @@
  * 负责从API获取流量数据并保存到数据库
  */
 
+// 设置时区为 UTC+8
+date_default_timezone_set('Asia/Shanghai');
+
 require_once 'config.php';
 require_once 'database.php';
 require_once 'logger.php';

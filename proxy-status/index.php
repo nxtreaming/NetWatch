@@ -3,6 +3,9 @@
  * 代理流量监控页面
  */
 
+// 设置时区为 UTC+8
+date_default_timezone_set('Asia/Shanghai');
+
 require_once '../config.php';
 require_once '../auth.php';
 require_once '../traffic_monitor.php';
@@ -335,6 +338,8 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             
                             // 今日数据：强制使用实时计算值，保持与顶部一致
                             $todayStr = date('Y-m-d');
+                            // DEBUG: 输出比较值
+                            echo "<!-- DEBUG: currentDate=[$currentDate] todayStr=[$todayStr] equal=" . ($currentDate === $todayStr ? 'YES' : 'NO') . " totalTraffic=$totalTraffic -->\n";
                             if ($currentDate === $todayStr) {
                                 // 强制覆盖为实时值
                                 $rawUsedBandwidth = $totalTraffic;
