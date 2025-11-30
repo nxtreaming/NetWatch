@@ -358,9 +358,6 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             // 今日用实时计算值，其他用数据库值
                             $calculatedDailyUsage = $isToday ? $todayDailyUsage : (isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth']);
                             $displayUsedBandwidth = $isToday ? $totalTraffic : $stat['used_bandwidth'];
-                            if ($isToday) {
-                                echo "<div style='background:blue;color:white;padding:5px;margin:5px 0;'>DEBUG 今日: isToday=$isToday, queryDate=" . ($queryDate ?? 'null') . ", GET[date]=" . ($_GET['date'] ?? 'null') . ", totalTraffic=$totalTraffic, displayUsedBandwidth=$displayUsedBandwidth, stat[used_bandwidth]={$stat['used_bandwidth']}</div>";
-                            }
                             $displayTotalBandwidth = $stat['total_bandwidth'];
                             $displayRemainingBandwidth = $stat['remaining_bandwidth'];
                         ?>
