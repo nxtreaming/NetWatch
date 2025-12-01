@@ -169,6 +169,17 @@ if ($prevMonthLastSnapshot) {
 $todayStr = date('Y-m-d');
 $isFirstDayOfMonth = (date('d') === '01');
 
+// DEBUG: 输出计算过程
+if (isset($_GET['debug'])) {
+    echo "<pre style='background: #ffe0e0; padding: 10px; margin: 10px; color: #333;'>";
+    echo "=== 今日使用量计算调试 ===\n";
+    echo "todayStr: $todayStr\n";
+    echo "isFirstDayOfMonth: " . ($isFirstDayOfMonth ? 'true' : 'false') . "\n";
+    echo "totalTraffic (当月累计): " . number_format($totalTraffic, 2) . " GB\n";
+    echo "totalTrafficRaw (原始累计): " . number_format($totalTrafficRaw, 2) . " GB\n";
+    echo "</pre>";
+}
+
 if ($isFirstDayOfMonth) {
     // 每月1日：当日使用 = 当月累计（本月第一天）
     $todayDailyUsage = $totalTraffic;
