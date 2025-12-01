@@ -127,7 +127,7 @@ if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes']) &&
 
 // 计算当月累计流量（从本月1日开始）
 $totalTraffic = $totalTrafficRaw;  // 默认使用原始值
-$today = date('Y-m-d');
+$todayStr = date('Y-m-d');
 $firstDayOfMonth = date('Y-m-01');
 $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
 
@@ -166,7 +166,6 @@ if ($prevMonthLastSnapshot) {
 }
 
 // 计算今日使用量
-$todayStr = date('Y-m-d');
 $isFirstDayOfMonth = (date('d') === '01');
 
 if ($isFirstDayOfMonth) {
@@ -368,19 +367,9 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                     </thead>
                     <tbody>
                         <?php 
-                        // 先将数据按日期建立索引，方便查找前一天的数据（仅用于极端兜底场景）
-                        $statsByDate = [];
-                        foreach ($recentStats as $s) {
-                            $statsByDate[$s['usage_date']] = $s;
-                        }
-                        
-                        // 获取今日日期，用于判断是否显示实时数据
-                        $today = date('Y-m-d');
-                        
-                        $todayDate = date('Y-m-d');
                         foreach ($recentStats as $stat): 
                             $currentDate = $stat['usage_date'];
-                            $isToday = ($currentDate === $todayDate);
+                            $isToday = ($currentDate === $todayStr);
                             
                             // 今日用实时计算值，其他用数据库值
                             $calculatedDailyUsage = $isToday ? $todayDailyUsage : (isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth']);
