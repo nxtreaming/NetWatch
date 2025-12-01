@@ -44,20 +44,47 @@ if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
     $isViewingToday = true;
 }
 
-// 调试：显示前10条数据（仅在有debug参数时显示）
+// 调试：显示快照数据（仅在有debug参数时显示）
 if (isset($_GET['debug']) && !empty($todaySnapshots)) {
     echo "<pre style='background: #f5f5f5; padding: 20px; margin: 20px; border: 1px solid #ddd; color: #333;'>";
     echo "=== 流量快照数据调试信息 ===\n";
-    echo "日期: $snapshotDate\n";
+    echo "查询日期: $snapshotDate\n";
     echo "总记录数: " . count($todaySnapshots) . "\n\n";
+    
+    // 显示最新一条快照（最后一条）
+    $lastSnapshot = end($todaySnapshots);
+    reset($todaySnapshots);
+    if ($lastSnapshot) {
+        $lastRxGB = $lastSnapshot['rx_bytes'] / (1024*1024*1024);
+        $lastTxGB = $lastSnapshot['tx_bytes'] / (1024*1024*1024);
+        $lastTotalGB = $lastRxGB + $lastTxGB;
+        echo "【最新快照】时间: {$lastSnapshot['snapshot_time']}, RX: " . number_format($lastRxGB, 2) . " GB, TX: " . number_format($lastTxGB, 2) . " GB, 总计: " . number_format($lastTotalGB, 2) . " GB\n\n";
+    }
+    
+    // 显示第一条快照
+    $firstSnapshot = $todaySnapshots[0];
+    if ($firstSnapshot) {
+        $firstRxGB = $firstSnapshot['rx_bytes'] / (1024*1024*1024);
+        $firstTxGB = $firstSnapshot['tx_bytes'] / (1024*1024*1024);
+        $firstTotalGB = $firstRxGB + $firstTxGB;
+        echo "【首条快照】时间: {$firstSnapshot['snapshot_time']}, RX: " . number_format($firstRxGB, 2) . " GB, TX: " . number_format($firstTxGB, 2) . " GB, 总计: " . number_format($firstTotalGB, 2) . " GB\n";
+        
+        // 计算当日增量
+        if ($lastSnapshot) {
+            $dayUsageGB = $lastTotalGB - $firstTotalGB;
+            echo "【当日增量】(最新 - 首条) = " . number_format($dayUsageGB, 2) . " GB\n\n";
+        }
+    }
+    
     echo "前10条记录:\n";
-    echo str_pad("索引", 6) . str_pad("时间", 12) . str_pad("RX (GB)", 15) . str_pad("TX (GB)", 15) . "\n";
-    echo str_repeat("-", 60) . "\n";
+    echo str_pad("索引", 6) . str_pad("时间", 12) . str_pad("RX (GB)", 15) . str_pad("TX (GB)", 15) . str_pad("总计 (GB)", 15) . "\n";
+    echo str_repeat("-", 75) . "\n";
     for ($i = 0; $i < min(10, count($todaySnapshots)); $i++) {
         $s = $todaySnapshots[$i];
         $rxGB = $s['rx_bytes'] / (1024*1024*1024);
         $txGB = $s['tx_bytes'] / (1024*1024*1024);
-        echo str_pad($i, 6) . str_pad($s['snapshot_time'], 12) . str_pad(number_format($rxGB, 2), 15) . str_pad(number_format($txGB, 2), 15) . "\n";
+        $totalGB = $rxGB + $txGB;
+        echo str_pad($i, 6) . str_pad($s['snapshot_time'], 12) . str_pad(number_format($rxGB, 2), 15) . str_pad(number_format($txGB, 2), 15) . str_pad(number_format($totalGB, 2), 15) . "\n";
     }
     echo "</pre>";
 }
