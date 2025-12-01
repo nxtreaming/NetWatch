@@ -44,7 +44,7 @@ if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
     $isViewingToday = true;
 }
 
-// 调试：显示快照数据（仅在有debug参数时显示）
+// 调试：显示快照数据
 if (isset($_GET['debug']) && !empty($todaySnapshots)) {
     echo "<pre style='background: #f5f5f5; padding: 20px; margin: 20px; border: 1px solid #ddd; color: #333;'>";
     echo "=== 流量快照数据调试信息 ===\n";
@@ -168,17 +168,6 @@ if ($prevMonthLastSnapshot) {
 // 计算今日使用量
 $todayStr = date('Y-m-d');
 $isFirstDayOfMonth = (date('d') === '01');
-
-// DEBUG: 输出计算过程
-if (isset($_GET['debug'])) {
-    echo "<pre style='background: #ffe0e0; padding: 10px; margin: 10px; color: #333;'>";
-    echo "=== 今日使用量计算调试 ===\n";
-    echo "todayStr: $todayStr\n";
-    echo "isFirstDayOfMonth: " . ($isFirstDayOfMonth ? 'true' : 'false') . "\n";
-    echo "totalTraffic (当月累计): " . number_format($totalTraffic, 2) . " GB\n";
-    echo "totalTrafficRaw (原始累计): " . number_format($totalTrafficRaw, 2) . " GB\n";
-    echo "</pre>";
-}
 
 if ($isFirstDayOfMonth) {
     // 每月1日：当日使用 = 当月累计（本月第一天）
@@ -352,9 +341,6 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                         </button>
                         <?php if ($snapshotDate !== date('Y-m-d')): ?>
                         <input type="hidden" name="snapshot_date" value="<?php echo htmlspecialchars($snapshotDate); ?>">
-                        <?php endif; ?>
-                        <?php if (isset($_GET['debug'])): ?>
-                        <input type="hidden" name="debug" value="1">
                         <?php endif; ?>
                     </form>
                 </div>
