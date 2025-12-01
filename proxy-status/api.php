@@ -66,6 +66,62 @@ try {
                 $stats = $trafficMonitor->getRecentStats(32);
             }
             
+            // 如果结果包含今日，用实时数据替换（避免丢失 23:55~00:00 数据）
+            $todayStr = date('Y-m-d');
+            $realtimeData = $trafficMonitor->getRealtimeTraffic();
+            
+            if ($realtimeData) {
+                // 计算当月累计流量
+                $totalTrafficRaw = 0;
+                if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes'])) {
+                    $rxBytes = floatval($realtimeData['rx_bytes']);
+                    $txBytes = floatval($realtimeData['tx_bytes']);
+                    $totalTrafficRaw = ($rxBytes + $txBytes) / (1024*1024*1024);
+                }
+                
+                // 获取上月最后快照计算当月累计
+                $firstDayOfMonth = date('Y-m-01');
+                $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
+                $prevMonthLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($lastDayOfPrevMonth);
+                
+                $totalTraffic = $totalTrafficRaw;
+                if ($prevMonthLastSnapshot) {
+                    $prevTotal = ($prevMonthLastSnapshot['rx_bytes'] + $prevMonthLastSnapshot['tx_bytes']) / (1024*1024*1024);
+                    $monthlyUsed = $totalTrafficRaw - $prevTotal;
+                    if ($monthlyUsed >= 0) {
+                        $totalTraffic = $monthlyUsed;
+                    }
+                }
+                
+                // 计算今日使用量
+                $isFirstDayOfMonth = (date('d') === '01');
+                if ($isFirstDayOfMonth) {
+                    $todayDailyUsage = $totalTraffic;
+                } else {
+                    $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+                    $yesterdayLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($yesterdayStr);
+                    if ($yesterdayLastSnapshot) {
+                        $yesterdayTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024*1024*1024);
+                        $todayDailyUsage = $totalTrafficRaw - $yesterdayTotal;
+                        if ($todayDailyUsage < 0) {
+                            $todayDailyUsage = $totalTraffic;
+                        }
+                    } else {
+                        $todayDailyUsage = $totalTraffic;
+                    }
+                }
+                
+                // 替换今日数据
+                foreach ($stats as &$stat) {
+                    if ($stat['usage_date'] === $todayStr) {
+                        $stat['daily_usage'] = $todayDailyUsage;
+                        $stat['used_bandwidth'] = $totalTraffic;
+                        break;
+                    }
+                }
+                unset($stat);
+            }
+            
             echo json_encode([
                 'success' => true,
                 'data' => $stats,
