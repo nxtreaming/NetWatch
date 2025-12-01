@@ -46,7 +46,7 @@ if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
 
 // 调试：显示前10条数据（仅在有debug参数时显示）
 if (isset($_GET['debug']) && !empty($todaySnapshots)) {
-    echo "<pre style='background: #f5f5f5; padding: 20px; margin: 20px; border: 1px solid #ddd;'>";
+    echo "<pre style='background: #f5f5f5; padding: 20px; margin: 20px; border: 1px solid #ddd; color: #333;'>";
     echo "=== 流量快照数据调试信息 ===\n";
     echo "日期: $snapshotDate\n";
     echo "总记录数: " . count($todaySnapshots) . "\n\n";
