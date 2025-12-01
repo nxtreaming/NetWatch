@@ -492,6 +492,15 @@ class TrafficMonitor {
     }
     
     /**
+     * 获取指定日期的第一个快照
+     * @param string $date 日期 (Y-m-d)
+     * @return array|null
+     */
+    public function getFirstSnapshotOfDay($date) {
+        return $this->db->getFirstSnapshotOfDay($date);
+    }
+    
+    /**
      * 获取指定日期前后N天的流量统计
      * @param string $centerDate 中心日期 (Y-m-d)
      * @param int $daysBefore 前面天数
