@@ -353,6 +353,9 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                         <?php if ($snapshotDate !== date('Y-m-d')): ?>
                         <input type="hidden" name="snapshot_date" value="<?php echo htmlspecialchars($snapshotDate); ?>">
                         <?php endif; ?>
+                        <?php if (isset($_GET['debug'])): ?>
+                        <input type="hidden" name="debug" value="1">
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>
