@@ -290,18 +290,9 @@
     let html = '';
     stats.forEach(stat => {
       const currentDate = stat.usage_date;
-      const previousDate = new Date(currentDate);
-      previousDate.setDate(previousDate.getDate() - 1);
-      const previousDateStr = previousDate.toISOString().split('T')[0];
 
-      let calculatedDailyUsage;
-      if (statsByDate[previousDateStr]) {
-        const previousDayUsed = statsByDate[previousDateStr].used_bandwidth;
-        calculatedDailyUsage = stat.used_bandwidth - previousDayUsed;
-        if (calculatedDailyUsage < 0) calculatedDailyUsage = stat.used_bandwidth;
-      } else {
-        calculatedDailyUsage = stat.daily_usage;
-      }
+      // 直接使用后端返回的 daily_usage（已包含实时计算的今日数据）
+      let calculatedDailyUsage = stat.daily_usage !== undefined ? stat.daily_usage : stat.used_bandwidth;
 
       const totalBandwidth = parseFloat(stat.total_bandwidth).toFixed(2);
       const usedBandwidth = parseFloat(stat.used_bandwidth).toFixed(2);
