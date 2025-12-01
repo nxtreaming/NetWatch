@@ -98,11 +98,11 @@ try {
                 if ($isFirstDayOfMonth) {
                     $todayDailyUsage = $totalTraffic;
                 } else {
+                    // 非每月1日：当日使用 = 当月累计 - 昨天的当月累计
                     $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
-                    $yesterdayLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($yesterdayStr);
-                    if ($yesterdayLastSnapshot) {
-                        $yesterdayTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024*1024*1024);
-                        $todayDailyUsage = $totalTrafficRaw - $yesterdayTotal;
+                    $yesterdayStats = $trafficMonitor->getStatsForDate($yesterdayStr);
+                    if ($yesterdayStats && isset($yesterdayStats['used_bandwidth'])) {
+                        $todayDailyUsage = $totalTraffic - $yesterdayStats['used_bandwidth'];
                         if ($todayDailyUsage < 0) {
                             $todayDailyUsage = $totalTraffic;
                         }
