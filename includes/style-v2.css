@@ -90,6 +90,7 @@ body {
 .nav-links {
     display: flex;
     gap: 12px;
+    margin-top: 5px;
     margin-bottom: 15px;
     flex-wrap: wrap;
 }
