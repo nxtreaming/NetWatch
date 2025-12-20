@@ -34,9 +34,9 @@ Thumbs.db
 *.bak
 *.backup
 
-# 测试文件
-/tests/
-phpunit.xml
+# 测试覆盖率报告
+/tests/coverage/
+phpunit.xml.dist
 /localdev/*
 /migrations/*
 dev2.md

@@ -14,29 +14,51 @@ require_once 'monitor.php';
 require_once 'logger.php';
 
 class ParallelMonitor {
-    private $db;
-    private $logger;
-    private $monitor;
-    private $maxProcesses;
-    private $batchSize;
-    private $sessionId;
-    private $offlineOnly;
+    private Database $db;
+    private Logger $logger;
+    private NetworkMonitor $monitor;
+    private int $maxProcesses;
+    private int $batchSize;
+    private string $sessionId;
+    private bool $offlineOnly;
     
-    public function __construct($maxProcesses = 12, $batchSize = 200, $sessionId = null, $offlineOnly = false) {
-        $this->db = new Database();
-        $this->logger = new Logger();
-        $this->monitor = new NetworkMonitor();
-        $this->maxProcesses = $maxProcesses; // 最大并行进程数
-        $this->batchSize = $batchSize; // 每组代理数量
-        $this->offlineOnly = $offlineOnly; // 是否只检测离线代理
+    // 默认配置常量
+    private const DEFAULT_MAX_PROCESSES = 12;
+    private const DEFAULT_BATCH_SIZE = 200;
+    private const DEFAULT_TIMEOUT_MINUTES = 30;
+    
+    public function __construct(
+        int $maxProcesses = self::DEFAULT_MAX_PROCESSES, 
+        int $batchSize = self::DEFAULT_BATCH_SIZE, 
+        ?string $sessionId = null, 
+        bool $offlineOnly = false,
+        ?Database $db = null,
+        ?Logger $logger = null,
+        ?NetworkMonitor $monitor = null
+    ) {
+        $this->db = $db ?? new Database();
+        $this->logger = $logger ?? new Logger();
+        $this->monitor = $monitor ?? new NetworkMonitor();
+        $this->maxProcesses = $maxProcesses;
+        $this->batchSize = $batchSize;
+        $this->offlineOnly = $offlineOnly;
         
         // 生成或使用提供的会话ID，确保每个检测任务独立
-        if ($sessionId === null) {
-            // 使用会话ID + 时间戳 + 随机数确保唯一性
-            $this->sessionId = session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
-        } else {
-            $this->sessionId = $sessionId;
-        }
+        $this->sessionId = $sessionId ?? $this->generateSessionId();
+    }
+    
+    /**
+     * 生成唯一会话ID
+     */
+    private function generateSessionId(): string {
+        return session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
+    }
+    
+    /**
+     * 获取当前会话ID
+     */
+    public function getSessionId(): string {
+        return $this->sessionId;
     }
     
     /**
