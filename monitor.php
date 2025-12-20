@@ -11,18 +11,34 @@ require_once 'database.php';
 require_once 'logger.php';
 
 class NetworkMonitor {
-    private $db;
-    private $logger;
+    protected Database $db;
+    protected Logger $logger;
     
-    public function __construct() {
-        $this->db = new Database();
-        $this->logger = new Logger();
+    public function __construct(?Database $db = null, ?Logger $logger = null) {
+        $this->db = $db ?? new Database();
+        $this->logger = $logger ?? new Logger();
+    }
+    
+    /**
+     * 获取数据库实例
+     */
+    public function getDatabase(): Database {
+        return $this->db;
+    }
+    
+    /**
+     * 获取日志实例
+     */
+    public function getLogger(): Logger {
+        return $this->logger;
     }
     
     /**
      * 检查单个代理
+     * @param array $proxy 代理信息
+     * @return array 检查结果
      */
-    public function checkProxy($proxy) {
+    public function checkProxy(array $proxy): array {
         return $this->executeProxyCheck($proxy, TIMEOUT, TIMEOUT, '逐个检查');
     }
     
@@ -30,8 +46,9 @@ class NetworkMonitor {
      * 快速检查单个代理（用于批量检查，更短的超时时间）
      * @param array $proxy 代理信息
      * @param bool $enableRetry 是否启用失败重试（默认启用）
+     * @return array 检查结果
      */
-    public function checkProxyFast($proxy, $enableRetry = true) {
+    public function checkProxyFast(array $proxy, bool $enableRetry = true): array {
         return $this->executeProxyCheck($proxy, 3, 2, '快速检查', $enableRetry);
     }
     
@@ -45,7 +62,7 @@ class NetworkMonitor {
      * @param int $retryCount 当前重试次数（内部使用）
      * @return array 检查结果
      */
-    private function executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry = false, $retryCount = 0) {
+    private function executeProxyCheck(array $proxy, int $timeout, int $connectTimeout, string $logPrefix, bool $enableRetry = false, int $retryCount = 0): array {
         $status = 'offline';
         $errorMessage = null;
         $responseTime = 0;
