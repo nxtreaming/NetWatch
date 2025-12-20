@@ -12,17 +12,17 @@ require_once 'database.php';
 require_once 'logger.php';
 
 class TrafficMonitor {
-    private $db;
-    private $logger;
-    private $apiUrl;
-    private $proxyHost;
-    private $proxyUsername;
-    private $proxyPassword;
-    private $proxyPort;
+    private Database $db;
+    private Logger $logger;
+    private string $apiUrl;
+    private string $proxyHost;
+    private string $proxyUsername;
+    private string $proxyPassword;
+    private int $proxyPort;
     
-    public function __construct() {
-        $this->db = new Database();
-        $this->logger = new Logger();
+    public function __construct(?Database $db = null, ?Logger $logger = null) {
+        $this->db = $db ?? new Database();
+        $this->logger = $logger ?? new Logger();
         
         // 从配置文件获取API配置
         $this->apiUrl = defined('TRAFFIC_API_URL') ? TRAFFIC_API_URL : '';
@@ -34,8 +34,9 @@ class TrafficMonitor {
     
     /**
      * 从API获取流量数据
+     * @return array|false
      */
-    public function fetchTrafficData() {
+    public function fetchTrafficData(): array|false {
         if (empty($this->apiUrl)) {
             $this->logger->error('流量监控API URL未配置');
             return false;
@@ -102,8 +103,9 @@ class TrafficMonitor {
     
     /**
      * 更新实时流量数据
+     * @return bool
      */
-    public function updateRealtimeTraffic() {
+    public function updateRealtimeTraffic(): bool {
         $data = $this->fetchTrafficData();
         
         if ($data === false) {
@@ -115,10 +117,10 @@ class TrafficMonitor {
     
     /**
      * 使用已获取的 API 数据更新实时流量数据
-     * @param array $data API 返回的数据
+     * @param array|null $data API 返回的数据
      * @return bool
      */
-    public function updateRealtimeTrafficWithData($data) {
+    public function updateRealtimeTrafficWithData(?array $data): bool {
         if (!$data || !is_array($data)) {
             return false;
         }
@@ -176,8 +178,10 @@ class TrafficMonitor {
     /**
      * 回溯更新前一天的跨日流量（23:55~00:00）
      * 在保存当天第一个快照时调用
+     * @param float $currentRxBytes 当前接收字节数
+     * @param float $currentTxBytes 当前发送字节数
      */
-    private function updateYesterdayCrossDayTraffic($currentRxBytes, $currentTxBytes) {
+    private function updateYesterdayCrossDayTraffic(float $currentRxBytes, float $currentTxBytes): void {
         $currentTime = date('H:i:s');
         
         // 只在 00:00:00 ~ 00:04:59 时段执行（第一个快照时段）
@@ -229,8 +233,9 @@ class TrafficMonitor {
     
     /**
      * 更新每日流量统计
+     * @return bool
      */
-    public function updateDailyStats() {
+    public function updateDailyStats(): bool {
         $data = $this->fetchTrafficData();
         
         if ($data === false) {
@@ -242,10 +247,10 @@ class TrafficMonitor {
     
     /**
      * 使用已获取的 API 数据更新每日流量统计
-     * @param array $data API 返回的数据
+     * @param array|null $data API 返回的数据
      * @return bool
      */
-    public function updateDailyStatsWithData($data) {
+    public function updateDailyStatsWithData(?array $data): bool {
         if (!$data || !is_array($data)) {
             return false;
         }
@@ -435,7 +440,7 @@ class TrafficMonitor {
      * @param string $date 日期 (Y-m-d)
      * @return float|false 当日使用量(GB)，如果数据不足返回false
      */
-    private function calculateDailyUsageFromSnapshots($date) {
+    private function calculateDailyUsageFromSnapshots(string $date): float|false {
         // 获取当日所有快照
         $snapshots = $this->db->getTrafficSnapshotsByDate($date);
         
@@ -518,15 +523,18 @@ class TrafficMonitor {
     
     /**
      * 获取实时流量数据
+     * @return array|null
      */
-    public function getRealtimeTraffic() {
+    public function getRealtimeTraffic(): ?array {
         return $this->db->getRealtimeTraffic();
     }
     
     /**
      * 获取最近N天的流量统计
+     * @param int $days 天数
+     * @return array
      */
-    public function getRecentStats($days = 30) {
+    public function getRecentStats(int $days = 30): array {
         return $this->db->getRecentTrafficStats($days);
     }
     
@@ -535,7 +543,7 @@ class TrafficMonitor {
      * @param string $date 日期 (Y-m-d)
      * @return array|null
      */
-    public function getStatsForDate($date) {
+    public function getStatsForDate(string $date): ?array {
         return $this->db->getDailyTrafficStats($date);
     }
     
@@ -544,7 +552,7 @@ class TrafficMonitor {
      * @param string $date 日期 (Y-m-d)
      * @return array|null
      */
-    public function getLastSnapshotOfDay($date) {
+    public function getLastSnapshotOfDay(string $date): ?array {
         return $this->db->getLastSnapshotOfDay($date);
     }
     
@@ -553,7 +561,7 @@ class TrafficMonitor {
      * @param string $date 日期 (Y-m-d)
      * @return array|null
      */
-    public function getFirstSnapshotOfDay($date) {
+    public function getFirstSnapshotOfDay(string $date): ?array {
         return $this->db->getFirstSnapshotOfDay($date);
     }
     
@@ -564,7 +572,7 @@ class TrafficMonitor {
      * @param int $daysAfter 后面天数
      * @return array
      */
-    public function getStatsAroundDate($centerDate, $daysBefore = 7, $daysAfter = 7) {
+    public function getStatsAroundDate(string $centerDate, int $daysBefore = 7, int $daysAfter = 7): array {
         $startDate = date('Y-m-d', strtotime($centerDate . " -{$daysBefore} days"));
         $endDate = date('Y-m-d', strtotime($centerDate . " +{$daysAfter} days"));
         return $this->db->getTrafficStatsByDateRange($startDate, $endDate);
@@ -572,29 +580,36 @@ class TrafficMonitor {
     
     /**
      * 格式化流量大小（统一使用GB）
+     * @param float $gb 流量GB
+     * @return string
      */
-    public function formatBandwidth($gb) {
+    public function formatBandwidth(float $gb): string {
         return number_format($gb, 2) . ' GB';
     }
     
     /**
      * 格式化百分比
+     * @param float $percentage 百分比
+     * @return string
      */
-    public function formatPercentage($percentage) {
+    public function formatPercentage(float $percentage): string {
         return number_format($percentage, 2) . '%';
     }
     
     /**
      * 获取今日流量快照用于图表展示
+     * @return array
      */
-    public function getTodaySnapshots() {
+    public function getTodaySnapshots(): array {
         return $this->db->getTodayTrafficSnapshots();
     }
     
     /**
      * 获取指定日期的流量快照用于图表展示
+     * @param string $date 日期
+     * @return array
      */
-    public function getSnapshotsByDate($date) {
+    public function getSnapshotsByDate(string $date): array {
         return $this->db->getTrafficSnapshotsByDate($date);
     }
 }

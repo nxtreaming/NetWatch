@@ -123,8 +123,14 @@ try {
 
 /**
  * 启动单个批次检测进程
+ * @param string $batchId 批次ID
+ * @param int $offset 偏移量
+ * @param int $limit 数量限制
+ * @param string $statusFile 状态文件路径
+ * @param bool $offlineOnly 是否只检测离线代理
+ * @return resource|false 进程句柄
  */
-function startBatchProcess($batchId, $offset, $limit, $statusFile, $offlineOnly = false) {
+function startBatchProcess(string $batchId, int $offset, int $limit, string $statusFile, bool $offlineOnly = false) {
     // 构建命令行参数
     $scriptPath = __DIR__ . '/parallel_worker.php';
     $offlineFlag = $offlineOnly ? '1' : '0';
@@ -158,8 +164,11 @@ function startBatchProcess($batchId, $offset, $limit, $statusFile, $offlineOnly 
 
 /**
  * 等待指定数量的进程完成
+ * @param array $processes 进程列表
+ * @param int $maxRemaining 最大剩余进程数
+ * @param Logger $logger 日志对象
  */
-function waitForProcesses(&$processes, $maxRemaining, $logger) {
+function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger): void {
     while (count($processes) > $maxRemaining) {
         foreach ($processes as $batchId => $process) {
             // 检查进程是否完成
@@ -174,8 +183,10 @@ function waitForProcesses(&$processes, $maxRemaining, $logger) {
 
 /**
  * 等待所有进程完成
+ * @param array $processes 进程列表
+ * @param Logger $logger 日志对象
  */
-function waitForAllProcesses($processes, $logger) {
+function waitForAllProcesses(array $processes, Logger $logger): void {
     foreach ($processes as $batchId => $process) {
         pclose($process);
         $logger->info("批次 {$batchId} 完成");
@@ -184,8 +195,10 @@ function waitForAllProcesses($processes, $logger) {
 
 /**
  * 检查是否被取消
+ * @param string $tempDir 临时目录路径
+ * @return bool 是否已取消
  */
-function isCancelled($tempDir) {
+function isCancelled(string $tempDir): bool {
     $cancelFile = $tempDir . '/cancel.flag';
     return file_exists($cancelFile);
 }

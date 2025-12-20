@@ -125,8 +125,11 @@ try {
 
 /**
  * 更新批次状态
+ * @param string $statusFile 状态文件路径
+ * @param array $updates 更新内容
+ * @return bool 是否成功
  */
-function updateBatchStatus($statusFile, $updates) {
+function updateBatchStatus(string $statusFile, array $updates): bool {
     if (!file_exists($statusFile)) {
         return false;
     }
@@ -179,8 +182,9 @@ function updateBatchStatus($statusFile, $updates) {
 
 /**
  * 检查是否被取消
+ * @return bool 是否已取消
  */
-function isCancelled() {
+function isCancelled(): bool {
     global $statusFile;
     // 从状态文件路径推导出临时目录
     $tempDir = dirname($statusFile);
