@@ -490,6 +490,9 @@ curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?acti
         // 初始化
         updateRequestUrl();
     </script>
+    <!-- 新模块化JS -->
+    <script src="includes/js/core.js?v=<?php echo time(); ?>"></script>
+    <script src="includes/js/ui.js?v=<?php echo time(); ?>"></script>
     <script src="includes/utils.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

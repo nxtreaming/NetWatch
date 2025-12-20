@@ -1,5 +1,10 @@
 // 自定义深色主题确认框函数
+// 注意：如果NetWatch.UI模块已加载，此函数会被覆盖
 function showCustomConfirm(message, onConfirm, onCancel) {
+    // 优先使用新模块
+    if (window.NetWatch && window.NetWatch.UI && window.NetWatch.UI.confirm) {
+        return window.NetWatch.UI.confirm(message, onConfirm, onCancel);
+    }
     const overlay = document.createElement('div');
     overlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -70,7 +75,12 @@ function showCustomConfirm(message, onConfirm, onCancel) {
 }
 
 // 自定义深色主题提示框函数
+// 注意：如果NetWatch.UI模块已加载，此函数会被覆盖
 function showCustomAlert(message, callback) {
+    // 优先使用新模块
+    if (window.NetWatch && window.NetWatch.UI && window.NetWatch.UI.alert) {
+        return window.NetWatch.UI.alert(message, callback);
+    }
     const overlay = document.createElement('div');
     overlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;

@@ -374,6 +374,10 @@ $recentLogs = $monitor->getRecentLogs(20);
     </div>
     
     <!-- JavaScript 文件引用 -->
+    <!-- 新模块化JS（提供NetWatch命名空间和UI组件） -->
+    <script src="includes/js/core.js?v=<?php echo time(); ?>"></script>
+    <script src="includes/js/ui.js?v=<?php echo time(); ?>"></script>
+    <!-- 现有JS文件（逐步迁移中） -->
     <script src="includes/utils.js?v=<?php echo time(); ?>"></script>
     <script src="includes/search.js?v=<?php echo time(); ?>"></script>
     <script src="includes/proxy-check.js?v=<?php echo time(); ?>"></script>

@@ -759,6 +759,9 @@ $tokens = $db->getAllTokens();
             }
         });
     </script>
+    <!-- 新模块化JS -->
+    <script src="includes/js/core.js?v=<?php echo time(); ?>"></script>
+    <script src="includes/js/ui.js?v=<?php echo time(); ?>"></script>
     <script src="includes/utils.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

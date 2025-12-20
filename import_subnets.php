@@ -508,6 +508,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    parseInt(parts[3]);
         }
     </script>
+    <!-- 新模块化JS -->
+    <script src="includes/js/core.js?v=<?php echo time(); ?>"></script>
+    <script src="includes/js/ui.js?v=<?php echo time(); ?>"></script>
     <script src="includes/utils.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

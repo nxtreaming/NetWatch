@@ -281,8 +281,26 @@
         }, duration);
     };
     
+    // 注入Toast动画样式
+    (function injectToastStyles() {
+        if (document.getElementById('netwatch-toast-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'netwatch-toast-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    })();
+    
 })(window.NetWatch);
 
-// 兼容旧版函数名
+// 兼容旧版函数名（保持向后兼容）
 window.showCustomAlert = window.NetWatch.UI.alert;
 window.showCustomConfirm = window.NetWatch.UI.confirm;
