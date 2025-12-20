@@ -4,8 +4,8 @@
  */
 
 // 开启错误显示用于调试
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 try {
@@ -46,29 +46,36 @@ $clearExecuted = false;
 
 // 处理清空请求
 if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes') {
-    try {
-        $db = new Database();
-        
-        // 使用Database类的公共方法清空所有数据
-        $db->clearAllData();
-        
-        $clearExecuted = true;
-        
-        echo "<div style='background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; margin: 20px 0; border-radius: 5px; color: #155724;'>";
-        echo "<h3>✅ 清空完成</h3>";
-        echo "<p>已成功删除 <strong>$totalProxies</strong> 个代理及相关数据</p>";
-        echo "<p><a href='import.php' style='background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;'>立即导入新代理</a></p>";
-        echo "</div>";
-        
-        // 刷新代理列表
-        $proxies = $monitor->getAllProxies();
-        $totalProxies = count($proxies);
-        
-    } catch (Exception $e) {
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!Auth::validateCsrfToken($csrfToken)) {
         echo "<div style='background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; margin: 20px 0; border-radius: 5px; color: #721c24;'>";
-        echo "<h3>❌ 清空失败</h3>";
-        echo "<p>错误信息：" . htmlspecialchars($e->getMessage()) . "</p>";
+        echo "<h3>❌ CSRF验证失败</h3>";
+        echo "<p>请刷新页面后重试</p>";
         echo "</div>";
+    } else {
+        try {
+            $db = new Database();
+            
+            // 使用Database类的公共方法清空所有数据
+            $db->clearAllData();
+            
+            $clearExecuted = true;
+            
+            echo "<div style='background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; margin: 20px 0; border-radius: 5px; color: #155724;'>";
+            echo "<h3>✅ 清空完成</h3>";
+            echo "<p>已成功删除 <strong>$totalProxies</strong> 个代理及相关数据</p>";
+            echo "<p><a href='import.php' style='background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;'>立即导入新代理</a></p>";
+            echo "</div>";
+            
+            // 刷新代理列表
+            $proxies = $monitor->getAllProxies();
+            $totalProxies = count($proxies);
+        } catch (Exception $e) {
+            echo "<div style='background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; margin: 20px 0; border-radius: 5px; color: #721c24;'>";
+            echo "<h3>❌ 清空失败</h3>";
+            echo "<p>错误信息：" . htmlspecialchars($e->getMessage()) . "</p>";
+            echo "</div>";
+        }
     }
 }
 
@@ -99,6 +106,7 @@ if ($totalProxies > 0 && !$clearExecuted) {
     echo "<h3>确认清空</h3>";
     echo "<form method='post' onsubmit='return confirmClear()'>";
     echo "<div style='background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; border-radius: 5px;'>";
+    echo "<input type='hidden' name='csrf_token' value='" . htmlspecialchars(Auth::getCsrfToken()) . "'>";
     echo "<p><strong>请确认您要清空所有代理数据：</strong></p>";
     echo "<label>";
     echo "<input type='checkbox' name='confirm_clear' value='yes' required> ";

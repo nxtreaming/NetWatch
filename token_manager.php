@@ -14,6 +14,16 @@ if (isset($_GET['ajax'])) {
     header('Content-Type: application/json');
     
     $action = $_GET['action'] ?? '';
+
+    // CSRF Token验证（对于修改数据的操作）
+    $modifyingActions = ['create', 'refresh', 'delete', 'reassign'];
+    if (in_array($action, $modifyingActions, true)) {
+        $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!Auth::validateCsrfToken($csrfToken)) {
+            echo json_encode(['success' => false, 'error' => 'csrf_validation_failed', 'message' => 'CSRF验证失败，请刷新页面后重试']);
+            exit;
+        }
+    }
     
     switch ($action) {
         case 'create':
@@ -111,6 +121,9 @@ $tokens = $db->getAllTokens();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Token 管理 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
+    <script>
+        window.csrfToken = '<?php echo Auth::getCsrfToken(); ?>';
+    </script>
     <style>
         .section {
             margin-bottom: 30px;
@@ -591,6 +604,9 @@ $tokens = $db->getAllTokens();
             try {
                 const response = await fetch('?ajax=1&action=create', {
                     method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': window.csrfToken
+                    },
                     body: formData
                 });
                 
@@ -634,6 +650,9 @@ $tokens = $db->getAllTokens();
             try {
                 const response = await fetch('?ajax=1&action=refresh', {
                     method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': window.csrfToken
+                    },
                     body: formData
                 });
                 
@@ -664,6 +683,9 @@ $tokens = $db->getAllTokens();
             try {
                 const response = await fetch('?ajax=1&action=reassign', {
                     method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': window.csrfToken
+                    },
                     body: formData
                 });
                 
@@ -690,6 +712,9 @@ $tokens = $db->getAllTokens();
             try {
                 const response = await fetch('?ajax=1&action=delete', {
                     method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': window.csrfToken
+                    },
                     body: formData
                 });
                 

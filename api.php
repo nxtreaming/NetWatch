@@ -6,9 +6,10 @@
 
 require_once 'config.php';
 require_once 'database.php';
+require_once 'includes/RateLimiter.php';
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Origin: ' . (defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : '*'));
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
@@ -16,6 +17,25 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
+}
+
+$tokenForRateLimit = $_GET['token'] ?? $_POST['token'] ?? '';
+if (empty($tokenForRateLimit)) {
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    if (isset($headers['Authorization'])) {
+        $auth = $headers['Authorization'];
+        if (preg_match('/Bearer\s+(.*)$/i', $auth, $matches)) {
+            $tokenForRateLimit = $matches[1];
+        }
+    }
+}
+
+$rateLimiter = RateLimitPresets::api();
+$rateLimitKey = !empty($tokenForRateLimit)
+    ? ('api:token:' . $tokenForRateLimit)
+    : ('api:ip:' . RateLimiter::getClientIp());
+if (!$rateLimiter->attempt($rateLimitKey)) {
+    $rateLimiter->sendTooManyRequestsResponse($rateLimitKey);
 }
 
 class ApiResponse {

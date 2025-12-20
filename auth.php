@@ -10,6 +10,29 @@ class Auth {
      */
     public static function startSession() {
         if (session_status() === PHP_SESSION_NONE) {
+            if (!headers_sent()) {
+                ini_set('session.use_strict_mode', '1');
+                ini_set('session.use_only_cookies', '1');
+                ini_set('session.cookie_httponly', '1');
+                ini_set('session.cookie_samesite', 'Lax');
+
+                $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                          (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) ||
+                          (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
+                          (!empty($_SERVER['HTTP_CF_VISITOR']) && strpos($_SERVER['HTTP_CF_VISITOR'], 'https') !== false);
+                ini_set('session.cookie_secure', $isHttps ? '1' : '0');
+
+                $cookieParams = session_get_cookie_params();
+                session_set_cookie_params([
+                    'lifetime' => $cookieParams['lifetime'] ?? 0,
+                    'path' => $cookieParams['path'] ?? '/',
+                    'domain' => $cookieParams['domain'] ?? '',
+                    'secure' => $isHttps,
+                    'httponly' => true,
+                    'samesite' => 'Lax'
+                ]);
+            }
+
             session_start();
         }
     }
@@ -198,9 +221,14 @@ class Auth {
      */
     public static function requireLogin() {
         if (!self::isLoggedIn()) {
-            // 如果是AJAX请求，返回JSON响应
-            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+            $isXmlHttpRequest = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+            $acceptsJson = !empty($accept) && (strpos($accept, 'application/json') !== false || strpos($accept, '*/*') !== false);
+            $hasAjaxParam = isset($_GET['ajax']) && ($_GET['ajax'] === '1' || $_GET['ajax'] === 'true' || $_GET['ajax'] === 1);
+
+            // 如果是AJAX/JSON请求，返回JSON响应
+            if ($isXmlHttpRequest || $acceptsJson || $hasAjaxParam) {
                 header('Content-Type: application/json');
                 echo json_encode([
                     'error' => 'unauthorized',

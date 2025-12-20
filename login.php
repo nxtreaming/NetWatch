@@ -5,6 +5,7 @@
 
 require_once 'config.php';
 require_once 'auth.php';
+require_once 'includes/RateLimiter.php';
 
 // 如果未启用登录功能或已登录，重定向到主页
 if (!Auth::isLoginEnabled() || Auth::isLoggedIn()) {
@@ -40,21 +41,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($storageStatus['status'] === 'critical') {
             $error = '服务器存储空间不足，无法完成登录。请联系系统管理员清理磁盘空间。';
         } else {
-            $loginResult = Auth::login($username, $password);
-            
-            if ($loginResult === true) {
-                $success = '登录成功，正在跳转...';
-                $redirectUrl = Auth::getRedirectUrl();
-                header("refresh:1;url=$redirectUrl");
-            } elseif ($loginResult === 'session_write_failed') {
-                $error = '登录验证成功，但由于服务器存储空间不足，无法保存登录状态。请联系系统管理员清理磁盘空间后重试。';
-                // 重新检查存储空间状态
-                $storageStatus = Auth::checkStorageSpace();
-                if ($storageStatus['status'] !== 'unknown') {
-                    $error .= '<br><small>当前可用空间：' . $storageStatus['free_mb'] . ' MB (' . round($storageStatus['free_percent'], 2) . '%)</small>';
-                }
+            $loginLimiter = RateLimitPresets::login();
+            $loginKey = 'login:' . RateLimiter::getClientIp();
+            if (!$loginLimiter->attempt($loginKey)) {
+                $retryAfter = $loginLimiter->retryAfter($loginKey);
+                $error = '登录尝试过于频繁，请稍后再试（' . $retryAfter . ' 秒后可重试）';
             } else {
-                $error = '用户名或密码错误';
+                $loginResult = Auth::login($username, $password);
+                
+                if ($loginResult === true) {
+                    $loginLimiter->clear($loginKey);
+                    $success = '登录成功，正在跳转...';
+                    $redirectUrl = Auth::getRedirectUrl();
+                    header("refresh:1;url=$redirectUrl");
+                } elseif ($loginResult === 'session_write_failed') {
+                    $error = '登录验证成功，但由于服务器存储空间不足，无法保存登录状态。请联系系统管理员清理磁盘空间后重试。';
+                    // 重新检查存储空间状态
+                    $storageStatus = Auth::checkStorageSpace();
+                    if ($storageStatus['status'] !== 'unknown') {
+                        $error .= '<br><small>当前可用空间：' . $storageStatus['free_mb'] . ' MB (' . round($storageStatus['free_percent'], 2) . '%)</small>';
+                    }
+                } else {
+                    $error = '用户名或密码错误';
+                }
             }
         }
     }

@@ -14,25 +14,39 @@ Auth::requireLogin();
 
 $monitor = new NetworkMonitor();
 
+function ipToLongUnsigned($ip) {
+    $long = ip2long($ip);
+    if ($long === false) {
+        return false;
+    }
+    return (int)sprintf('%u', $long);
+}
+
 // 处理表单提交
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = null;
     $error = null;
     
     try {
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!Auth::validateCsrfToken($csrfToken)) {
+            throw new Exception('CSRF验证失败，请刷新页面后重试');
+        }
+
         // 获取公共配置
-        $port = (int)$_POST['port'];
-        $type = $_POST['type'];
+        $port = (int)($_POST['port'] ?? 0);
+        $type = strtolower(trim($_POST['type'] ?? ''));
         $username = trim($_POST['username']) ?: null;
         $password = trim($_POST['password']) ?: null;
         $importMode = $_POST['import_mode'] ?? 'skip';
         
-        if (!$port || !in_array($type, ['socks5', 'http'])) {
+        if ($port < 1 || $port > 65535 || !in_array($type, ['socks5', 'http'], true)) {
             throw new Exception('请填写有效的端口和代理类型');
         }
         
         $proxyList = [];
         $totalProxies = 0;
+        $maxProxies = defined('MAX_SUBNET_IMPORT_PROXIES') ? (int)MAX_SUBNET_IMPORT_PROXIES : 50000;
         
         // 处理每个子网
         for ($i = 1; $i <= 20; $i++) {
@@ -49,15 +63,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // 生成IP范围内的所有代理
-            $startLong = ip2long($startIp);
-            $endLong = ip2long($endIp);
+            $startLong = ipToLongUnsigned($startIp);
+            $endLong = ipToLongUnsigned($endIp);
+            if ($startLong === false || $endLong === false) {
+                throw new Exception("子网 $i: IP地址格式无效");
+            }
             
             if ($startLong > $endLong) {
                 throw new Exception("子网 $i: 开始IP不能大于结束IP");
             }
+
+            $rangeCount = ($endLong - $startLong) + 1;
+            if ($rangeCount < 1) {
+                throw new Exception("子网 $i: IP范围无效");
+            }
+            if (($totalProxies + $rangeCount) > $maxProxies) {
+                throw new Exception('生成代理数量过大，请分批导入');
+            }
             
             for ($ipLong = $startLong; $ipLong <= $endLong; $ipLong++) {
-                $ip = long2ip($ipLong);
+                $ip = long2ip((int)$ipLong);
                 $proxyList[] = [
                     'ip' => $ip,
                     'port' => $port,
@@ -307,6 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <form method="post" id="subnetForm">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken()); ?>">
             <div class="section">
                 <h2>公共配置</h2>
                 <div class="form-row">

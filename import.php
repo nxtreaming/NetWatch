@@ -19,10 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $error = null;
     
     try {
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!Auth::validateCsrfToken($csrfToken)) {
+            throw new Exception('CSRF验证失败，请刷新页面后重试');
+        }
+
         if (isset($_POST['import_text']) && !empty($_POST['import_text'])) {
             // 从文本导入
             $lines = explode("\n", trim($_POST['import_text']));
+            $maxLines = defined('MAX_IMPORT_LINES') ? (int)MAX_IMPORT_LINES : 50000;
+            if (count($lines) > $maxLines) {
+                throw new Exception('导入内容过大，请分批导入');
+            }
             $proxyList = [];
+            $maxProxies = defined('MAX_IMPORT_PROXIES') ? (int)MAX_IMPORT_PROXIES : 50000;
             
             foreach ($lines as $lineNum => $line) {
                 $line = trim($line);
@@ -34,20 +44,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (count($parts) < 3) {
                     continue;
                 }
+
+                $ip = trim($parts[0]);
+                $port = (int)trim($parts[1]);
+                $type = strtolower(trim($parts[2]));
+                if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+                    continue;
+                }
+                if ($port < 1 || $port > 65535) {
+                    continue;
+                }
+                if (!in_array($type, ['socks5', 'http'], true)) {
+                    continue;
+                }
+
+                if (count($proxyList) >= $maxProxies) {
+                    throw new Exception('导入代理数量过大，请分批导入');
+                }
                 
                 $proxyList[] = [
-                    'ip' => $parts[0],
-                    'port' => (int)$parts[1],
-                    'type' => $parts[2],
-                    'username' => $parts[3] ?? null,
-                    'password' => $parts[4] ?? null
+                    'ip' => $ip,
+                    'port' => $port,
+                    'type' => $type,
+                    'username' => isset($parts[3]) ? (trim($parts[3]) !== '' ? trim($parts[3]) : null) : null,
+                    'password' => isset($parts[4]) ? (trim($parts[4]) !== '' ? trim($parts[4]) : null) : null
                 ];
+            }
+
+            if (empty($proxyList)) {
+                throw new Exception('未识别到有效的代理配置');
             }
             
             $result = $monitor->importProxies($proxyList, 'add');
             
         } elseif (isset($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
             // 从文件导入
+            $maxFileBytes = defined('MAX_IMPORT_FILE_BYTES') ? (int)MAX_IMPORT_FILE_BYTES : (10 * 1024 * 1024);
+            if (!empty($_FILES['import_file']['size']) && (int)$_FILES['import_file']['size'] > $maxFileBytes) {
+                throw new Exception('导入文件过大，请分批导入');
+            }
             $tempFile = $_FILES['import_file']['tmp_name'];
             $result = $monitor->importFromFile($tempFile);
             
@@ -385,6 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h2>导入代理配置</h2>
             
             <form method="post" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken()); ?>">
                 <div class="import-options">
                     <div class="import-option">
                         <h3>选项 1: 从文本导入</h3>

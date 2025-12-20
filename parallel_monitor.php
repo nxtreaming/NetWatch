@@ -110,7 +110,7 @@ class ParallelMonitor {
             'status' => 'starting',
             'session_id' => $this->sessionId
         ];
-        file_put_contents($tempDir . '/main_status.json', json_encode($mainStatus));
+        file_put_contents($tempDir . '/main_status.json', json_encode($mainStatus), LOCK_EX);
         
         // 异步启动批次处理
         $this->startBatchesAsync($totalProxies, $tempDir);
@@ -132,26 +132,20 @@ class ParallelMonitor {
     private function startBatchesAsync($totalProxies, $tempDir) {
         // 在后台启动批次管理器
         $managerScript = __DIR__ . '/parallel_batch_manager.php';
-        $offlineFlag = $this->offlineOnly ? '1' : '0';
-        $command = sprintf(
-            'php "%s" %d %d "%s" %s > /dev/null 2>&1 &',
-            $managerScript,
-            $totalProxies,
-            $this->batchSize,
-            $tempDir,
-            $offlineFlag
-        );
+        $offlineFlag = $this->offlineOnly ? 1 : 0;
+        $command = 'php ' . escapeshellarg($managerScript) . ' ' .
+            (int)$totalProxies . ' ' .
+            (int)$this->batchSize . ' ' .
+            escapeshellarg($tempDir) . ' ' .
+            (int)$offlineFlag . ' > /dev/null 2>&1 &';
         
         // 在Windows系统上使用不同的命令
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $command = sprintf(
-                'start /B php "%s" %d %d "%s" %s',
-                $managerScript,
-                $totalProxies,
-                $this->batchSize,
-                $tempDir,
-                $offlineFlag
-            );
+            $command = 'start /B "" php ' . escapeshellarg($managerScript) . ' ' .
+                (int)$totalProxies . ' ' .
+                (int)$this->batchSize . ' ' .
+                escapeshellarg($tempDir) . ' ' .
+                (int)$offlineFlag;
         }
         
         popen($command, 'r');
