@@ -224,12 +224,16 @@ class Auth {
             $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
             $isXmlHttpRequest = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
-            $acceptsJson = !empty($accept) && (strpos($accept, 'application/json') !== false || strpos($accept, '*/*') !== false);
+            $acceptsJson = !empty($accept) && (strpos($accept, 'application/json') !== false);
+            $acceptsHtml = !empty($accept) && (strpos($accept, 'text/html') !== false);
             $hasAjaxParam = isset($_GET['ajax']) && ($_GET['ajax'] === '1' || $_GET['ajax'] === 'true' || $_GET['ajax'] === 1);
 
             // 如果是AJAX/JSON请求，返回JSON响应
-            if ($isXmlHttpRequest || $acceptsJson || $hasAjaxParam) {
-                header('Content-Type: application/json');
+            if ($isXmlHttpRequest || $hasAjaxParam || ($acceptsJson && !$acceptsHtml)) {
+                header('Content-Type: application/json; charset=utf-8');
+                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+                header('Pragma: no-cache');
+                header('Expires: 0');
                 echo json_encode([
                     'error' => 'unauthorized',
                     'message' => '请先登录'
