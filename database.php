@@ -792,7 +792,7 @@ class Database {
         
         // 只在5分钟倍数时保存快照（0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55）
         if ($currentMinute % 5 !== 0) {
-            return true; // 不是5分钟倍数，跳过保存，返回true表示"成功"（不报错）
+            return false; // 不是5分钟倍数，跳过保存
         }
         
         $time = date('H:i:00'); // 取整到分钟

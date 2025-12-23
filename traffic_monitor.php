@@ -197,6 +197,12 @@ class TrafficMonitor {
             $this->logger->info("跨月（每月1日）：跳过跨日流量回溯更新");
             return;
         }
+
+        // 只在今天存在 00:00:00 快照时才执行，避免使用非整点数据造成偏差
+        $todayFirstSnapshot = $this->db->getFirstSnapshotOfDay($today);
+        if (!$todayFirstSnapshot || !isset($todayFirstSnapshot['snapshot_time']) || $todayFirstSnapshot['snapshot_time'] !== '00:00:00') {
+            return;
+        }
         
         // 获取昨天最后一个快照（23:55）
         $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
@@ -209,9 +215,17 @@ class TrafficMonitor {
         if (!$yesterdayStats) {
             return;
         }
+
+        // 幂等保护：同一天只允许回溯更新一次，避免 00:00~00:04 多次触发造成重复累加
+        $lockFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'netwatch_traffic_crossday_' . str_replace('-', '', $today) . '.lock';
+        $lockHandle = @fopen($lockFile, 'x');
+        if ($lockHandle === false) {
+            return;
+        }
+        fclose($lockHandle);
         
         // 计算跨日流量增量
-        $currentTotal = ($currentRxBytes + $currentTxBytes) / (1024 * 1024 * 1024);
+        $currentTotal = $todayFirstSnapshot['total_bytes'] / (1024 * 1024 * 1024);
         $yesterdayLastTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024 * 1024 * 1024);
         $crossDayIncrement = $currentTotal - $yesterdayLastTotal;
         
