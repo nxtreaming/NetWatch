@@ -48,8 +48,8 @@ if (isset($_GET['ajax'])) {
             'is_mobile' => $isMobile
         ];
         
-        // 将调试信息写入日志文件
-        file_put_contents('debug_ajax_mobile.log', json_encode($debugInfo) . "\n", FILE_APPEND | LOCK_EX);
+        // 将调试信息写入日志文件（存放在Debug目录）
+        file_put_contents(__DIR__ . '/Debug/debug_ajax_mobile.log', json_encode($debugInfo) . "\n", FILE_APPEND | LOCK_EX);
         
         // 重定向到主页，清除ajax参数
         $redirectUrl = strtok($_SERVER['REQUEST_URI'], '?');

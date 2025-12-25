@@ -9,7 +9,7 @@ require_once '../auth.php';
 // 检查登录状态
 Auth::requireLogin();
 
-$logFile = 'debug_ajax_mobile.log';
+$logFile = __DIR__ . '/debug_ajax_mobile.log';
 $logs = [];
 
 if (file_exists($logFile)) {
