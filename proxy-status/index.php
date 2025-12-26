@@ -168,35 +168,38 @@ if ($prevMonthLastSnapshot) {
 // 计算今日使用量
 $isFirstDayOfMonth = (date('d') === '01');
 $todayDailyUsage = 0;
+$yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+$yesterdayUsedBandwidth = 0;  // 昨日的当月累计
 
 if ($isFirstDayOfMonth) {
     // 每月1日：当日使用 = 当月累计（本月第一天）
     $todayDailyUsage = $totalTraffic;
 } else {
-    // 非每月1日：优先使用快照增量计算（更准确，特别是跨日时段）
-    $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+    // 非每月1日：使用昨日最后快照计算昨日当月累计（与今日当月累计使用相同基准）
     $yesterdayLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($yesterdayStr);
     
-    if ($yesterdayLastSnapshot) {
-        // 使用快照计算：今日累计 - 昨日最后快照
+    if ($yesterdayLastSnapshot && $prevMonthLastSnapshot) {
+        // 昨日当月累计 = 昨日最后快照 - 上月最后快照
         $yesterdayLastTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024*1024*1024);
-        $todayDailyUsage = $totalTrafficRaw - $yesterdayLastTotal;
-        
-        if ($todayDailyUsage < 0) {
-            // 可能发生了流量重置，使用当月累计作为当日使用
-            $todayDailyUsage = $totalTraffic;
+        $prevMonthTotal = ($prevMonthLastSnapshot['rx_bytes'] + $prevMonthLastSnapshot['tx_bytes']) / (1024*1024*1024);
+        $yesterdayUsedBandwidth = $yesterdayLastTotal - $prevMonthTotal;
+        if ($yesterdayUsedBandwidth < 0) {
+            $yesterdayUsedBandwidth = 0;
         }
     } else {
-        // 没有昨日快照，回退到使用 traffic_stats 表
+        // 没有快照数据，回退到 traffic_stats 表
         $yesterdayStats = $trafficMonitor->getStatsForDate($yesterdayStr);
         if ($yesterdayStats && isset($yesterdayStats['used_bandwidth'])) {
-            $todayDailyUsage = $totalTraffic - $yesterdayStats['used_bandwidth'];
-            if ($todayDailyUsage < 0) {
-                $todayDailyUsage = $totalTraffic;
-            }
-        } else {
-            $todayDailyUsage = $totalTraffic;
+            $yesterdayUsedBandwidth = floatval($yesterdayStats['used_bandwidth']);
         }
+    }
+    
+    // 今日使用 = 今日当月累计 - 昨日当月累计
+    $todayDailyUsage = $totalTraffic - $yesterdayUsedBandwidth;
+    
+    if ($todayDailyUsage < 0) {
+        // 异常情况，使用当月累计作为当日使用
+        $todayDailyUsage = $totalTraffic;
     }
 }
 
