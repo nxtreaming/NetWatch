@@ -136,14 +136,8 @@ class AjaxHandler {
             
             if (!empty($failedProxies)) {
                 try {
-                    // 初始化邮件发送器
-                    if (file_exists('vendor/autoload.php')) {
-                        require_once 'mailer.php';
-                        $mailer = new Mailer();
-                    } else {
-                        require_once 'mailer_simple.php';
-                        $mailer = new SimpleMailer();
-                    }
+                    require_once __DIR__ . '/MailerFactory.php';
+                    $mailer = MailerFactory::create();
                     
                     $mailer->sendProxyAlert($failedProxies);
                     $emailSent = true;
@@ -330,14 +324,8 @@ class AjaxHandler {
             
             if (!empty($failedProxies)) {
                 try {
-                    // 初始化邮件发送器
-                    if (file_exists('vendor/autoload.php')) {
-                        require_once 'mailer.php';
-                        $mailer = new Mailer();
-                    } else {
-                        require_once 'mailer_simple.php';
-                        $mailer = new SimpleMailer();
-                    }
+                    require_once __DIR__ . '/MailerFactory.php';
+                    $mailer = MailerFactory::create();
                     
                     $mailer->sendProxyAlert($failedProxies);
                     $emailSent = true;

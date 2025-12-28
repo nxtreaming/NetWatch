@@ -6,8 +6,9 @@
 
 require_once 'config.php';
 require_once 'logger.php';
+require_once __DIR__ . '/includes/MailerInterface.php';
 
-class SimpleMailer {
+class SimpleMailer implements MailerInterface {
     private $logger;
     
     public function __construct() {

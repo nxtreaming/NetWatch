@@ -6,12 +6,13 @@
 require_once 'vendor/autoload.php';
 require_once 'config.php';
 require_once 'logger.php';
+require_once __DIR__ . '/includes/MailerInterface.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 
-class Mailer {
+class Mailer implements MailerInterface {
     private $logger;
     
     public function __construct() {
