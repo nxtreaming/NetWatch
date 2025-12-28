@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代理导入 - NetWatch</title>
-    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
     <style>
         /* 页面特有样式 */
         .section {

@@ -120,7 +120,7 @@ $tokens = $db->getAllTokens();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Token 管理 - NetWatch</title>
-    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
     <script>
         window.csrfToken = '<?php echo Auth::getCsrfToken(); ?>';
     </script>

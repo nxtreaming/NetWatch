@@ -19,9 +19,9 @@
     ?>
     </script>
     <!-- 新模块化JS -->
-    <script src="../includes/js/core.js?v=<?php echo time(); ?>"></script>
-    <script src="../includes/js/ui.js?v=<?php echo time(); ?>"></script>
-    <script src="../includes/utils.js?v=<?php echo time(); ?>"></script>
+    <script src="../includes/js/core.js?v=<?php echo filemtime(__DIR__ . '/../../includes/js/core.js'); ?>"></script>
+    <script src="../includes/js/ui.js?v=<?php echo filemtime(__DIR__ . '/../../includes/js/ui.js'); ?>"></script>
+    <script src="../includes/utils.js?v=<?php echo filemtime(__DIR__ . '/../../includes/utils.js'); ?>"></script>
     </div>
 </body>
 </html>

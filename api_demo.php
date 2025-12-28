@@ -18,7 +18,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API 使用示例 - NetWatch</title>
-    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
     <style>
         /* 使用全局section样式，只定义页面特有的样式 */
         .section {

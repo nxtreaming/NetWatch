@@ -159,7 +159,7 @@ $recentLogs = $monitor->getRecentLogs(20);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NetWatch - 网络监控系统</title>
-    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
     <script>
         // 将CSRF Token注入到全局变量
         window.csrfToken = '<?php echo Auth::getCsrfToken(); ?>';
@@ -375,13 +375,13 @@ $recentLogs = $monitor->getRecentLogs(20);
     
     <!-- JavaScript 文件引用 -->
     <!-- 新模块化JS（提供NetWatch命名空间和UI组件） -->
-    <script src="includes/js/core.js?v=<?php echo time(); ?>"></script>
-    <script src="includes/js/ui.js?v=<?php echo time(); ?>"></script>
+    <script src="includes/js/core.js?v=<?php echo filemtime(__DIR__ . '/includes/js/core.js'); ?>"></script>
+    <script src="includes/js/ui.js?v=<?php echo filemtime(__DIR__ . '/includes/js/ui.js'); ?>"></script>
     <!-- 现有JS文件（逐步迁移中） -->
-    <script src="includes/utils.js?v=<?php echo time(); ?>"></script>
-    <script src="includes/search.js?v=<?php echo time(); ?>"></script>
-    <script src="includes/proxy-check.js?v=<?php echo time(); ?>"></script>
-    <script src="includes/offline-simple.js?v=<?php echo time(); ?>"></script>
+    <script src="includes/utils.js?v=<?php echo filemtime(__DIR__ . '/includes/utils.js'); ?>"></script>
+    <script src="includes/search.js?v=<?php echo filemtime(__DIR__ . '/includes/search.js'); ?>"></script>
+    <script src="includes/proxy-check.js?v=<?php echo filemtime(__DIR__ . '/includes/proxy-check.js'); ?>"></script>
+    <script src="includes/offline-simple.js?v=<?php echo filemtime(__DIR__ . '/includes/offline-simple.js'); ?>"></script>
     
     <script>
         // 页面特定的初始化代码
