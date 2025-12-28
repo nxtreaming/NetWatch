@@ -101,6 +101,11 @@ class Auth {
             if (session_status() === PHP_SESSION_ACTIVE) {
                 @session_regenerate_id(true);
             }
+
+            if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
+                require_once __DIR__ . '/includes/AuditLogger.php';
+                AuditLogger::log('login', 'user', $username);
+            }
             
             return true;
         }
@@ -113,6 +118,12 @@ class Auth {
      */
     public static function logout() {
         self::startSession();
+
+        $username = $_SESSION['username'] ?? null;
+        if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
+            require_once __DIR__ . '/includes/AuditLogger.php';
+            AuditLogger::log('logout', 'user', $username);
+        }
         
         // 清除所有session数据
         $_SESSION = [];

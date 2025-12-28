@@ -87,6 +87,18 @@ class Database {
             FOREIGN KEY (proxy_id) REFERENCES proxies (id) ON DELETE CASCADE,
             UNIQUE(token_id, proxy_id)
         );
+
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            action TEXT NOT NULL,
+            target_type TEXT,
+            target_id TEXT,
+            details TEXT,
+            ip_address TEXT,
+            user_agent TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
         
         CREATE TABLE IF NOT EXISTS traffic_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,6 +153,11 @@ class Database {
         CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);
         CREATE INDEX IF NOT EXISTS idx_api_tokens_expires ON api_tokens(expires_at);
         CREATE INDEX IF NOT EXISTS idx_token_assignments_token ON token_proxy_assignments(token_id);
+
+        -- 审计日志索引
+        CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+        CREATE INDEX IF NOT EXISTS idx_audit_logs_username ON audit_logs(username);
+        CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
         
         -- 流量统计索引
         CREATE INDEX IF NOT EXISTS idx_traffic_stats_date ON traffic_stats(usage_date);
@@ -149,6 +166,12 @@ class Database {
         ";
         
         $this->pdo->exec($sql);
+    }
+
+    public function addAuditLog($username, $action, $targetType = null, $targetId = null, $details = null, $ipAddress = null, $userAgent = null) {
+        $sql = "INSERT INTO audit_logs (username, action, target_type, target_id, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$username, $action, $targetType, $targetId, $details, $ipAddress, $userAgent]);
     }
     
     public function addProxy($ip, $port, $type, $username = null, $password = null) {

@@ -13,6 +13,9 @@ try {
     require_once 'auth.php';
     require_once 'monitor.php';
     require_once 'includes/functions.php';
+    if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
+        require_once __DIR__ . '/includes/AuditLogger.php';
+    }
     
     // 检查登录状态
     Auth::requireLogin();
@@ -39,18 +42,32 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
     $csrfToken = $_POST['csrf_token'] ?? '';
     if (!Auth::validateCsrfToken($csrfToken)) {
         $error = 'CSRF验证失败，请刷新页面后重试';
+        if (class_exists('AuditLogger')) {
+            AuditLogger::log('clear_proxies_csrf_failed', 'proxy');
+        }
     } else {
         try {
             $db = new Database();
             $db->clearAllData();
             $clearExecuted = true;
             $success = "已成功删除 $totalProxies 个代理及相关数据";
+
+            if (class_exists('AuditLogger')) {
+                AuditLogger::log('clear_proxies', 'proxy', null, [
+                    'deleted' => $totalProxies
+                ]);
+            }
             
             // 刷新代理列表
             $proxies = $monitor->getAllProxies();
             $totalProxies = count($proxies);
         } catch (Exception $e) {
             $error = $e->getMessage();
+            if (class_exists('AuditLogger')) {
+                AuditLogger::log('clear_proxies_failed', 'proxy', null, [
+                    'error' => $error
+                ]);
+            }
         }
     }
 }

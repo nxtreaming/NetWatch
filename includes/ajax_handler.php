@@ -128,6 +128,10 @@ class AjaxHandler {
     private function handleCheckAll() {
         $this->setJsonHeaders();
         try {
+            if (file_exists(__DIR__ . '/AuditLogger.php')) {
+                require_once __DIR__ . '/AuditLogger.php';
+                AuditLogger::log('check_all', 'proxy');
+            }
             $results = $this->monitor->checkAllProxies();
             
             // 检查是否有需要发送警报的代理
@@ -318,6 +322,10 @@ class AjaxHandler {
     private function handleCheckFailedProxies() {
         $this->setJsonHeaders();
         try {
+            if (file_exists(__DIR__ . '/AuditLogger.php')) {
+                require_once __DIR__ . '/AuditLogger.php';
+                AuditLogger::log('check_failed_proxies', 'proxy');
+            }
             // 检查是否有需要发送警报的代理
             $failedProxies = $this->monitor->getFailedProxies();
             $emailSent = false;
@@ -362,6 +370,13 @@ class AjaxHandler {
             require_once 'parallel_monitor.php';
             // 创建会话独立的并行监控器：使用配置常量和会话ID
             $sessionId = session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
+
+            if (file_exists(__DIR__ . '/AuditLogger.php')) {
+                require_once __DIR__ . '/AuditLogger.php';
+                AuditLogger::log('parallel_check_start', 'proxy', $sessionId, [
+                    'offline_only' => (bool)$offlineOnly
+                ]);
+            }
             
             // 如果是离线代理检测，使用更小的批次大小和更少的进程数
             if ($offlineOnly) {
@@ -418,6 +433,11 @@ class AjaxHandler {
             if (!$sessionId) {
                 echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
                 return;
+            }
+
+            if (file_exists(__DIR__ . '/AuditLogger.php')) {
+                require_once __DIR__ . '/AuditLogger.php';
+                AuditLogger::log('parallel_check_cancel', 'proxy', $sessionId);
             }
             $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
             

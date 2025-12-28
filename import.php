@@ -7,6 +7,9 @@ require_once 'config.php';
 require_once 'auth.php';
 require_once 'monitor.php';
 require_once 'includes/functions.php';
+if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
+    require_once __DIR__ . '/includes/AuditLogger.php';
+}
 
 // 检查登录状态
 Auth::requireLogin();
@@ -26,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (isset($_POST['import_text']) && !empty($_POST['import_text'])) {
             // 从文本导入
+            $importSource = 'text';
             $lines = explode("\n", trim($_POST['import_text']));
             $maxLines = defined('MAX_IMPORT_LINES') ? (int)MAX_IMPORT_LINES : 50000;
             if (count($lines) > $maxLines) {
@@ -76,15 +80,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             $result = $monitor->importProxies($proxyList, 'add');
+
+            if ($result && class_exists('AuditLogger')) {
+                AuditLogger::log('proxy_import', 'proxy', null, [
+                    'source' => $importSource,
+                    'total_parsed' => count($proxyList),
+                    'imported' => $result['imported'] ?? null,
+                    'skipped' => $result['skipped'] ?? null,
+                    'errors' => isset($result['errors']) ? count($result['errors']) : null
+                ]);
+            }
             
         } elseif (isset($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
             // 从文件导入
+            $importSource = 'file';
             $maxFileBytes = defined('MAX_IMPORT_FILE_BYTES') ? (int)MAX_IMPORT_FILE_BYTES : (10 * 1024 * 1024);
             if (!empty($_FILES['import_file']['size']) && (int)$_FILES['import_file']['size'] > $maxFileBytes) {
                 throw new Exception('导入文件过大，请分批导入');
             }
             $tempFile = $_FILES['import_file']['tmp_name'];
             $result = $monitor->importFromFile($tempFile);
+
+            if ($result && class_exists('AuditLogger')) {
+                AuditLogger::log('proxy_import', 'proxy', null, [
+                    'source' => $importSource,
+                    'file_size' => (int)($_FILES['import_file']['size'] ?? 0),
+                    'imported' => $result['imported'] ?? null,
+                    'skipped' => $result['skipped'] ?? null,
+                    'errors' => isset($result['errors']) ? count($result['errors']) : null
+                ]);
+            }
             
         } else {
             $error = '请提供要导入的代理数据';
@@ -92,6 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
     } catch (Exception $e) {
         $error = $e->getMessage();
+        if (class_exists('AuditLogger')) {
+            AuditLogger::log('proxy_import_failed', 'proxy', null, [
+                'error' => $error
+            ]);
+        }
     }
 }
 

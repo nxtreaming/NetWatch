@@ -8,6 +8,9 @@ require_once 'config.php';
 require_once 'auth.php';
 require_once 'monitor.php';
 require_once 'includes/functions.php';
+if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
+    require_once __DIR__ . '/includes/AuditLogger.php';
+}
 
 // 检查登录状态
 Auth::requireLogin();
@@ -100,9 +103,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $result = $monitor->importProxies($proxyList, $importMode);
         $result['total_generated'] = $totalProxies;
+
+        if ($result && class_exists('AuditLogger')) {
+            AuditLogger::log('subnet_import', 'proxy', null, [
+                'import_mode' => $importMode,
+                'total_generated' => $totalProxies,
+                'imported' => $result['imported'] ?? null,
+                'skipped' => $result['skipped'] ?? null,
+                'errors' => isset($result['errors']) ? count($result['errors']) : null
+            ]);
+        }
         
     } catch (Exception $e) {
         $error = $e->getMessage();
+        if (class_exists('AuditLogger')) {
+            AuditLogger::log('subnet_import_failed', 'proxy', null, [
+                'error' => $error
+            ]);
+        }
     }
 }
 

@@ -3,6 +3,9 @@ require_once 'auth.php';
 require_once 'config.php';
 require_once 'database.php';
 require_once 'includes/functions.php';
+if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
+    require_once __DIR__ . '/includes/AuditLogger.php';
+}
 
 // 强制登录检查
 Auth::requireLogin();
@@ -40,6 +43,13 @@ if (isset($_GET['ajax'])) {
             $token = $db->createApiToken($name, $proxyCount, $expiresAt);
             
             if ($token) {
+                if (class_exists('AuditLogger')) {
+                    AuditLogger::log('token_create', 'token', $token, [
+                        'name' => $name,
+                        'proxy_count' => $proxyCount,
+                        'expires_at' => $expiresAt
+                    ]);
+                }
                 echo json_encode(['success' => true, 'token' => $token, 'message' => 'Token创建成功']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Token创建失败']);
@@ -59,6 +69,11 @@ if (isset($_GET['ajax'])) {
             $result = $db->refreshToken($tokenId, $newExpiresAt);
             
             if ($result) {
+                if (class_exists('AuditLogger')) {
+                    AuditLogger::log('token_refresh', 'token', $tokenId, [
+                        'expires_at' => $newExpiresAt
+                    ]);
+                }
                 echo json_encode(['success' => true, 'message' => 'Token有效期刷新成功']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Token刷新失败']);
@@ -76,6 +91,9 @@ if (isset($_GET['ajax'])) {
             $result = $db->deleteToken($tokenId);
             
             if ($result) {
+                if (class_exists('AuditLogger')) {
+                    AuditLogger::log('token_delete', 'token', $tokenId);
+                }
                 echo json_encode(['success' => true, 'message' => 'Token删除成功']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Token删除失败']);
@@ -94,6 +112,11 @@ if (isset($_GET['ajax'])) {
             $result = $db->reassignTokenProxies($tokenId, $proxyCount);
             
             if ($result) {
+                if (class_exists('AuditLogger')) {
+                    AuditLogger::log('token_reassign', 'token', $tokenId, [
+                        'proxy_count' => $proxyCount
+                    ]);
+                }
                 echo json_encode(['success' => true, 'message' => '代理重新分配成功']);
             } else {
                 echo json_encode(['success' => false, 'message' => '代理重新分配失败']);
