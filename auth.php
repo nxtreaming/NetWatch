@@ -48,11 +48,25 @@ class Auth {
      * 验证用户凭据
      */
     public static function validateCredentials($username, $password) {
-        if (!defined('LOGIN_USERNAME') || !defined('LOGIN_PASSWORD')) {
+        if (!defined('LOGIN_USERNAME')) {
             return false;
         }
-        
-        return $username === LOGIN_USERNAME && $password === LOGIN_PASSWORD;
+
+        if ($username !== LOGIN_USERNAME) {
+            return false;
+        }
+
+        // A1 兼容迁移：优先使用密码哈希校验
+        if (defined('LOGIN_PASSWORD_HASH') && is_string(LOGIN_PASSWORD_HASH) && LOGIN_PASSWORD_HASH !== '') {
+            return password_verify($password, LOGIN_PASSWORD_HASH);
+        }
+
+        // 回退到明文密码（过渡期兼容）
+        if (!defined('LOGIN_PASSWORD')) {
+            return false;
+        }
+
+        return $password === LOGIN_PASSWORD;
     }
     
     /**
@@ -81,6 +95,11 @@ class Auth {
                 // Session写入失败，清理可能的残留数据
                 $_SESSION = array();
                 return 'session_write_failed';
+            }
+
+            // 登录成功后重新生成Session ID，防止会话固定攻击
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                @session_regenerate_id(true);
             }
             
             return true;

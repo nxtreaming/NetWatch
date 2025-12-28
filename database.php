@@ -129,11 +129,13 @@ class Database {
         CREATE INDEX IF NOT EXISTS idx_proxies_ip_port ON proxies(ip, port);
         CREATE INDEX IF NOT EXISTS idx_proxies_status_response ON proxies(status, response_time);
         CREATE INDEX IF NOT EXISTS idx_proxies_failure_count ON proxies(failure_count);
+        CREATE INDEX IF NOT EXISTS idx_proxies_status_failure ON proxies(status, failure_count);
         
         -- 检查日志索引
         CREATE INDEX IF NOT EXISTS idx_check_logs_proxy_id ON check_logs(proxy_id);
         CREATE INDEX IF NOT EXISTS idx_check_logs_checked_at ON check_logs(checked_at);
         CREATE INDEX IF NOT EXISTS idx_check_logs_proxy_checked ON check_logs(proxy_id, checked_at);
+        CREATE INDEX IF NOT EXISTS idx_check_logs_status_time ON check_logs(status, checked_at);
         
         -- API Token索引
         CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);
@@ -313,20 +315,27 @@ class Database {
      */
     public function clearAllData() {
         try {
+            $this->pdo->beginTransaction();
+
             // 删除所有相关数据
             $this->pdo->exec("DELETE FROM alerts");
             $this->pdo->exec("DELETE FROM check_logs");
             $this->pdo->exec("DELETE FROM proxies");
-            
+
             // 重置自增ID
             $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='proxies'");
             $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='check_logs'");
             $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='alerts'");
-            
+
+            $this->pdo->commit();
+
             $this->clearProxyCountCache();
-            
+
             return true;
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw new Exception("清空数据失败: " . $e->getMessage());
         }
     }
@@ -643,33 +652,57 @@ class Database {
      * 重新分配Token的代理
      */
     public function reassignTokenProxies($tokenId, $proxyCount) {
-        // 删除现有分配
-        $sql = "DELETE FROM token_proxy_assignments WHERE token_id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$tokenId]);
-        
-        // 重新分配
-        $this->assignProxiesToToken($tokenId, $proxyCount);
-        
-        // 更新Token信息
-        $sql = "UPDATE api_tokens SET proxy_count = ?, updated_at = datetime('now') WHERE id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$proxyCount, $tokenId]);
+        try {
+            $this->pdo->beginTransaction();
+
+            // 删除现有分配
+            $sql = "DELETE FROM token_proxy_assignments WHERE token_id = ?";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$tokenId]);
+
+            // 重新分配
+            $this->assignProxiesToToken($tokenId, $proxyCount);
+
+            // 更新Token信息
+            $sql = "UPDATE api_tokens SET proxy_count = ?, updated_at = datetime('now') WHERE id = ?";
+            $stmt = $this->pdo->prepare($sql);
+            $result = $stmt->execute([$proxyCount, $tokenId]);
+
+            $this->pdo->commit();
+            return $result;
+        } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw new Exception("代理重新分配失败: " . $e->getMessage());
+        }
     }
     
     /**
      * 保存实时流量数据
      */
     public function saveRealtimeTraffic($totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes = 0, $txBytes = 0, $port = 0) {
-        // 删除旧数据，只保留最新的一条
-        $sql = "DELETE FROM traffic_realtime";
-        $this->pdo->exec($sql);
-        
-        // 插入新数据
-        $sql = "INSERT INTO traffic_realtime (total_bandwidth, used_bandwidth, remaining_bandwidth, usage_percentage, rx_bytes, tx_bytes, port, updated_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes, $txBytes, $port]);
+        try {
+            $this->pdo->beginTransaction();
+
+            // 删除旧数据，只保留最新的一条
+            $sql = "DELETE FROM traffic_realtime";
+            $this->pdo->exec($sql);
+
+            // 插入新数据
+            $sql = "INSERT INTO traffic_realtime (total_bandwidth, used_bandwidth, remaining_bandwidth, usage_percentage, rx_bytes, tx_bytes, port, updated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))";
+            $stmt = $this->pdo->prepare($sql);
+            $result = $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes, $txBytes, $port]);
+
+            $this->pdo->commit();
+            return $result;
+        } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw new Exception("保存实时流量失败: " . $e->getMessage());
+        }
     }
     
     /**

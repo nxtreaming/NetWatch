@@ -16,6 +16,7 @@ if (!Auth::isLoginEnabled() || Auth::isLoggedIn()) {
 $error = '';
 $success = '';
 $warning = '';
+$errorDetail = '';
 // 初始化表单字段，默认空字符串，并进行trim处理
 $username = isset($_POST['username']) ? trim($_POST['username']) : '';
 $password = isset($_POST['password']) ? trim($_POST['password']) : '';
@@ -59,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // 重新检查存储空间状态
                     $storageStatus = Auth::checkStorageSpace();
                     if ($storageStatus['status'] !== 'unknown') {
-                        $error .= '<br><small>当前可用空间：' . $storageStatus['free_mb'] . ' MB (' . round($storageStatus['free_percent'], 2) . '%)</small>';
+                        $errorDetail = '当前可用空间：' . $storageStatus['free_mb'] . ' MB (' . round($storageStatus['free_percent'], 2) . '%)';
                     }
                 } else {
                     $error = '用户名或密码错误';
@@ -226,7 +227,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         
         <?php if ($error): ?>
             <div class="alert alert-error">
-                ❌ <?php echo $error; ?>
+                ❌ <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
+                <?php if (!empty($errorDetail)): ?>
+                    <br><small><?php echo htmlspecialchars($errorDetail, ENT_QUOTES, 'UTF-8'); ?></small>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
         
