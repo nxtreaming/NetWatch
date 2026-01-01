@@ -266,7 +266,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 
         
         <div class="footer">
-            NetWatch &copy; <?php echo date('Y'); ?> - 网络代理监控系统
+            NetWatch &copy; 2025 - <?php echo date('Y'); ?> - 网络代理监控系统
         </div>
     </div>
     
