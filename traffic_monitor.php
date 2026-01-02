@@ -332,26 +332,34 @@ class TrafficMonitor {
         $trafficReset = false;
         $skipUpdate = false;
         
-        // 每月1日或当月其他日期：计算当月累计值
+        // 核心原则：今日 used_bandwidth = 昨日 used_bandwidth + 今日 daily_usage
         if ($isFirstDayOfMonth) {
             // 每月1日：当月累计 = 当日使用量
             $displayUsedGB = $dailyUsage;
             $this->logger->info("跨月（每月1日）：存储当月累计值 {$dailyUsage}GB");
         } else {
-            // 非每月1日：当月累计 = 原始值 - 上月最后一天的原始值
-            $firstDayOfMonth = date('Y-m-01');
-            $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
-            $prevMonthLastSnapshot = $this->db->getLastSnapshotOfDay($lastDayOfPrevMonth);
+            // 非每月1日：当月累计 = 昨日当月累计 + 今日使用量
+            $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
+            $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
             
-            if ($prevMonthLastSnapshot) {
-                $prevMonthTotal = $prevMonthLastSnapshot['total_bytes'] / (1024 * 1024 * 1024);
-                $displayUsedGB = $totalUsedGB - $prevMonthTotal;
-                if ($displayUsedGB < 0) {
-                    $displayUsedGB = $totalUsedGB;  // 异常情况，使用原始值
+            if ($yesterdayData && isset($yesterdayData['used_bandwidth'])) {
+                $displayUsedGB = $yesterdayData['used_bandwidth'] + $dailyUsage;
+                $this->logger->info("当月累计：{$displayUsedGB}GB = {$yesterdayData['used_bandwidth']}GB（昨日累计） + {$dailyUsage}GB（今日使用）");
+            } else {
+                // 没有昨日数据，回退到使用上月快照计算
+                $firstDayOfMonth = date('Y-m-01');
+                $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
+                $prevMonthLastSnapshot = $this->db->getLastSnapshotOfDay($lastDayOfPrevMonth);
+                
+                if ($prevMonthLastSnapshot) {
+                    $prevMonthTotal = $prevMonthLastSnapshot['total_bytes'] / (1024 * 1024 * 1024);
+                    $displayUsedGB = $totalUsedGB - $prevMonthTotal;
+                    if ($displayUsedGB < 0) {
+                        $displayUsedGB = $totalUsedGB;
+                    }
+                    $this->logger->info("当月累计（回退）：{$displayUsedGB}GB = {$totalUsedGB}GB - {$prevMonthTotal}GB");
                 }
-                $this->logger->info("当月累计：{$displayUsedGB}GB = {$totalUsedGB}GB - {$prevMonthTotal}GB（上月最后快照）");
             }
-            // 如果没有上月快照，保持使用原始值
         }
         
         if ($dailyUsage > $totalUsedGB) {
