@@ -4,8 +4,8 @@
  * 确保 used_bandwidth = 昨日 used_bandwidth + 今日 daily_usage
  */
 
-require_once '../config.php';
-require_once '../database.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../database.php';
 
 // 设置时区
 date_default_timezone_set('Asia/Shanghai');
