@@ -6,9 +6,18 @@
 
 class AjaxHandler {
     private $monitor;
+    private $db;
     
-    public function __construct($monitor) {
+    public function __construct($monitor, $db = null) {
         $this->monitor = $monitor;
+
+        if ($db !== null) {
+            $this->db = $db;
+        } elseif (is_object($monitor) && method_exists($monitor, 'getDatabase')) {
+            $this->db = $monitor->getDatabase();
+        } else {
+            $this->db = new Database();
+        }
     }
     
     /**
@@ -251,8 +260,7 @@ class AjaxHandler {
             }
             
             // 获取要检查的代理列表
-            $db = new Database();
-            $proxies = $db->getProxiesBatch($offset, $limit);
+            $proxies = $this->db->getProxiesBatch($offset, $limit);
             
             if (empty($proxies)) {
                 echo json_encode([
@@ -467,8 +475,7 @@ class AjaxHandler {
     private function handleDebugStatuses() {
         $this->setJsonHeaders();
         try {
-            $db = new Database();
-            $statuses = $db->getDistinctStatuses();
+            $statuses = $this->db->getDistinctStatuses();
             echo json_encode([
                 'success' => true,
                 'statuses' => $statuses
@@ -484,19 +491,18 @@ class AjaxHandler {
     private function handleCreateTestData() {
         $this->setJsonHeaders();
         try {
-            $db = new Database();
             // 获取前5个代理的ID
-            $proxies = $db->getProxiesBatch(0, 5);
+            $proxies = $this->db->getProxiesBatch(0, 5);
             $updated = 0;
             
             foreach ($proxies as $index => $proxy) {
                 if ($index < 2) {
                     // 前2个设为离线
-                    $db->updateProxyStatus($proxy['id'], 'offline', 0, '测试数据');
+                    $this->db->updateProxyStatus($proxy['id'], 'offline', 0, '测试数据');
                     $updated++;
                 } elseif ($index < 4) {
                     // 中间2个设为未知
-                    $db->updateProxyStatus($proxy['id'], 'unknown', 0, '测试数据');
+                    $this->db->updateProxyStatus($proxy['id'], 'unknown', 0, '测试数据');
                     $updated++;
                 }
             }
@@ -523,15 +529,14 @@ class AjaxHandler {
             $perPage = defined('PROXIES_PER_PAGE') ? PROXIES_PER_PAGE : 200;
             
             // 直接使用数据库对象实现搜索和筛选
-            $db = new Database();
-            $proxies = $db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
+            $proxies = $this->db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
             // 过滤敏感信息
             $proxies = array_map(function($proxy) {
                 unset($proxy['username']);
                 unset($proxy['password']);
                 return $proxy;
             }, $proxies);
-            $totalCount = $db->getSearchCount($searchTerm, $statusFilter);
+            $totalCount = $this->db->getSearchCount($searchTerm, $statusFilter);
             $totalPages = ceil($totalCount / $perPage);
             
             echo json_encode([

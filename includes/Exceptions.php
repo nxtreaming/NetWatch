@@ -218,3 +218,16 @@ class ExceptionHandler {
                 strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
     }
 }
+
+if (php_sapi_name() !== 'cli') {
+    if (!isset($GLOBALS['__netwatch_exception_handler_registered'])) {
+        $GLOBALS['__netwatch_exception_handler_registered'] = true;
+
+        if (defined('LOG_PATH') && file_exists(__DIR__ . '/../logger.php')) {
+            require_once __DIR__ . '/../logger.php';
+            ExceptionHandler::setLogger(new Logger());
+        }
+
+        ExceptionHandler::register();
+    }
+}

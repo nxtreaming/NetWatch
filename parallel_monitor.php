@@ -5,9 +5,6 @@
  * 修复版本：支持会话隔离，避免多设备/多用户之间的干扰
  */
 
-// 设置时区为中国标准时间
-date_default_timezone_set('Asia/Shanghai');
-
 require_once 'config.php';
 require_once 'database.php';
 require_once 'monitor.php';

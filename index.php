@@ -116,7 +116,7 @@ if (isset($_GET['ajax'])) {
         // 让各个handler根据需要自己设置（特别是checkBatch需要特殊的header配置）
         
         // 使用AJAX处理器处理请求
-        $ajaxHandler = new AjaxHandler($monitor);
+        $ajaxHandler = new AjaxHandler($monitor, $monitor->getDatabase());
         $ajaxHandler->handleRequest($action);
         exit;
     }

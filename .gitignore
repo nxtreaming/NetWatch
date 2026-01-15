@@ -40,3 +40,4 @@ phpunit.xml.dist
 /localdev/*
 /migrations/*
 dev2.md
+dev3.md

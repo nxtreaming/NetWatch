@@ -3,6 +3,8 @@
  * 数据库操作类
  */
 
+require_once __DIR__ . '/includes/Exceptions.php';
+
 class Database {
     private $pdo;
     private static $tablesCreated = false;
@@ -27,7 +29,9 @@ class Database {
             $this->pdo = new PDO('sqlite:' . DB_PATH);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
-            die('数据库连接失败: ' . $e->getMessage());
+            throw new DatabaseException('数据库连接失败', 500, $e, [
+                'db_path' => DB_PATH
+            ]);
         }
     }
     
@@ -912,6 +916,16 @@ class Database {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$date]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getDistinctStatuses(): array {
+        $sql = "SELECT DISTINCT status FROM proxies WHERE status IS NOT NULL AND status != '' ORDER BY status ASC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_values(array_map(static function ($row) {
+            return $row['status'];
+        }, $rows));
     }
     
     /**

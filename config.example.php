@@ -35,8 +35,19 @@ define('TEST_HTTPS_URL', 'https://httpbin.org/ip');  // 用于测试HTTPS代理�
 define('LOG_PATH', __DIR__ . '/logs/');
 define('LOG_LEVEL', 'INFO');  // DEBUG, INFO, WARNING, ERROR
 
+// Debug 工具开关（生产环境建议设置为 false）
+define('ENABLE_DEBUG_TOOLS', true);
+
 // 时区设置
 date_default_timezone_set('Asia/Shanghai');
+
+// 全局异常处理（推荐开启，避免未捕获异常导致白屏）
+require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/includes/Exceptions.php';
+
+$__netwatchLogger = new Logger();
+ExceptionHandler::setLogger($__netwatchLogger);
+ExceptionHandler::register();
 
 // 登录配置
 define('LOGIN_USERNAME', 'admin');  // 登录用户名

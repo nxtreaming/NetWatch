@@ -3,9 +3,6 @@
  * 代理流量监控页面
  */
 
-// 设置时区为 UTC+8
-date_default_timezone_set('Asia/Shanghai');
-
 require_once '../config.php';
 require_once '../auth.php';
 require_once '../traffic_monitor.php';
