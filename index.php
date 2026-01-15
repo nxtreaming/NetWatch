@@ -93,14 +93,21 @@ if (isset($_GET['ajax'])) {
             exit;
         }
         
-        // CSRF Token验证（对于修改数据的操作）
-        $modifyingActions = ['check', 'checkAll', 'checkBatch', 'checkFailedProxies', 
-                             'startParallelCheck', 'cancelParallelCheck', 'createTestData',
-                             'startOfflineParallelCheck', 'cancelOfflineParallelCheck'];
-        
-        if (in_array($action, $modifyingActions)) {
+        // CSRF Token验证（默认校验，仅对白名单只读操作放行）
+        $csrfExemptActions = [
+            'sessionCheck',
+            'stats',
+            'logs',
+            'getProxyCount',
+            'getParallelProgress',
+            'getOfflineParallelProgress',
+            'search',
+            'debugStatuses'
+        ];
+
+        if (!in_array($action, $csrfExemptActions, true)) {
             $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-            
+
             if (!Auth::validateCsrfToken($csrfToken)) {
                 header('Content-Type: application/json');
                 echo json_encode([
