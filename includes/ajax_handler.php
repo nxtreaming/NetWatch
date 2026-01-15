@@ -305,7 +305,7 @@ class AjaxHandler {
                 flush();
                 
                 // 短暂延迟，避免过度占用资源
-                usleep(10000); // 0.01秒
+                usleep(defined('AJAX_STREAM_THROTTLE_US') ? AJAX_STREAM_THROTTLE_US : 10000); // 0.01秒
             }
             
             // 计算执行时间

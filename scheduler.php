@@ -127,7 +127,7 @@ class Scheduler {
             }
             
             // 休眠60秒
-            sleep(60);
+            sleep(defined('SCHEDULER_LOOP_SLEEP_SEC') ? SCHEDULER_LOOP_SLEEP_SEC : 60);
         }
     }
 }

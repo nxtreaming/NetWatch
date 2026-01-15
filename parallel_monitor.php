@@ -260,7 +260,7 @@ class ParallelMonitor {
                 unset($processes[$key]);
                 break;
             }
-            usleep(100000); // 100ms
+            usleep(defined('PARALLEL_CANCEL_POLL_US') ? PARALLEL_CANCEL_POLL_US : 100000); // 100ms
         }
     }
     

@@ -177,7 +177,7 @@ function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger):
             $logger->info("批次 {$batchId} 完成");
             break; // 只等待一个进程完成
         }
-        usleep(500000); // 0.5秒检查间隔
+        usleep(defined('PARALLEL_BATCH_POLL_US') ? PARALLEL_BATCH_POLL_US : 500000); // 0.5秒检查间隔
     }
 }
 

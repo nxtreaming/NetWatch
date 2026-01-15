@@ -19,7 +19,15 @@ define('SMTP_TO_EMAIL', 'admin@example.com');  // 接收通知的邮箱
 // 监控配置
 define('CHECK_INTERVAL', 300);  // 检查间隔（秒）
 define('TIMEOUT', 10);  // curl超时时间（秒）
+define('CONNECT_TIMEOUT', 5);  // curl连接超时时间（秒）
+define('ENABLE_RETRY', true);  // 是否启用重试机制（失败后进行第二次检测）
 define('MAX_RETRIES', 3);  // 最大重试次数
+define('PROXY_RETRY_DELAY_US', 200000);
+define('PROXY_REQUEST_THROTTLE_US', 10000);
+define('AJAX_STREAM_THROTTLE_US', 10000);
+define('PARALLEL_BATCH_POLL_US', 500000);
+define('PARALLEL_CANCEL_POLL_US', 100000);
+define('SCHEDULER_LOOP_SLEEP_SEC', 60);
 define('ALERT_THRESHOLD', 3);  // 连续失败多少次后发送邮件
 
 // 测试URL配置

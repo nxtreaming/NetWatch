@@ -149,7 +149,7 @@ class NetworkMonitor {
                 if ($enableRetry && $retryCount === 0) {
                     $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败，进行第二次检测...");
                     // 短暂延迟后重试
-                    usleep(200000); // 0.2秒延迟
+                    usleep(defined('PROXY_RETRY_DELAY_US') ? PROXY_RETRY_DELAY_US : 200000); // 0.2秒延迟
                     return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
                 }
                 
@@ -169,7 +169,7 @@ class NetworkMonitor {
             // 如果启用了重试且这是第一次检测异常，进行第二次检测
             if ($enableRetry && $retryCount === 0) {
                 $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常，进行第二次检测...");
-                usleep(200000); // 0.2秒延迟
+                usleep(defined('PROXY_RETRY_DELAY_US') ? PROXY_RETRY_DELAY_US : 200000); // 0.2秒延迟
                 return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
             }
             
@@ -203,7 +203,7 @@ class NetworkMonitor {
             $results[] = array_merge($filteredProxy, $result);
             
             // 避免过于频繁的请求
-            usleep(10000); // 0.01秒延迟
+            usleep(defined('PROXY_REQUEST_THROTTLE_US') ? PROXY_REQUEST_THROTTLE_US : 10000); // 0.01秒延迟
         }
         
         $this->logger->info("代理检查完成");
@@ -395,7 +395,7 @@ class NetworkMonitor {
             $results[] = array_merge($filteredProxy, $result);
             
             // 减少延迟时间，提高批量检查速度
-            usleep(10000); // 0.01秒延迟，更快的批量检查
+            usleep(defined('PROXY_REQUEST_THROTTLE_US') ? PROXY_REQUEST_THROTTLE_US : 10000); // 0.01秒延迟，更快的批量检查
         }
         
         $this->logger->info("分批检查完成: 检查了 " . count($results) . " 个代理");
