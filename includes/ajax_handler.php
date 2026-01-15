@@ -7,6 +7,7 @@
 class AjaxHandler {
     private $monitor;
     private $db;
+    private $logger;
     
     public function __construct($monitor, $db = null) {
         $this->monitor = $monitor;
@@ -17,6 +18,12 @@ class AjaxHandler {
             $this->db = $monitor->getDatabase();
         } else {
             $this->db = new Database();
+        }
+
+        if (is_object($monitor) && method_exists($monitor, 'getLogger')) {
+            $this->logger = $monitor->getLogger();
+        } else {
+            $this->logger = new Logger();
         }
     }
     
@@ -164,7 +171,9 @@ class AjaxHandler {
                         );
                     }
                 } catch (Exception $mailError) {
-                    error_log('发送邮件失败: ' . $mailError->getMessage());
+                    $this->logger->error('发送邮件失败', [
+                        'error' => $mailError->getMessage()
+                    ]);
                 }
             }
             
@@ -355,7 +364,9 @@ class AjaxHandler {
                         );
                     }
                 } catch (Exception $mailError) {
-                    error_log('发送邮件失败: ' . $mailError->getMessage());
+                    $this->logger->error('发送邮件失败', [
+                        'error' => $mailError->getMessage()
+                    ]);
                 }
             }
             

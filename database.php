@@ -371,17 +371,10 @@ class Database {
      * 获取代理总数
      */
     public function getProxyCount() {
-        // 记录开始时间
-        $startTime = microtime(true);
-        
         $sql = "SELECT COUNT(*) as count FROM proxies";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // 记录执行时间
-        $executionTime = round((microtime(true) - $startTime) * 1000, 2);
-        error_log("getProxyCount执行时间: {$executionTime}ms");
         
         return (int)$result['count'];
     }
