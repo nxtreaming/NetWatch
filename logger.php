@@ -5,24 +5,55 @@
  */
 
 class Logger {
+    private string $logDir;
     private string $logFile;
     private string $jsonLogFile;
     private static ?string $requestId = null;
     private bool $jsonFormat = false;
     
     public function __construct(bool $jsonFormat = false) {
-        if (!is_dir(LOG_PATH)) {
-            mkdir(LOG_PATH, 0755, true);
-        }
+        $this->logDir = $this->resolveLogDir();
         
-        $this->logFile = LOG_PATH . 'netwatch_' . date('Y-m-d') . '.log';
-        $this->jsonLogFile = LOG_PATH . 'netwatch_' . date('Y-m-d') . '.json.log';
+        $this->logFile = $this->logDir . 'netwatch_' . date('Y-m-d') . '.log';
+        $this->jsonLogFile = $this->logDir . 'netwatch_' . date('Y-m-d') . '.json.log';
         $this->jsonFormat = $jsonFormat;
         
         // 生成请求ID
         if (self::$requestId === null) {
             self::$requestId = $this->generateRequestId();
         }
+    }
+
+    private function resolveLogDir(): string {
+        $dir = defined('LOG_PATH') ? (string)LOG_PATH : '';
+        if ($dir !== '') {
+            $dir = rtrim($dir, "\\/ ") . DIRECTORY_SEPARATOR;
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+            if (is_dir($dir) && is_writable($dir)) {
+                return $dir;
+            }
+        }
+
+        $fallback = rtrim(sys_get_temp_dir(), "\\/ ") . DIRECTORY_SEPARATOR . 'netwatch_logs' . DIRECTORY_SEPARATOR;
+        if (!is_dir($fallback)) {
+            @mkdir($fallback, 0755, true);
+        }
+        if (is_dir($fallback) && is_writable($fallback)) {
+            return $fallback;
+        }
+
+        return '';
+    }
+
+    private function safeAppend(string $filePath, string $content): bool {
+        if ($filePath === '') {
+            return false;
+        }
+
+        $result = @file_put_contents($filePath, $content, FILE_APPEND | LOCK_EX);
+        return $result !== false;
     }
     
     /**
@@ -52,7 +83,9 @@ class Logger {
         // 文本格式日志
         $contextStr = !empty($context) ? ' ' . json_encode($context, JSON_UNESCAPED_UNICODE) : '';
         $logEntry = "[$timestamp] [$requestId] [$level] $message$contextStr" . PHP_EOL;
-        file_put_contents($this->logFile, $logEntry, FILE_APPEND | LOCK_EX);
+        if (!$this->safeAppend($this->logFile, $logEntry)) {
+            error_log(rtrim($logEntry));
+        }
         
         // JSON格式日志（可选）
         if ($this->jsonFormat) {
@@ -76,7 +109,9 @@ class Logger {
         ];
         
         $jsonEntry = json_encode($logData, JSON_UNESCAPED_UNICODE) . PHP_EOL;
-        file_put_contents($this->jsonLogFile, $jsonEntry, FILE_APPEND | LOCK_EX);
+        if (!$this->safeAppend($this->jsonLogFile, $jsonEntry)) {
+            error_log(rtrim($jsonEntry));
+        }
     }
     
     /**
