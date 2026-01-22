@@ -154,7 +154,8 @@ class NetworkMonitor {
                 }
                 
                 $retryInfo = $retryCount > 0 ? "(第二次检测)" : "";
-                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败{$retryInfo}: $errorMessage，尝试时间: {$responseTime}ms");
+                $errorMessageForLog = $errorMessage ?? '';
+                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败{$retryInfo}: {$errorMessageForLog}，尝试时间: {$responseTime}ms");
             }
             
         } catch (Exception $e) {
@@ -178,12 +179,12 @@ class NetworkMonitor {
         }
         
         // 更新数据库
-        $this->db->updateProxyStatus($proxy['id'], $status, $responseTime, $errorMessage);
+        $this->db->updateProxyStatus($proxy['id'], $status, $responseTime, $errorMessage ?? null);
         
         return [
             'status' => $status,
             'response_time' => $responseTime,
-            'error_message' => $errorMessage
+            'error_message' => $errorMessage ?? null
         ];
     }
     
