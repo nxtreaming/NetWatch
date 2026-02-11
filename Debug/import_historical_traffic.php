@@ -4,8 +4,11 @@
  * 从JSON数据中提取pack_size并保存到数据库
  */
 
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/database.php';
+require_once __DIR__ . '../config.php';
+require_once __DIR__ . '../auth.php';
+require_once __DIR__ . '../database.php';
+
+Auth::requireLogin();
 
 // JSON数据
 $jsonData = '{
