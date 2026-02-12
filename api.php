@@ -19,6 +19,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+// S-8: HTTPS强制检查（生产环境建议启用）
+if (defined('API_REQUIRE_HTTPS') && API_REQUIRE_HTTPS === true) {
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+              (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) ||
+              (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
+              (!empty($_SERVER['HTTP_CF_VISITOR']) && strpos($_SERVER['HTTP_CF_VISITOR'], 'https') !== false);
+    if (!$isHttps) {
+        echo ApiResponse::error('HTTPS is required for API access', 403);
+        exit;
+    }
+}
+
+// S-8: IP白名单检查（可选）
+if (defined('API_IP_WHITELIST') && !empty(API_IP_WHITELIST)) {
+    $clientIp = RateLimiter::getClientIp();
+    $whitelist = is_array(API_IP_WHITELIST) ? API_IP_WHITELIST : explode(',', API_IP_WHITELIST);
+    $whitelist = array_map('trim', $whitelist);
+    if (!in_array($clientIp, $whitelist, true)) {
+        error_log('[NetWatch][API] IP not in whitelist: ' . $clientIp);
+        echo json_encode(['success' => false, 'error' => 'Access denied', 'timestamp' => time()]);
+        http_response_code(403);
+        exit;
+    }
+}
+
 $tokenForRateLimit = $_GET['token'] ?? $_POST['token'] ?? '';
 if (empty($tokenForRateLimit)) {
     $headers = function_exists('getallheaders') ? getallheaders() : [];
@@ -117,6 +142,8 @@ class ProxyApi {
                     'username' => $proxy['username'],
                     'password' => $proxy['password']
                 ];
+                // S-8: 记录敏感数据访问
+                error_log('[NetWatch][API] Proxy auth data accessed for proxy_id=' . $proxy['id'] . ' by token=' . substr($token, 0, 8) . '...');
             }
             
             $formattedProxies[] = $proxyData;
