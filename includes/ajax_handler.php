@@ -121,8 +121,8 @@ class AjaxHandler {
     
     private function handleCheck() {
         $this->setJsonHeaders();
-        $proxyId = $_GET['proxy_id'] ?? null;
-        if ($proxyId) {
+        $proxyId = isset($_GET['proxy_id']) ? intval($_GET['proxy_id']) : 0;
+        if ($proxyId > 0) {
             $proxy = $this->monitor->getProxyById($proxyId);
             if ($proxy) {
                 $result = $this->monitor->checkProxy($proxy);
@@ -260,8 +260,8 @@ class AjaxHandler {
             // 记录开始时间
             $startTime = microtime(true);
             
-            $offset = intval($_GET['offset'] ?? 0);
-            $limit = intval($_GET['limit'] ?? 20);
+            $offset = max(0, intval($_GET['offset'] ?? 0));
+            $limit = max(1, min(100, intval($_GET['limit'] ?? 20)));
             
             // 检查monitor对象
             if (!$this->monitor) {
@@ -534,18 +534,16 @@ class AjaxHandler {
     private function handleSearch() {
         $this->setJsonHeaders();
         try {
-            $searchTerm = $_GET['term'] ?? '';
+            $searchTerm = mb_substr(trim($_GET['term'] ?? ''), 0, 255);
             $statusFilter = $_GET['status'] ?? '';
-            $page = max(1, intval($_GET['page'] ?? 1));
+            $page = max(1, min(10000, intval($_GET['page'] ?? 1)));
             $perPage = defined('PROXIES_PER_PAGE') ? PROXIES_PER_PAGE : 200;
             
             // 直接使用数据库对象实现搜索和筛选
             $proxies = $this->db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
             // 过滤敏感信息
             $proxies = array_map(function($proxy) {
-                unset($proxy['username']);
-                unset($proxy['password']);
-                return $proxy;
+                return $this->monitor->filterSensitiveData($proxy);
             }, $proxies);
             $totalCount = $this->db->getSearchCount($searchTerm, $statusFilter);
             $totalPages = ceil($totalCount / $perPage);
