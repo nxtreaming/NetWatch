@@ -93,7 +93,7 @@ class ParallelMonitor {
         // 创建会话独立的临时状态文件目录
         $tempDir = $this->getSessionTempDir();
         if (!is_dir($tempDir)) {
-            mkdir($tempDir, 0755, true);
+            mkdir($tempDir, 0700, true);
         }
         
         // 清理旧的状态文件
@@ -169,7 +169,7 @@ class ParallelMonitor {
         // 创建会话独立的临时状态文件目录
         $tempDir = $this->getSessionTempDir();
         if (!is_dir($tempDir)) {
-            mkdir($tempDir, 0755, true);
+            mkdir($tempDir, 0700, true);
         }
         
         // 清理旧的状态文件
