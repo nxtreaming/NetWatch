@@ -85,5 +85,10 @@ define('CACHE_DIR', __DIR__ . '/cache/');  // 缓存目录
 define('PROXY_COUNT_CACHE_FILE', 'cache_proxy_count.txt');  // 代理数量缓存文件名
 define('PROXY_COUNT_CACHE_TIME', 300);  // 代理数量缓存时间（秒），默认5分钟
 
+// API安全配置
+// define('API_REQUIRE_HTTPS', true);  // 是否强制API通过HTTPS访问（生产环境建议启用）
+// define('API_IP_WHITELIST', '');     // API IP白名单，多个IP用逗号分隔，留空表示不限制
+// 示例: define('API_IP_WHITELIST', '192.168.1.100,10.0.0.1');
+
 // 分页配置
 define('PROXIES_PER_PAGE', 200);  // 每页显示的代理数量
