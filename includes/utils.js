@@ -1,3 +1,10 @@
+// HTML转义函数，防止XSS攻击
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // 自定义深色主题确认框函数
 // 注意：如果NetWatch.UI模块已加载，此函数会被覆盖
 function showCustomConfirm(message, onConfirm, onCancel) {
@@ -99,7 +106,7 @@ function showCustomAlert(message, callback) {
     `;
     
     const messageDiv = document.createElement('div');
-    messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+    messageDiv.innerHTML = escapeHtml(message).replace(/\n/g, '<br>');
     messageDiv.style.cssText = `
         margin-bottom: 25px; color: #e2e8f0; white-space: pre-wrap;
     `;
