@@ -278,7 +278,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         <?php if ($success): ?>
         setTimeout(function() {
             if (!window.location.href.includes('?')) {
-                window.location.href = '<?php echo Auth::getRedirectUrl(); ?>';
+                window.location.href = <?php echo json_encode(Auth::getRedirectUrl()); ?>;
             }
         }, 1500);
         <?php endif; ?>
