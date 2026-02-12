@@ -93,22 +93,41 @@ try {
                     }
                 }
                 
-                // 计算今日使用量
+                // 计算今日使用量（与 index.php 保持一致，使用快照数据）
                 $isFirstDayOfMonth = (date('d') === '01');
+                $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+                $yesterdayUsedBandwidth = 0;
+                
                 if ($isFirstDayOfMonth) {
                     $todayDailyUsage = $totalTraffic;
                 } else {
-                    // 非每月1日：当日使用 = 当月累计 - 昨天的当月累计
-                    $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+                    // 获取昨日 used_bandwidth（用于后续一致性重算）
                     $yesterdayStats = $trafficMonitor->getStatsForDate($yesterdayStr);
                     if ($yesterdayStats && isset($yesterdayStats['used_bandwidth'])) {
-                        $todayDailyUsage = $totalTraffic - $yesterdayStats['used_bandwidth'];
+                        $yesterdayUsedBandwidth = floatval($yesterdayStats['used_bandwidth']);
+                    }
+                    
+                    // 使用快照计算今日增量（今日原始值 - 昨日最后快照）
+                    $yesterdayLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($yesterdayStr);
+                    if ($yesterdayLastSnapshot) {
+                        $yesterdayLastTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024*1024*1024);
+                        $todayDailyUsage = $totalTrafficRaw - $yesterdayLastTotal;
+                        
                         if ($todayDailyUsage < 0) {
                             $todayDailyUsage = $totalTraffic;
                         }
                     } else {
-                        $todayDailyUsage = $totalTraffic;
+                        // 没有昨日快照，使用数据库值计算
+                        $todayDailyUsage = $totalTraffic - $yesterdayUsedBandwidth;
+                        if ($todayDailyUsage < 0) {
+                            $todayDailyUsage = $totalTraffic;
+                        }
                     }
+                }
+                
+                // 重新计算今日已用流量，确保一致性：今日已用 = 昨日已用 + 今日使用
+                if (!$isFirstDayOfMonth) {
+                    $totalTraffic = $yesterdayUsedBandwidth + $todayDailyUsage;
                 }
                 
                 // 替换今日数据
