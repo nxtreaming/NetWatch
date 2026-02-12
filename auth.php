@@ -8,7 +8,7 @@ class Auth {
     /**
      * 启动会话
      */
-    public static function startSession() {
+    public static function startSession(): void {
         if (session_status() === PHP_SESSION_NONE) {
             if (!headers_sent()) {
                 ini_set('session.use_strict_mode', '1');
@@ -40,14 +40,14 @@ class Auth {
     /**
      * 检查是否启用登录功能
      */
-    public static function isLoginEnabled() {
+    public static function isLoginEnabled(): bool {
         return defined('ENABLE_LOGIN') && ENABLE_LOGIN === true;
     }
     
     /**
      * 验证用户凭据
      */
-    public static function validateCredentials($username, $password) {
+    public static function validateCredentials(string $username, string $password): bool {
         if (!defined('LOGIN_USERNAME')) {
             return false;
         }
@@ -62,9 +62,12 @@ class Auth {
         }
 
         // 回退到明文密码（过渡期兼容）
+        // [DEPRECATED] 明文密码验证将在未来版本移除，请尽快迁移到密码哈希
         if (!defined('LOGIN_PASSWORD')) {
             return false;
         }
+
+        error_log('[NetWatch][DEPRECATED] 正在使用明文密码登录，请尽快配置 LOGIN_PASSWORD_HASH 以提升安全性');
 
         return $password === LOGIN_PASSWORD;
     }
@@ -72,7 +75,7 @@ class Auth {
     /**
      * 用户登录
      */
-    public static function login($username, $password) {
+    public static function login(string $username, string $password): bool|string {
         self::startSession();
         
         if (self::validateCredentials($username, $password)) {
@@ -99,7 +102,11 @@ class Auth {
 
             // 登录成功后重新生成Session ID，防止会话固定攻击
             if (session_status() === PHP_SESSION_ACTIVE) {
-                @session_regenerate_id(true);
+                try {
+                    session_regenerate_id(true);
+                } catch (\Exception $e) {
+                    error_log('[NetWatch] session_regenerate_id 失败: ' . $e->getMessage());
+                }
             }
 
             if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
@@ -116,7 +123,7 @@ class Auth {
     /**
      * 用户登出
      */
-    public static function logout() {
+    public static function logout(): void {
         self::startSession();
 
         $username = $_SESSION['username'] ?? null;
@@ -145,7 +152,7 @@ class Auth {
     /**
      * 检查用户是否已登录
      */
-    public static function isLoggedIn() {
+    public static function isLoggedIn(): bool {
         // 如果未启用登录功能，直接返回true
         if (!self::isLoginEnabled()) {
             return true;
@@ -173,7 +180,7 @@ class Auth {
     /**
      * 检查会话是否过期
      */
-    public static function isSessionExpired() {
+    public static function isSessionExpired(): bool {
         if (!isset($_SESSION['last_activity'])) {
             return true;
         }
@@ -185,7 +192,7 @@ class Auth {
     /**
      * 获取当前登录用户名
      */
-    public static function getCurrentUser() {
+    public static function getCurrentUser(): ?string {
         self::startSession();
         return $_SESSION['username'] ?? null;
     }
@@ -193,7 +200,7 @@ class Auth {
     /**
      * 获取登录时间
      */
-    public static function getLoginTime() {
+    public static function getLoginTime(): ?int {
         self::startSession();
         return $_SESSION['login_time'] ?? null;
     }
@@ -201,7 +208,7 @@ class Auth {
     /**
      * 获取剩余会话时间（秒）
      */
-    public static function getRemainingSessionTime() {
+    public static function getRemainingSessionTime(): int {
         if (!isset($_SESSION['last_activity'])) {
             return 0;
         }
@@ -215,11 +222,17 @@ class Auth {
     /**
      * 生成CSRF Token
      */
-    public static function generateCsrfToken() {
+    public static function generateCsrfToken(): string {
         self::startSession();
         
-        if (!isset($_SESSION['csrf_token'])) {
+        $tokenLifetime = 3600; // CSRF Token有效期1小时
+        
+        // 检查是否需要轮换（不存在或已过期）
+        if (!isset($_SESSION['csrf_token']) || 
+            !isset($_SESSION['csrf_token_time']) ||
+            (time() - $_SESSION['csrf_token_time']) > $tokenLifetime) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            $_SESSION['csrf_token_time'] = time();
         }
         
         return $_SESSION['csrf_token'];
@@ -228,7 +241,7 @@ class Auth {
     /**
      * 验证CSRF Token
      */
-    public static function validateCsrfToken($token) {
+    public static function validateCsrfToken(string $token): bool {
         self::startSession();
         
         if (!isset($_SESSION['csrf_token'])) {
@@ -241,7 +254,7 @@ class Auth {
     /**
      * 获取当前CSRF Token
      */
-    public static function getCsrfToken() {
+    public static function getCsrfToken(): string {
         self::startSession();
         return $_SESSION['csrf_token'] ?? self::generateCsrfToken();
     }
@@ -249,7 +262,7 @@ class Auth {
     /**
      * 要求用户登录（重定向到登录页面）
      */
-    public static function requireLogin() {
+    public static function requireLogin(): void {
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
         if (defined('ENABLE_DEBUG_TOOLS') && ENABLE_DEBUG_TOOLS === false) {
             if (stripos($scriptName, '/Debug/') !== false || stripos($scriptName, '\\Debug\\') !== false) {
@@ -296,7 +309,7 @@ class Auth {
     /**
      * 获取登录页面路径（支持从子目录调用）
      */
-    private static function getLoginPath() {
+    private static function getLoginPath(): string {
         // 获取当前脚本相对于网站根目录的路径
         $scriptName = $_SERVER['SCRIPT_NAME'];
         $scriptDir = dirname($scriptName);
@@ -316,7 +329,7 @@ class Auth {
     /**
      * 获取登录后重定向URL
      */
-    public static function getRedirectUrl() {
+    public static function getRedirectUrl(): string {
         self::startSession();
         $redirectUrl = $_SESSION['redirect_after_login'] ?? '/';
         unset($_SESSION['redirect_after_login']);
@@ -333,7 +346,7 @@ class Auth {
     /**
      * 检测存储空间是否足够
      */
-    public static function checkStorageSpace() {
+    public static function checkStorageSpace(): array {
         $sessionPath = session_save_path();
         if (empty($sessionPath)) {
             $sessionPath = sys_get_temp_dir();
