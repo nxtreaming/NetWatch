@@ -39,63 +39,82 @@ class TrafficMonitor {
             return false;
         }
         
-        $ch = null;
-        try {
-            $ch = curl_init();
-            if ($ch === false) {
-                throw new Exception('curl初始化失败');
-            }
-            
-            // 设置curl选项
-            curl_setopt($ch, CURLOPT_URL, $this->apiUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            
-            // 如果配置了代理认证，使用HTTP代理
-            if (!empty($this->proxyHost) && !empty($this->proxyUsername) && !empty($this->proxyPassword)) {
-                $proxyUrl = "http://{$this->proxyUsername}:{$this->proxyPassword}@{$this->proxyHost}:{$this->proxyPort}";
-                curl_setopt($ch, CURLOPT_PROXY, $proxyUrl);
-                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-                
-                $this->logger->info("使用HTTP代理: {$this->proxyHost}:{$this->proxyPort}");
-            }
-            
-            // 执行请求
-            $response = curl_exec($ch);
-            
-            if ($response === false) {
-                $error = curl_error($ch);
-                throw new Exception("API请求失败: $error");
-            }
-            
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            if ($httpCode !== 200) {
-                throw new Exception("API返回错误状态码: $httpCode");
-            }
-            
-            curl_close($ch);
+        $maxRetries = defined('MAX_RETRIES') ? (int)MAX_RETRIES : 3;
+        $retryDelayUs = defined('PROXY_RETRY_DELAY_US') ? (int)PROXY_RETRY_DELAY_US : 200000;
+        $lastError = '';
+        
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
             $ch = null;
-            
-            // 解析JSON响应
-            $data = json_decode($response, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception('JSON解析失败: ' . json_last_error_msg());
-            }
-            
-            $this->logger->info('成功获取流量数据');
-            return $data;
-            
-        } catch (Exception $e) {
-            if ($ch !== null) {
+            try {
+                $ch = curl_init();
+                if ($ch === false) {
+                    throw new Exception('curl初始化失败');
+                }
+                
+                // 设置curl选项
+                curl_setopt($ch, CURLOPT_URL, $this->apiUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                
+                // 如果配置了代理认证，使用HTTP代理
+                if (!empty($this->proxyHost) && !empty($this->proxyUsername) && !empty($this->proxyPassword)) {
+                    $proxyUrl = "http://{$this->proxyUsername}:{$this->proxyPassword}@{$this->proxyHost}:{$this->proxyPort}";
+                    curl_setopt($ch, CURLOPT_PROXY, $proxyUrl);
+                    curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+                    
+                    if ($attempt === 1) {
+                        $this->logger->info("使用HTTP代理: {$this->proxyHost}:{$this->proxyPort}");
+                    }
+                }
+                
+                // 执行请求
+                $response = curl_exec($ch);
+                
+                if ($response === false) {
+                    $error = curl_error($ch);
+                    throw new Exception("API请求失败: $error");
+                }
+                
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                if ($httpCode !== 200) {
+                    throw new Exception("API返回错误状态码: $httpCode");
+                }
+                
                 curl_close($ch);
                 $ch = null;
+                
+                // 解析JSON响应
+                $data = json_decode($response, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new Exception('JSON解析失败: ' . json_last_error_msg());
+                }
+                
+                if ($attempt > 1) {
+                    $this->logger->info("第{$attempt}次重试成功获取流量数据");
+                } else {
+                    $this->logger->info('成功获取流量数据');
+                }
+                return $data;
+                
+            } catch (Exception $e) {
+                if ($ch !== null) {
+                    curl_close($ch);
+                    $ch = null;
+                }
+                $lastError = $e->getMessage();
+                
+                if ($attempt < $maxRetries) {
+                    $this->logger->warning("获取流量数据失败 (第{$attempt}/{$maxRetries}次): {$lastError}，将重试...");
+                    usleep($retryDelayUs * $attempt); // 递增延迟
+                }
             }
-            $this->logger->error('获取流量数据失败: ' . $e->getMessage());
-            return false;
         }
+        
+        $this->logger->error("获取流量数据失败 (已重试{$maxRetries}次): {$lastError}");
+        return false;
     }
     
     /**
