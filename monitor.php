@@ -191,7 +191,7 @@ class NetworkMonitor {
     /**
      * 检查所有代理
      */
-    public function checkAllProxies() {
+    public function checkAllProxies(): array {
         $proxies = $this->db->getAllProxies();
         $results = [];
         
@@ -214,7 +214,7 @@ class NetworkMonitor {
     /**
      * 批量导入代理
      */
-    public function importProxies($proxyList, $importMode = 'skip') {
+    public function importProxies(array $proxyList, string $importMode = 'skip'): array {
         $imported = 0;
         $skipped = 0;
         $errors = [];
@@ -256,7 +256,7 @@ class NetworkMonitor {
      * 从文件导入代理
      * 格式: ip:port:type:username:password (每行一个)
      */
-    public function importFromFile($filename) {
+    public function importFromFile(string $filename): array {
         if (!file_exists($filename)) {
             throw new Exception("文件不存在: $filename");
         }
@@ -291,28 +291,28 @@ class NetworkMonitor {
     /**
      * 获取统计信息
      */
-    public function getStats() {
+    public function getStats(): array {
         return $this->db->getProxyStats();
     }
     
     /**
      * 获取最近的日志
      */
-    public function getRecentLogs($limit = 100) {
+    public function getRecentLogs(int $limit = 100): array {
         return $this->db->getRecentLogs($limit);
     }
     
     /**
      * 获取所有代理（内部使用，包含敏感信息）
      */
-    public function getAllProxies() {
+    public function getAllProxies(): array {
         return $this->db->getAllProxies();
     }
     
     /**
      * 获取所有代理（安全版本，不包含敏感信息）
      */
-    public function getAllProxiesSafe() {
+    public function getAllProxiesSafe(): array {
         $proxies = $this->db->getAllProxies();
         return array_map([$this, 'filterSensitiveData'], $proxies);
     }
@@ -320,7 +320,7 @@ class NetworkMonitor {
     /**
      * 获取分页代理列表（安全版本）
      */
-    public function getProxiesPaginatedSafe($page = 1, $perPage = 200) {
+    public function getProxiesPaginatedSafe(int $page = 1, int $perPage = 200): array {
         $proxies = $this->db->getProxiesPaginated($page, $perPage);
         return array_map([$this, 'filterSensitiveData'], $proxies);
     }
@@ -337,42 +337,42 @@ class NetworkMonitor {
     /**
      * 获取故障代理
      */
-    public function getFailedProxies() {
+    public function getFailedProxies(): array {
         return $this->db->getFailedProxies();
     }
     
     /**
      * 添加警报
      */
-    public function addAlert($proxyId, $alertType, $message) {
+    public function addAlert(int $proxyId, string $alertType, string $message): bool {
         return $this->db->addAlert($proxyId, $alertType, $message);
     }
     
     /**
      * 清理旧日志
      */
-    public function cleanupOldLogs($days = 30) {
+    public function cleanupOldLogs(int $days = 30): int {
         return $this->db->cleanupOldLogs($days);
     }
     
     /**
      * 添加代理
      */
-    public function addProxy($ip, $port, $type, $username = null, $password = null) {
+    public function addProxy(string $ip, int $port, string $type, ?string $username = null, ?string $password = null): bool {
         return $this->db->addProxy($ip, $port, $type, $username, $password);
     }
     
     /**
      * 获取代理总数
      */
-    public function getProxyCount() {
+    public function getProxyCount(): int {
         return $this->db->getProxyCount();
     }
     
     /**
      * 过滤代理敏感信息（用户名和密码）
      */
-    public function filterSensitiveData($proxy) {
+    public function filterSensitiveData(array $proxy): array {
         $filtered = $proxy;
         // 移除敏感信息
         unset($filtered['username']);
@@ -383,7 +383,7 @@ class NetworkMonitor {
     /**
      * 分批检查代理
      */
-    public function checkProxyBatch($offset = 0, $limit = 20) {
+    public function checkProxyBatch(int $offset = 0, int $limit = 20): array {
         $proxies = $this->db->getProxiesBatch($offset, $limit);
         $results = [];
         
@@ -411,7 +411,7 @@ class NetworkMonitor {
      * @param string $statusFilter 状态筛选
      * @return array 搜索结果
      */
-    public function searchProxiesSafe($searchTerm, $page = 1, $perPage = 200, $statusFilter = '') {
+    public function searchProxiesSafe(string $searchTerm, int $page = 1, int $perPage = 200, string $statusFilter = ''): array {
         $proxies = $this->db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
         return array_map([$this, 'filterSensitiveData'], $proxies);
     }
@@ -422,7 +422,7 @@ class NetworkMonitor {
      * @param string $statusFilter 状态筛选
      * @return int 搜索结果总数
      */
-    public function getSearchCount($searchTerm, $statusFilter = '') {
+    public function getSearchCount(string $searchTerm, string $statusFilter = ''): int {
         return $this->db->getSearchCount($searchTerm, $statusFilter);
     }
 }
