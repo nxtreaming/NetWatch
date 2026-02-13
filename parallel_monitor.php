@@ -42,6 +42,9 @@ class ParallelMonitor {
         
         // 生成或使用提供的会话ID，确保每个检测任务独立
         $this->sessionId = $sessionId ?? $this->generateSessionId();
+        
+        // 每次实例化时顺便清理过期目录（轻量级，仅扫描目录列表）
+        self::purgeStaleSessionDirs();
     }
     
     /**
@@ -110,7 +113,15 @@ class ParallelMonitor {
         file_put_contents($tempDir . '/main_status.json', json_encode($mainStatus), LOCK_EX);
         
         // 异步启动批次处理
-        $this->startBatchesAsync($totalProxies, $tempDir);
+        $launched = $this->startBatchesAsync($totalProxies, $tempDir);
+        if (!$launched) {
+            $this->logger->error("启动批次管理器失败 (会话: {$this->sessionId})");
+            $this->removeTempDir($tempDir);
+            return [
+                'success' => false,
+                'error' => '启动并行检测进程失败，请检查服务器 PHP 配置或磁盘空间'
+            ];
+        }
         
         return [
             'success' => true,
@@ -125,10 +136,16 @@ class ParallelMonitor {
     
     /**
      * 异步启动所有批次
+     * @return bool 启动是否成功
      */
-    private function startBatchesAsync($totalProxies, $tempDir) {
+    private function startBatchesAsync($totalProxies, $tempDir): bool {
         // 在后台启动批次管理器
         $managerScript = __DIR__ . '/parallel_batch_manager.php';
+        if (!file_exists($managerScript)) {
+            $this->logger->error("批次管理器脚本不存在: {$managerScript}");
+            return false;
+        }
+        
         $offlineFlag = $this->offlineOnly ? 1 : 0;
         $command = 'php ' . escapeshellarg($managerScript) . ' ' .
             (int)$totalProxies . ' ' .
@@ -145,7 +162,13 @@ class ParallelMonitor {
                 (int)$offlineFlag;
         }
         
-        popen($command, 'r');
+        $process = popen($command, 'r');
+        if ($process === false) {
+            $this->logger->error("无法启动批次管理器进程");
+            return false;
+        }
+        // 不等待进程完成，异步运行
+        return true;
     }
     
     /**
@@ -348,6 +371,11 @@ class ParallelMonitor {
         // 基于实际检测的IP数量计算进度，而不是批次完成情况
         $overallProgress = $totalProxies > 0 ? ($totalChecked / $totalProxies) * 100 : 0;
         
+        // 如果所有批次已完成，自动清理临时目录
+        if ($completedBatches === $totalBatches && $totalBatches > 0) {
+            $this->removeTempDir($tempDir);
+        }
+        
         return [
             'success' => true,
             'overall_progress' => round($overallProgress, 2),
@@ -388,6 +416,9 @@ class ParallelMonitor {
         
         $this->logger->info("并行检测已被取消 (会话: {$this->sessionId})");
         
+        // 延迟清理：给工作进程一点时间响应取消信号后再清理
+        $this->scheduleCleanup($tempDir);
+        
         return ['success' => true, 'message' => '并行检测已取消', 'session_id' => $this->sessionId];
     }
     
@@ -398,5 +429,77 @@ class ParallelMonitor {
         $tempDir = $this->getSessionTempDir();
         $cancelFile = $tempDir . '/cancel.flag';
         return file_exists($cancelFile);
+    }
+    
+    /**
+     * 清理会话临时目录（完成或取消后调用）
+     */
+    public function cleanup(): void {
+        $tempDir = $this->getSessionTempDir();
+        $this->removeTempDir($tempDir);
+    }
+    
+    /**
+     * 计划延迟清理（取消时使用，给工作进程响应时间）
+     */
+    private function scheduleCleanup(string $tempDir): void {
+        // 写入清理标记文件，包含预定清理时间（当前时间 + 30秒）
+        $cleanupFile = $tempDir . '/cleanup_scheduled.json';
+        file_put_contents($cleanupFile, json_encode([
+            'scheduled_at' => time(),
+            'cleanup_after' => time() + 30
+        ]), LOCK_EX);
+    }
+    
+    /**
+     * 递归删除临时目录
+     */
+    private function removeTempDir(string $tempDir): void {
+        if (!is_dir($tempDir)) {
+            return;
+        }
+        $files = glob($tempDir . '/*');
+        if ($files !== false) {
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+        }
+        @rmdir($tempDir);
+        $this->logger->info("已清理临时目录: {$tempDir}");
+    }
+    
+    /**
+     * 清理过期的会话临时目录（静态方法，可由定时任务调用）
+     * @param int $maxAgeSeconds 最大保留时间（秒），默认 86400（1天）
+     * @return int 清理的目录数量
+     */
+    public static function purgeStaleSessionDirs(int $maxAgeSeconds = 86400): int {
+        $pattern = sys_get_temp_dir() . '/netwatch_parallel_*';
+        $dirs = glob($pattern, GLOB_ONLYDIR);
+        if ($dirs === false) {
+            return 0;
+        }
+        
+        $cleaned = 0;
+        $now = time();
+        foreach ($dirs as $dir) {
+            $mtime = @filemtime($dir);
+            if ($mtime === false || ($now - $mtime) > $maxAgeSeconds) {
+                // 删除目录内所有文件
+                $files = glob($dir . '/*');
+                if ($files !== false) {
+                    foreach ($files as $file) {
+                        if (is_file($file)) {
+                            @unlink($file);
+                        }
+                    }
+                }
+                @rmdir($dir);
+                $cleaned++;
+            }
+        }
+        return $cleaned;
     }
 }
