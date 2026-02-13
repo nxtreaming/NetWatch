@@ -15,7 +15,6 @@
 
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../database.php';
-require_once __DIR__ . '/../logger.php';
 
 // 如果通过浏览器访问，需要登录
 if (php_sapi_name() !== 'cli') {
@@ -183,10 +182,10 @@ foreach ($allStats as $idx => $stat) {
     if (abs($dailyDiff) < 0.01) {
         $status = '✓ 无变化';
     } else if ($dailyDiff > 0) {
-        $status = "⚠️  +{$dailyDiff:.2f}GB 丢失已找回";
+        $status = '⚠️  +' . number_format($dailyDiff, 2) . 'GB 丢失已找回';
         $fixedDays++;
     } else {
-        $status = "📉 {$dailyDiff:.2f}GB";
+        $status = '📉 ' . number_format($dailyDiff, 2) . 'GB';
     }
     
     echo str_pad($date, 12) . 
