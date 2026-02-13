@@ -209,8 +209,14 @@ class ExceptionHandler {
     
     /**
      * 检测是否为AJAX请求
+     * 复用 functions.php 中的统一判断逻辑，确保异常响应格式与正常请求一致
      */
     private static function isAjaxRequest(): bool {
+        // 优先使用统一的 AJAX 验证函数
+        if (function_exists('isValidAjaxRequest')) {
+            return isset($_GET['ajax']) && isValidAjaxRequest();
+        }
+        // 回退：如果 functions.php 未加载，使用基本判断
         return (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
                (isset($_GET['ajax']) && $_GET['ajax'] == '1') ||
