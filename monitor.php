@@ -276,12 +276,35 @@ class NetworkMonitor {
                 continue;
             }
             
+            $ip = trim($parts[0]);
+            $port = (int)trim($parts[1]);
+            $type = strtolower(trim($parts[2]));
+            
+            // 校验IP地址合法性
+            if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+                $this->logger->warning("第 " . ($lineNum + 1) . " 行IP地址无效: $ip");
+                continue;
+            }
+            
+            // 校验端口范围
+            if ($port < 1 || $port > 65535) {
+                $this->logger->warning("第 " . ($lineNum + 1) . " 行端口超出范围: $port");
+                continue;
+            }
+            
+            // 校验代理类型白名单
+            $allowedTypes = ['http', 'https', 'socks5', 'socks4'];
+            if (!in_array($type, $allowedTypes, true)) {
+                $this->logger->warning("第 " . ($lineNum + 1) . " 行代理类型无效: $type (允许: " . implode(', ', $allowedTypes) . ")");
+                continue;
+            }
+            
             $proxyList[] = [
-                'ip' => $parts[0],
-                'port' => (int)$parts[1],
-                'type' => $parts[2],
-                'username' => $parts[3] ?? null,
-                'password' => $parts[4] ?? null
+                'ip' => $ip,
+                'port' => $port,
+                'type' => $type,
+                'username' => isset($parts[3]) ? trim($parts[3]) : null,
+                'password' => isset($parts[4]) ? trim($parts[4]) : null
             ];
         }
         
