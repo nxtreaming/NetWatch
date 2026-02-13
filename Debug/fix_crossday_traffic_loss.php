@@ -54,7 +54,7 @@ if (php_sapi_name() === 'cli') {
 $monthStr = sprintf('%04d-%02d', $targetYear, $targetMonth);
 $firstDay = "{$monthStr}-01";
 $lastDay = date('Y-m-t', strtotime($firstDay));
-$backupFile = __DIR__ . "/backup_traffic_stats_{$monthStr}.json";
+$backupFile = dirname(__DIR__) . "/data/backup_traffic_stats_{$monthStr}.json";
 
 // ========== 回滚模式 ==========
 if ($rollbackMode) {
