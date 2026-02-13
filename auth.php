@@ -122,8 +122,9 @@ class Auth {
     
     /**
      * 用户登出
+     * @param bool $redirect 是否重定向到登录页面（CLI/测试场景可设为false）
      */
-    public static function logout(): void {
+    public static function logout(bool $redirect = true): void {
         self::startSession();
 
         $username = $_SESSION['username'] ?? null;
@@ -142,6 +143,11 @@ class Auth {
         
         // 销毁session
         session_destroy();
+        
+        // CLI 模式或明确不重定向时，仅清理 session 不做 header/exit
+        if (php_sapi_name() === 'cli' || !$redirect) {
+            return;
+        }
         
         // 重定向到登录页面（使用根目录路径）
         $loginPath = self::getLoginPath();
