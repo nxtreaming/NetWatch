@@ -143,38 +143,26 @@ foreach ($allStats as $idx => $stat) {
         }
     }
     
-    // 计算不含跨日的快照增量（00:05起累加）
-    $snapshotOnlyUsage = 0;
-    if (!empty($snapshots)) {
-        for ($i = 1; $i < count($snapshots); $i++) {
-            $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
-            $snapshotOnlyUsage += ($inc < 0) ? $snapshots[$i]['total_bytes'] / (1024*1024*1024) : $inc;
-        }
-    }
-    
-    // 判断原 daily_usage 是否已包含跨日增量
-    // 如果 oldDailyUsage 接近 snapshotOnlyUsage（不含跨日），说明丢失了
-    // 如果 oldDailyUsage 接近 snapshotOnlyUsage + crossDayInc（含跨日），说明正常
+    // 判断该天是否丢失了跨日增量
+    // 修复前的 calculateDailyUsageFromSnapshots 从 startIndex=1（00:05）开始算，
+    // 从不包含跨日增量。所以代码修复日期（2026-02-14）之前的所有天，
+    // 只要有跨日增量，就一定丢失了。
+    $codeFixDate = '2026-02-14'; // 代码修复部署的日期
     $newDailyUsage = $oldDailyUsage; // 默认不变
     $addedInc = 0;
     $status = '';
     
     if ($crossDayInc > 0.01) {
-        $diffWithout = abs($oldDailyUsage - $snapshotOnlyUsage);
-        $diffWith = abs($oldDailyUsage - ($snapshotOnlyUsage + $crossDayInc));
-        
-        if ($diffWithout < $diffWith && $diffWithout < 1.0) {
-            // oldDailyUsage 更接近不含跨日的值 → 丢失了跨日增量
+        if ($date < $codeFixDate) {
+            // 修复前的天：跨日增量一定丢失了，加上
             $newDailyUsage = $oldDailyUsage + $crossDayInc;
             $addedInc = $crossDayInc;
             $totalRecovered += $crossDayInc;
             $fixedDays++;
             $status = '⚠️  +' . number_format($crossDayInc, 2) . 'GB 找回';
-        } elseif ($diffWith < 1.0) {
-            $status = '✓ 已包含';
         } else {
-            // 两者都不接近，保持原值不动
-            $status = '— 保持原值';
+            // 修复后的天：已包含跨日增量
+            $status = '✓ 已包含';
         }
     } else {
         $status = '— 无跨日';
