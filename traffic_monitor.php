@@ -182,86 +182,10 @@ class TrafficMonitor {
             $this->logger->info("实时流量数据已更新: 端口={$port}, RX={$rxGB}GB, TX={$txGB}GB, 已用(RX+TX)={$totalUsedGB}GB, 使用率={$usagePercentage}%");
             if ($snapshotResult) {
                 $this->logger->info("流量快照已保存");
-                
-                // 检查是否是当天第一个快照（00:00:00），如果是则回溯更新前一天的 daily_usage
-                $this->updateYesterdayCrossDayTraffic($rxBytes, $txBytes);
             }
         }
         
         return $result;
-    }
-    
-    /**
-     * 回溯更新前一天的跨日流量（23:55~00:00）
-     * 在保存当天第一个快照时调用
-     * @param float $currentRxBytes 当前接收字节数
-     * @param float $currentTxBytes 当前发送字节数
-     */
-    private function updateYesterdayCrossDayTraffic(float $currentRxBytes, float $currentTxBytes): void {
-        $currentTime = date('H:i:s');
-        
-        // 只在 00:00:00 ~ 00:04:59 时段执行（第一个快照时段）
-        if ($currentTime >= '00:05:00') {
-            return;
-        }
-        
-        $today = date('Y-m-d');
-        $yesterday = date('Y-m-d', strtotime('-1 day'));
-        
-        // 检查今天是否是每月1日（跨月不处理）
-        if (date('d') === '01') {
-            $this->logger->info("跨月（每月1日）：跳过跨日流量回溯更新");
-            return;
-        }
-
-        // 只在今天存在 00:00:00 快照时才执行，避免使用非整点数据造成偏差
-        $todayFirstSnapshot = $this->db->getFirstSnapshotOfDay($today);
-        if (!$todayFirstSnapshot || !isset($todayFirstSnapshot['snapshot_time']) || $todayFirstSnapshot['snapshot_time'] !== '00:00:00') {
-            return;
-        }
-        
-        // 获取昨天最后一个快照（23:55）
-        $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
-        if (!$yesterdayLastSnapshot) {
-            return;
-        }
-        
-        // 获取昨天的统计数据
-        $yesterdayStats = $this->db->getDailyTrafficStats($yesterday);
-        if (!$yesterdayStats) {
-            return;
-        }
-
-        // 幂等保护：同一天只允许回溯更新一次，避免 00:00~00:04 多次触发造成重复累加
-        $lockFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'netwatch_traffic_crossday_' . str_replace('-', '', $today) . '.lock';
-        $lockHandle = @fopen($lockFile, 'x');
-        if ($lockHandle === false) {
-            return;
-        }
-        fclose($lockHandle);
-        
-        // 计算跨日流量增量
-        $currentTotal = $todayFirstSnapshot['total_bytes'] / (1024 * 1024 * 1024);
-        $yesterdayLastTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024 * 1024 * 1024);
-        $crossDayIncrement = $currentTotal - $yesterdayLastTotal;
-        
-        // 如果增量为正且合理（< 50GB，避免异常数据），更新昨天的 daily_usage
-        if ($crossDayIncrement > 0 && $crossDayIncrement < 50) {
-            $newDailyUsage = $yesterdayStats['daily_usage'] + $crossDayIncrement;
-            $newUsedBandwidth = $yesterdayStats['used_bandwidth'] + $crossDayIncrement;
-            $totalBandwidth = floatval($yesterdayStats['total_bandwidth']);
-            $newRemainingBandwidth = $totalBandwidth > 0 ? max(0, $totalBandwidth - $newUsedBandwidth) : 0;
-            
-            $this->db->saveDailyTrafficStats(
-                $yesterday,
-                $yesterdayStats['total_bandwidth'],
-                $newUsedBandwidth,
-                $newRemainingBandwidth,
-                $newDailyUsage
-            );
-            
-            $this->logger->info("回溯更新跨日流量: {$yesterday} used_bandwidth {$yesterdayStats['used_bandwidth']}GB → {$newUsedBandwidth}GB, daily_usage {$yesterdayStats['daily_usage']}GB → {$newDailyUsage}GB (增加 {$crossDayIncrement}GB)");
-        }
     }
     
     /**
@@ -416,13 +340,11 @@ class TrafficMonitor {
                         
                         $this->logger->info("流量重置回溯计算：昨天23:55={$yesterday23_55Value}GB + 跨日流量(23:55~00:00)={$crossDayTraffic}GB = {$resetBeforeValue}GB");
                         
-                        // 重新计算昨天的当日使用量（包含跨日流量）
+                        // 重新计算昨天的当日使用量
+                        // 注意：calculateDailyUsageFromSnapshots 已包含跨日增量，无需再额外加
                         $yesterdayDailyUsage = $this->calculateDailyUsageFromSnapshots($yesterday);
                         
-                        // 如果能计算出当日使用量，则加上跨日流量
-                        if ($yesterdayDailyUsage !== false) {
-                            $yesterdayDailyUsage += $crossDayTraffic;
-                        } else {
+                        if ($yesterdayDailyUsage === false) {
                             // 如果无法计算，使用重置前的累计值作为当日使用量
                             $yesterdayDailyUsage = $resetBeforeValue;
                         }
@@ -507,8 +429,16 @@ class TrafficMonitor {
         } elseif ($yesterdayLastSnapshot && !empty($snapshots)) {
             $hasMidnightSnapshot = isset($snapshots[0]['snapshot_time']) && $snapshots[0]['snapshot_time'] === '00:00:00';
             if ($hasMidnightSnapshot) {
-                // 有 00:00 快照时，跨日流量由 updateYesterdayCrossDayTraffic 回溯到昨天；
-                // 当天从 00:00 作为基准点开始累计增量，避免重复计入。
+                // 有 00:00 快照时，先计算跨日增量（昨天最后快照 → 今天 00:00）
+                $crossDayIncrement = ($snapshots[0]['total_bytes'] - $yesterdayLastSnapshot['total_bytes']) / (1024 * 1024 * 1024);
+                if ($crossDayIncrement > 0 && $crossDayIncrement < 50) {
+                    $totalDailyUsage += $crossDayIncrement;
+                    $this->logger->debug("跨日增量(昨天最后→今天00:00): {$crossDayIncrement}GB");
+                } elseif ($crossDayIncrement < 0) {
+                    // 负增量说明发生了流量重置，将 00:00 的值作为新起点
+                    $totalDailyUsage += $snapshots[0]['total_bytes'] / (1024 * 1024 * 1024);
+                }
+                // 然后从 00:05 开始累计当天内的增量
                 $startIndex = 1;
             } else {
                 // 非跨月：如果有前一天的最后快照，计算第一个点的增量
