@@ -217,12 +217,20 @@ class AjaxHandler {
             if (!$useCache) {
                 $count = $this->monitor->getProxyCount();
                 
-                // 保存缓存
+                // 原子写入缓存：先写临时文件再 rename，避免部分写入
                 $cacheData = json_encode([
                     'count' => $count,
                     'timestamp' => time()
                 ]);
-                file_put_contents($cacheFile, $cacheData);
+                $tmpFile = $cacheFile . '.tmp.' . getmypid();
+                $written = @file_put_contents($tmpFile, $cacheData, LOCK_EX);
+                if ($written !== false) {
+                    @rename($tmpFile, $cacheFile);
+                } else {
+                    // 写入失败，记录日志并继续（降级为无缓存模式）
+                    @unlink($tmpFile);
+                    $this->logger->warning('写入代理数量缓存失败', ['cache_file' => $cacheFile]);
+                }
             }
             
             // 计算执行时间
@@ -253,7 +261,8 @@ class AjaxHandler {
             }
             
             // 设置响应头，启用分块传输编码
-            header('Content-Type: application/json');
+            // 使用 text/plain 因为流式输出中会插入心跳空格，前端需要 trim 后再 JSON.parse
+            header('Content-Type: text/plain; charset=utf-8');
             header('X-Accel-Buffering: no'); // 禁用nginx缓冲
             header('Cache-Control: no-cache'); // 禁用缓存
             
