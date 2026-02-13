@@ -23,7 +23,12 @@ class Database {
             // 确保数据目录存在
             $dataDir = dirname(DB_PATH);
             if (!is_dir($dataDir)) {
-                mkdir($dataDir, 0755, true);
+                if (!@mkdir($dataDir, 0755, true)) {
+                    throw new DatabaseException('无法创建数据库目录', 500, null, [
+                        'dir' => $dataDir,
+                        'error' => error_get_last()['message'] ?? '未知错误'
+                    ]);
+                }
             }
             
             $this->pdo = new PDO('sqlite:' . DB_PATH);
