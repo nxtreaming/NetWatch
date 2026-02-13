@@ -2,15 +2,16 @@
 /**
  * 修复跨日流量丢失问题
  * 
- * 根因：updateYesterdayCrossDayTraffic 回溯的跨日增量被后续 cron 覆盖，
- * 导致每天丢失约 3~5 GB 的跨日流量（23:55→00:00）。
- * 
- * 本脚本使用快照数据重新计算每天的 daily_usage 和 used_bandwidth。
+ * 策略：只在原 daily_usage 基础上加上丢失的跨日增量（昨天23:55→今天00:00），
+ * 不改变其他计算方式。然后链式重算 used_bandwidth。
  * 
  * 用法：
- *   php fix_crossday_traffic_loss.php              # 预览模式（不修改数据）
- *   php fix_crossday_traffic_loss.php --apply       # 实际修复
- *   php fix_crossday_traffic_loss.php --month 2     # 指定月份（默认当月）
+ *   浏览器预览:  ?month=2&year=2026
+ *   浏览器修复:  ?apply=1&month=2&year=2026
+ *   浏览器回滚:  ?rollback=1&month=2&year=2026  （回滚上次错误修复）
+ *   CLI预览:     php fix_crossday_traffic_loss.php --month 2
+ *   CLI修复:     php fix_crossday_traffic_loss.php --apply
+ *   CLI回滚:     php fix_crossday_traffic_loss.php --rollback
  */
 
 require_once __DIR__ . '/../config.php';
@@ -28,17 +29,20 @@ $pdo = new PDO('sqlite:' . DB_PATH);
 
 // 解析参数
 $applyMode = false;
+$rollbackMode = false;
 $targetMonth = (int)date('m');
 $targetYear = (int)date('Y');
 
 if (php_sapi_name() === 'cli') {
     $applyMode = in_array('--apply', $argv ?? []);
+    $rollbackMode = in_array('--rollback', $argv ?? []);
     $monthIdx = array_search('--month', $argv ?? []);
     if ($monthIdx !== false && isset($argv[$monthIdx + 1])) {
         $targetMonth = (int)$argv[$monthIdx + 1];
     }
 } else {
     $applyMode = isset($_GET['apply']) && $_GET['apply'] === '1';
+    $rollbackMode = isset($_GET['rollback']) && $_GET['rollback'] === '1';
     if (isset($_GET['month'])) {
         $targetMonth = (int)$_GET['month'];
     }
@@ -50,38 +54,74 @@ if (php_sapi_name() === 'cli') {
 $monthStr = sprintf('%04d-%02d', $targetYear, $targetMonth);
 $firstDay = "{$monthStr}-01";
 $lastDay = date('Y-m-t', strtotime($firstDay));
-$today = date('Y-m-d');
+$backupFile = __DIR__ . "/backup_traffic_stats_{$monthStr}.json";
 
+// ========== 回滚模式 ==========
+if ($rollbackMode) {
+    echo "=== 回滚模式 ===\n\n";
+    if (!file_exists($backupFile)) {
+        echo "备份文件不存在: {$backupFile}\n";
+        echo "无法回滚。\n";
+        exit(1);
+    }
+    $backup = json_decode(file_get_contents($backupFile), true);
+    if (empty($backup)) {
+        echo "备份文件为空或格式错误\n";
+        exit(1);
+    }
+    echo "找到 " . count($backup) . " 天的备份数据\n\n";
+    foreach ($backup as $row) {
+        $db->saveDailyTrafficStats(
+            $row['usage_date'],
+            floatval($row['total_bandwidth']),
+            floatval($row['used_bandwidth']),
+            floatval($row['remaining_bandwidth']),
+            floatval($row['daily_usage'])
+        );
+        echo "已恢复: {$row['usage_date']} daily_usage=" . number_format(floatval($row['daily_usage']), 2) . 
+             " used_bw=" . number_format(floatval($row['used_bandwidth']), 2) . "\n";
+    }
+    echo "\n回滚完成！数据已恢复到修复前的状态。\n";
+    exit(0);
+}
+
+// ========== 修复模式 ==========
 echo "=== 跨日流量丢失修复工具 ===\n";
-echo "模式: " . ($applyMode ? "⚠️  实际修复" : "📋 预览模式（加 --apply 参数执行修复）") . "\n";
+echo "模式: " . ($applyMode ? "⚠️  实际修复" : "📋 预览模式") . "\n";
 echo "目标月份: {$monthStr}\n";
 echo "日期范围: {$firstDay} ~ {$lastDay}\n\n";
 
-// 获取该月所有有统计数据的日期
+// 获取该月所有统计数据
 $stmt = $pdo->prepare("SELECT * FROM traffic_stats WHERE usage_date >= ? AND usage_date <= ? ORDER BY usage_date ASC");
 $stmt->execute([$firstDay, $lastDay]);
 $allStats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (empty($allStats)) {
-    echo "❌ 该月没有统计数据\n";
+    echo "该月没有统计数据\n";
     exit(0);
 }
 
 echo "找到 " . count($allStats) . " 天的统计数据\n\n";
 
-// 逐天重新计算
-$totalLostGB = 0;
-$fixedDays = 0;
-$cumulativeUsed = 0; // 当月累计
+// 修复前先备份
+if ($applyMode) {
+    file_put_contents($backupFile, json_encode($allStats, JSON_PRETTY_PRINT));
+    echo "已备份到: {$backupFile}\n\n";
+}
 
-echo str_pad("日期", 12) . 
+// 逐天检查跨日增量是否丢失
+echo str_pad("日期", 13) . 
      str_pad("原daily_usage", 16) . 
+     str_pad("跨日增量", 12) .
      str_pad("新daily_usage", 16) . 
-     str_pad("差值(GB)", 12) .
      str_pad("原used_bw", 14) .
      str_pad("新used_bw", 14) .
      "状态\n";
-echo str_repeat("-", 96) . "\n";
+echo str_repeat("-", 97) . "\n";
+
+$totalRecovered = 0;
+$fixedDays = 0;
+$cumulativeUsed = 0;
 
 foreach ($allStats as $idx => $stat) {
     $date = $stat['usage_date'];
@@ -89,115 +129,71 @@ foreach ($allStats as $idx => $stat) {
     $oldUsedBw = floatval($stat['used_bandwidth']);
     $totalBandwidth = floatval($stat['total_bandwidth']);
     
-    // 获取当天所有快照
     $snapshots = $db->getTrafficSnapshotsByDate($date);
-    
-    if (empty($snapshots)) {
-        echo str_pad($date, 12) . "无快照数据，跳过\n";
-        // 保持原值用于累计
-        $cumulativeUsed += $oldDailyUsage;
-        continue;
-    }
-    
-    // 获取前一天最后快照
     $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
-    $yesterdayLastSnapshot = $db->getLastSnapshotOfDay($yesterday);
-    
-    // 重新计算 daily_usage（使用修复后的逻辑，包含跨日增量）
-    $newDailyUsage = 0;
+    $yesterdayLast = $db->getLastSnapshotOfDay($yesterday);
     $isFirstDayOfMonth = (date('d', strtotime($date)) === '01');
     
-    if ($isFirstDayOfMonth) {
-        // 每月1日：只计算当天快照间的增量
-        for ($i = 1; $i < count($snapshots); $i++) {
-            $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
-            if ($inc < 0) {
-                $newDailyUsage += $snapshots[$i]['total_bytes'] / (1024*1024*1024);
-            } else {
-                $newDailyUsage += $inc;
-            }
-        }
-    } elseif ($yesterdayLastSnapshot && !empty($snapshots)) {
-        $hasMidnight = $snapshots[0]['snapshot_time'] === '00:00:00';
-        
-        if ($hasMidnight) {
-            // 包含跨日增量（昨天最后快照 → 今天 00:00）
-            $crossDayInc = ($snapshots[0]['total_bytes'] - $yesterdayLastSnapshot['total_bytes']) / (1024*1024*1024);
-            if ($crossDayInc > 0 && $crossDayInc < 50) {
-                $newDailyUsage += $crossDayInc;
-            } elseif ($crossDayInc < 0) {
-                $newDailyUsage += $snapshots[0]['total_bytes'] / (1024*1024*1024);
-            }
-            // 当天快照间增量
-            for ($i = 1; $i < count($snapshots); $i++) {
-                $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
-                if ($inc < 0) {
-                    $newDailyUsage += $snapshots[$i]['total_bytes'] / (1024*1024*1024);
-                } else {
-                    $newDailyUsage += $inc;
-                }
-            }
-        } else {
-            // 无 00:00 快照，从昨天最后快照开始
-            $firstInc = ($snapshots[0]['total_bytes'] - $yesterdayLastSnapshot['total_bytes']) / (1024*1024*1024);
-            if ($firstInc < 0) {
-                $newDailyUsage += $snapshots[0]['total_bytes'] / (1024*1024*1024);
-            } else {
-                $newDailyUsage += $firstInc;
-            }
-            for ($i = 1; $i < count($snapshots); $i++) {
-                $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
-                if ($inc < 0) {
-                    $newDailyUsage += $snapshots[$i]['total_bytes'] / (1024*1024*1024);
-                } else {
-                    $newDailyUsage += $inc;
-                }
-            }
-        }
-    } else {
-        // 无前一天数据
-        if (count($snapshots) > 1) {
-            for ($i = 1; $i < count($snapshots); $i++) {
-                $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
-                if ($inc < 0) {
-                    $newDailyUsage += $snapshots[$i]['total_bytes'] / (1024*1024*1024);
-                } else {
-                    $newDailyUsage += $inc;
-                }
-            }
-        } else {
-            $newDailyUsage = $snapshots[0]['total_bytes'] / (1024*1024*1024);
+    // 计算该天的跨日增量
+    $crossDayInc = 0;
+    if (!$isFirstDayOfMonth && $yesterdayLast && !empty($snapshots) && $snapshots[0]['snapshot_time'] === '00:00:00') {
+        $inc = ($snapshots[0]['total_bytes'] - $yesterdayLast['total_bytes']) / (1024*1024*1024);
+        if ($inc > 0 && $inc < 50) {
+            $crossDayInc = $inc;
         }
     }
     
-    // 计算当月累计 used_bandwidth
+    // 计算不含跨日的快照增量（00:05起累加）
+    $snapshotOnlyUsage = 0;
+    if (!empty($snapshots)) {
+        for ($i = 1; $i < count($snapshots); $i++) {
+            $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
+            $snapshotOnlyUsage += ($inc < 0) ? $snapshots[$i]['total_bytes'] / (1024*1024*1024) : $inc;
+        }
+    }
+    
+    // 判断原 daily_usage 是否已包含跨日增量
+    // 如果 oldDailyUsage 接近 snapshotOnlyUsage（不含跨日），说明丢失了
+    // 如果 oldDailyUsage 接近 snapshotOnlyUsage + crossDayInc（含跨日），说明正常
+    $newDailyUsage = $oldDailyUsage; // 默认不变
+    $addedInc = 0;
+    $status = '';
+    
+    if ($crossDayInc > 0.01) {
+        $diffWithout = abs($oldDailyUsage - $snapshotOnlyUsage);
+        $diffWith = abs($oldDailyUsage - ($snapshotOnlyUsage + $crossDayInc));
+        
+        if ($diffWithout < $diffWith && $diffWithout < 1.0) {
+            // oldDailyUsage 更接近不含跨日的值 → 丢失了跨日增量
+            $newDailyUsage = $oldDailyUsage + $crossDayInc;
+            $addedInc = $crossDayInc;
+            $totalRecovered += $crossDayInc;
+            $fixedDays++;
+            $status = '⚠️  +' . number_format($crossDayInc, 2) . 'GB 找回';
+        } elseif ($diffWith < 1.0) {
+            $status = '✓ 已包含';
+        } else {
+            // 两者都不接近，保持原值不动
+            $status = '— 保持原值';
+        }
+    } else {
+        $status = '— 无跨日';
+    }
+    
+    // 链式累计 used_bandwidth
     $cumulativeUsed += $newDailyUsage;
     $newUsedBw = $cumulativeUsed;
     
-    // 计算差值
-    $dailyDiff = $newDailyUsage - $oldDailyUsage;
-    $totalLostGB += $dailyDiff;
-    
-    $status = '';
-    if (abs($dailyDiff) < 0.01) {
-        $status = '✓ 无变化';
-    } else if ($dailyDiff > 0) {
-        $status = '⚠️  +' . number_format($dailyDiff, 2) . 'GB 丢失已找回';
-        $fixedDays++;
-    } else {
-        $status = '📉 ' . number_format($dailyDiff, 2) . 'GB';
-    }
-    
-    echo str_pad($date, 12) . 
-         str_pad(number_format($oldDailyUsage, 2), 16) . 
-         str_pad(number_format($newDailyUsage, 2), 16) . 
-         str_pad(sprintf("%+.2f", $dailyDiff), 12) .
-         str_pad(number_format($oldUsedBw, 2), 14) .
-         str_pad(number_format($newUsedBw, 2), 14) .
+    echo str_pad($date, 13) . 
+         str_pad(number_format($oldDailyUsage, 2) . " GB", 16) . 
+         str_pad($crossDayInc > 0.01 ? number_format($crossDayInc, 2) . " GB" : "-", 12) .
+         str_pad(number_format($newDailyUsage, 2) . " GB", 16) . 
+         str_pad(number_format($oldUsedBw, 2) . " GB", 14) .
+         str_pad(number_format($newUsedBw, 2) . " GB", 14) .
          $status . "\n";
     
-    // 实际修复
-    if ($applyMode && abs($dailyDiff) >= 0.01) {
+    // 实际修复：只更新有变化的天（daily_usage 增加了跨日增量，或 used_bw 链式变化了）
+    if ($applyMode && (abs($addedInc) >= 0.01 || abs($newUsedBw - $oldUsedBw) >= 0.01)) {
         $newRemaining = $totalBandwidth > 0 ? max(0, $totalBandwidth - $newUsedBw) : 0;
         $db->saveDailyTrafficStats(
             $date,
@@ -209,19 +205,20 @@ foreach ($allStats as $idx => $stat) {
     }
 }
 
-echo str_repeat("-", 96) . "\n\n";
+echo str_repeat("-", 97) . "\n\n";
 echo "=== 汇总 ===\n";
-echo "总丢失流量: " . number_format($totalLostGB, 2) . " GB\n";
+echo "找回跨日流量: " . number_format($totalRecovered, 2) . " GB\n";
 echo "受影响天数: {$fixedDays} 天\n";
 
 if ($applyMode) {
-    echo "\n✅ 修复已应用！所有受影响日期的 daily_usage 和 used_bandwidth 已更新。\n";
+    echo "\n✅ 修复已应用！\n";
+    echo "如需回滚: ?rollback=1&month={$targetMonth}&year={$targetYear}\n";
 } else {
     echo "\n📋 以上为预览，数据未修改。\n";
     if (php_sapi_name() === 'cli') {
-        echo "执行修复请运行: php " . basename(__FILE__) . " --apply\n";
+        echo "执行修复: php " . basename(__FILE__) . " --apply --month {$targetMonth}\n";
     } else {
-        echo "执行修复请访问: ?apply=1" . ($targetMonth != (int)date('m') ? "&month={$targetMonth}" : "") . "\n";
+        echo "执行修复: ?apply=1&month={$targetMonth}&year={$targetYear}\n";
     }
 }
 
