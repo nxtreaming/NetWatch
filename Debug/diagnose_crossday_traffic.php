@@ -82,32 +82,48 @@ foreach ($allStats as $stat) {
         }
     }
     
-    // 检测 DB 中的 daily_usage 是否已包含跨日增量
-    // 方法：用快照重算不含跨日的值，与 DB 值比较
-    $usageWithoutCrossDay = 0;
+    // 用快照完整重算 daily_usage（含跨日增量），与 DB 值比较
+    $recalcUsage = 0;
+    $isFirstDayOfMonth = (date('d', strtotime($date)) === '01');
+    
     if (!empty($snapshots)) {
-        for ($i = 1; $i < count($snapshots); $i++) {
-            $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
-            if ($inc < 0) {
-                $usageWithoutCrossDay += $snapshots[$i]['total_bytes'] / (1024*1024*1024);
-            } else {
-                $usageWithoutCrossDay += $inc;
+        if ($isFirstDayOfMonth) {
+            // 每月1日：只算当天快照间增量
+            for ($i = 1; $i < count($snapshots); $i++) {
+                $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
+                $recalcUsage += ($inc < 0) ? $snapshots[$i]['total_bytes'] / (1024*1024*1024) : $inc;
+            }
+        } elseif ($yesterdayLast) {
+            // 含跨日：从昨天最后快照开始
+            $firstInc = ($snapshots[0]['total_bytes'] - $yesterdayLast['total_bytes']) / (1024*1024*1024);
+            if ($firstInc < 0) {
+                $recalcUsage += $snapshots[0]['total_bytes'] / (1024*1024*1024);
+            } elseif ($firstInc < 50) {
+                $recalcUsage += $firstInc;
+            }
+            for ($i = 1; $i < count($snapshots); $i++) {
+                $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
+                $recalcUsage += ($inc < 0) ? $snapshots[$i]['total_bytes'] / (1024*1024*1024) : $inc;
+            }
+        } else {
+            for ($i = 1; $i < count($snapshots); $i++) {
+                $inc = ($snapshots[$i]['total_bytes'] - $snapshots[$i-1]['total_bytes']) / (1024*1024*1024);
+                $recalcUsage += ($inc < 0) ? $snapshots[$i]['total_bytes'] / (1024*1024*1024) : $inc;
             }
         }
     }
     
+    $lostGB = $recalcUsage - $dailyUsage;
     $dbIncludesCrossDay = '—';
     if ($crossDayIncValue > 0.01) {
-        $diffWithCross = abs($dailyUsage - ($usageWithoutCrossDay + $crossDayIncValue));
-        $diffWithout = abs($dailyUsage - $usageWithoutCrossDay);
-        if ($diffWithCross < $diffWithout && $diffWithCross < 0.1) {
-            $dbIncludesCrossDay = '✓ 已包含';
-        } elseif ($diffWithout < 0.1) {
-            $dbIncludesCrossDay = '✗ 未包含 (-' . number_format($crossDayIncValue, 2) . 'GB)';
-            $totalCrossDayLost += $crossDayIncValue;
+        if ($lostGB > 0.5) {
+            $dbIncludesCrossDay = '✗ 丢失 ' . number_format($lostGB, 2) . 'GB';
+            $totalCrossDayLost += $lostGB;
             $daysWithLoss++;
+        } elseif ($lostGB > -0.5) {
+            $dbIncludesCrossDay = '✓ 正常';
         } else {
-            $dbIncludesCrossDay = '? 不确定';
+            $dbIncludesCrossDay = '? 偏差 ' . sprintf("%+.2f", $lostGB) . 'GB';
         }
     }
     
