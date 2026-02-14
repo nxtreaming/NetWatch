@@ -707,27 +707,31 @@ class Database {
      * 保存实时流量数据
      */
     public function saveRealtimeTraffic($totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes = 0, $txBytes = 0, $port = 0) {
-        try {
-            $this->pdo->beginTransaction();
-
-            // 删除旧数据，只保留最新的一条
-            $sql = "DELETE FROM traffic_realtime";
-            $this->pdo->exec($sql);
-
-            // 插入新数据
-            $sql = "INSERT INTO traffic_realtime (total_bandwidth, used_bandwidth, remaining_bandwidth, usage_percentage, rx_bytes, tx_bytes, port, updated_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))";
-            $stmt = $this->pdo->prepare($sql);
-            $result = $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes, $txBytes, $port]);
-
-            $this->pdo->commit();
-            return $result;
-        } catch (PDOException $e) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-            throw new Exception("保存实时流量失败: " . $e->getMessage());
+        // 确保表中只有一条记录（兼容旧版本可能残留的多条数据）
+        $countStmt = $this->pdo->query("SELECT COUNT(*) FROM traffic_realtime");
+        $count = (int)$countStmt->fetchColumn();
+        
+        if ($count > 1) {
+            // 清理多余记录，只保留最新的一条
+            $this->pdo->exec("DELETE FROM traffic_realtime WHERE id NOT IN (SELECT id FROM traffic_realtime ORDER BY updated_at DESC LIMIT 1)");
         }
+        
+        if ($count >= 1) {
+            // 更新已有记录
+            $sql = "UPDATE traffic_realtime SET 
+                        total_bandwidth = ?, used_bandwidth = ?, remaining_bandwidth = ?, 
+                        usage_percentage = ?, rx_bytes = ?, tx_bytes = ?, port = ?, 
+                        updated_at = datetime('now')
+                    WHERE id = (SELECT id FROM traffic_realtime ORDER BY updated_at DESC LIMIT 1)";
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes, $txBytes, $port]);
+        }
+        
+        // 没有记录，插入新的
+        $sql = "INSERT INTO traffic_realtime (total_bandwidth, used_bandwidth, remaining_bandwidth, usage_percentage, rx_bytes, tx_bytes, port, updated_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes, $txBytes, $port]);
     }
     
     /**
@@ -848,12 +852,14 @@ class Database {
         $date = date('Y-m-d');
         $currentMinute = intval(date('i'));
         
-        // 只在5分钟倍数时保存快照（0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55）
-        if ($currentMinute % 5 !== 0) {
-            return false; // 不是5分钟倍数，跳过保存
+        // 取整到最近的5分钟倍数（允许cron延迟最多2分钟）
+        $remainder = $currentMinute % 5;
+        if ($remainder > 2) {
+            return false; // 距离下一个5分钟点更近，跳过（避免重复）
         }
+        $roundedMinute = $currentMinute - $remainder;
         
-        $time = date('H:i:00'); // 取整到分钟
+        $time = sprintf('%s:%02d:00', date('H'), $roundedMinute);
         $totalBytes = $rxBytes + $txBytes;
         
         $sql = "INSERT OR REPLACE INTO traffic_snapshots (snapshot_date, snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at) 
@@ -927,10 +933,19 @@ class Database {
     }
     
     /**
-     * 清理过期的流量快照（保留最近7天）
+     * 清理过期的流量快照
+     * 保留当月所有数据 + 上月最后一天（用于跨日增量计算）
+     * @param int $daysToKeep 最少保留天数（默认35天，覆盖当月+上月末）
      */
-    public function cleanOldTrafficSnapshots($daysToKeep = 7) {
-        $cutoffDate = date('Y-m-d', strtotime("-{$daysToKeep} days"));
+    public function cleanOldTrafficSnapshots($daysToKeep = 35) {
+        // 取"上月最后一天"和"N天前"中更早的那个作为截止日期
+        $firstDayOfMonth = date('Y-m-01');
+        $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
+        $nDaysAgo = date('Y-m-d', strtotime("-{$daysToKeep} days"));
+        
+        // 保留上月最后一天及之后的所有数据
+        $cutoffDate = min($lastDayOfPrevMonth, $nDaysAgo);
+        
         $sql = "DELETE FROM traffic_snapshots WHERE snapshot_date < ?";
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute([$cutoffDate]);

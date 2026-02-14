@@ -230,40 +230,34 @@ class TrafficMonitor {
         // 计算今日使用量：使用快照增量累加，避免流量重置导致的数据丢失
         $dailyUsage = $this->calculateDailyUsageFromSnapshots($today);
         
-        // 检测是否是每月1日（跨月）
-        $isFirstDayOfMonth = (date('d') === '01');
-        
-        // 如果快照数据不足，回退到简单计算
+        // 如果快照数据不足，回退到使用昨天最后快照与当前API值的差值
         if ($dailyUsage === false) {
-            // 如果是每月1日，不与上月数据做差值
-            if ($isFirstDayOfMonth) {
-                $dailyUsage = $totalUsedGB;
-                $this->logger->info("跨月（每月1日）：使用当天累计值({$totalUsedGB}GB)作为当日使用量");
-            } else {
-                $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
-                $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
+            $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
+            $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
+            
+            if ($yesterdayLastSnapshot) {
+                // 使用同源数据：API累计值 - 昨天最后快照的累计值
+                $yesterdayTotal = $yesterdayLastSnapshot['total_bytes'] / (1024 * 1024 * 1024);
+                $dailyUsage = $totalUsedGB - $yesterdayTotal;
                 
-                if ($yesterdayData) {
-                    $dailyUsage = $totalUsedGB - $yesterdayData['used_bandwidth'];
+                // 检测流量重置或API数据异常：如果计算结果为负
+                if ($dailyUsage < 0) {
+                    $difference = abs($dailyUsage);
                     
-                    // 检测流量重置或API数据异常：如果计算结果为负
-                    if ($dailyUsage < 0) {
-                        $difference = abs($dailyUsage);
-                        
-                        // 只有差值 >= 100GB 才认为是真正的流量重置
-                        if ($difference >= 100) {
-                            $dailyUsage = $totalUsedGB;
-                            $this->logger->warning("检测到流量重置（差值{$difference}GB >= 100GB），当日使用量可能不准确（丢失跨日流量）");
-                        } else {
-                            // 差值 < 100GB，可能是API数据异常，跳过本次更新
-                            $this->logger->warning("API数据异常：今天累计值({$totalUsedGB}GB)比昨天({$yesterdayData['used_bandwidth']}GB)少{$difference}GB，但不足100GB阈值，跳过本次更新");
-                            return false;
-                        }
+                    // 只有差值超过阈值才认为是真正的流量重置
+                    $resetThreshold = defined('TRAFFIC_RESET_THRESHOLD_GB') ? TRAFFIC_RESET_THRESHOLD_GB : 100;
+                    if ($difference >= $resetThreshold) {
+                        $dailyUsage = $totalUsedGB;
+                        $this->logger->warning("检测到流量重置（差值{$difference}GB >= {$resetThreshold}GB），当日使用量可能不准确（丢失跨日流量）");
+                    } else {
+                        // 差值 < 100GB，可能是API数据异常，跳过本次更新
+                        $this->logger->warning("API数据异常：今天累计值({$totalUsedGB}GB)比昨天快照({$yesterdayTotal}GB)少{$difference}GB，但不足{$resetThreshold}GB阈值，跳过本次更新");
+                        return false;
                     }
-                } else {
-                    // 没有昨天的数据，使用今天的累计值作为当日使用量
-                    $dailyUsage = $totalUsedGB;
                 }
+            } else {
+                // 没有昨天的快照数据，使用今天的累计值作为当日使用量
+                $dailyUsage = $totalUsedGB;
             }
         }
         
@@ -273,40 +267,28 @@ class TrafficMonitor {
         $skipUpdate = false;
         
         // 核心原则：今日 used_bandwidth = 昨日 used_bandwidth + 今日 daily_usage
-        if ($isFirstDayOfMonth) {
-            // 每月1日：当月累计 = 当日使用量
-            $displayUsedGB = $dailyUsage;
-            $this->logger->info("跨月（每月1日）：存储当月累计值 {$dailyUsage}GB");
+        // 每月1日或无昨日数据时，当月累计 = 当日使用量
+        $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
+        $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
+        $isFirstDayOfMonth = (date('d') === '01');
+        
+        if (!$isFirstDayOfMonth && $yesterdayData && isset($yesterdayData['used_bandwidth'])) {
+            $displayUsedGB = $yesterdayData['used_bandwidth'] + $dailyUsage;
+            $this->logger->info("当月累计：{$displayUsedGB}GB = {$yesterdayData['used_bandwidth']}GB（昨日累计） + {$dailyUsage}GB（今日使用）");
         } else {
-            // 非每月1日：当月累计 = 昨日当月累计 + 今日使用量
-            $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
-            $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
-            
-            if ($yesterdayData && isset($yesterdayData['used_bandwidth'])) {
-                $displayUsedGB = $yesterdayData['used_bandwidth'] + $dailyUsage;
-                $this->logger->info("当月累计：{$displayUsedGB}GB = {$yesterdayData['used_bandwidth']}GB（昨日累计） + {$dailyUsage}GB（今日使用）");
-            } else {
-                // 没有昨日数据，回退到使用上月快照计算
-                $firstDayOfMonth = date('Y-m-01');
-                $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
-                $prevMonthLastSnapshot = $this->db->getLastSnapshotOfDay($lastDayOfPrevMonth);
-                
-                if ($prevMonthLastSnapshot) {
-                    $prevMonthTotal = $prevMonthLastSnapshot['total_bytes'] / (1024 * 1024 * 1024);
-                    $displayUsedGB = $totalUsedGB - $prevMonthTotal;
-                    if ($displayUsedGB < 0) {
-                        $displayUsedGB = $totalUsedGB;
-                    }
-                    $this->logger->info("当月累计（回退）：{$displayUsedGB}GB = {$totalUsedGB}GB - {$prevMonthTotal}GB");
-                }
-            }
+            // 每月1日或无昨日数据：当月累计 = 当日使用量
+            $displayUsedGB = $dailyUsage;
+            $this->logger->info("当月累计：{$displayUsedGB}GB（无昨日当月数据，使用当日使用量）");
         }
         
         if ($dailyUsage > $totalUsedGB) {
-            // 当日使用量包含了重置前的流量，使用当日使用量作为显示值
-            $displayUsedGB = $dailyUsage;
+            // 流量重置（月初自动或手动重置）：新计费周期从0开始
+            // used_bandwidth 和 daily_usage 都只算重置后的流量
+            $this->logger->info("检测到流量重置（新计费周期），重置前+后当日总量: {$dailyUsage}GB, 重置后API累计: {$totalUsedGB}GB");
+            $dailyUsage = $totalUsedGB;
+            $displayUsedGB = $totalUsedGB;
+            $remainingBandwidthGB = $totalBandwidthGB > 0 ? max(0, $totalBandwidthGB - $displayUsedGB) : 0;
             $trafficReset = true;
-            $this->logger->info("检测到流量重置，使用当日使用量({$dailyUsage}GB)作为已用流量显示值");
             
             // 只有在真正发生流量重置时才回溯更新昨天的数据
             // 判断条件：今天的第一个快照值必须明显小于昨天的累计值（说明发生了重置）
@@ -318,13 +300,13 @@ class TrafficMonitor {
                 $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
                 $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
                 
-                // 关键判断：只有当今天首个快照值比昨天累计值少100GB以上时，才认为是真正的流量重置
-                // 如果差值小于100GB，可能只是API数据波动或异常，不应该修正昨天的数据
+                // 关键判断：只有当今天首个快照值比昨天累计值少超过阈值时，才认为是真正的流量重置
+                $resetThreshold = defined('TRAFFIC_RESET_THRESHOLD_GB') ? TRAFFIC_RESET_THRESHOLD_GB : 100;
                 $difference = $yesterdayData['used_bandwidth'] - $todayFirstValue;
-                if ($yesterdayData && $difference >= 100) {
+                if ($yesterdayData && $difference >= $resetThreshold) {
                     // 真正的流量重置：今天的值比昨天少100GB以上，说明流量被重置了
                     // 这种情况下，需要将 23:55 ~ 00:00 这段跨日流量累加到昨天的数据中
-                    $this->logger->info("检测到真正的流量重置：昨天{$yesterdayData['used_bandwidth']}GB，今天首个快照{$todayFirstValue}GB，差值{$difference}GB >= 100GB");
+                    $this->logger->info("检测到真正的流量重置：昨天{$yesterdayData['used_bandwidth']}GB，今天首个快照{$todayFirstValue}GB，差值{$difference}GB >= {$resetThreshold}GB");
                     
                     $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
                     if ($yesterdayLastSnapshot) {
@@ -350,18 +332,21 @@ class TrafficMonitor {
                         }
                         
                         // 更新昨天的已用流量和当日使用量
+                        $yesterdayRemaining = $yesterdayData['total_bandwidth'] > 0
+                            ? max(0, $yesterdayData['total_bandwidth'] - $resetBeforeValue)
+                            : 0;
                         $this->db->saveDailyTrafficStats(
                             $yesterday,
                             $yesterdayData['total_bandwidth'],
                             $resetBeforeValue,
-                            $yesterdayData['remaining_bandwidth'],
+                            $yesterdayRemaining,
                             $yesterdayDailyUsage
                         );
                         $this->logger->info("流量重置：回溯更新 {$yesterday} 的数据 - 已用流量: {$yesterdayData['used_bandwidth']}GB → {$resetBeforeValue}GB, 当日使用: {$yesterdayData['daily_usage']}GB → {$yesterdayDailyUsage}GB");
                     }
                 } else {
                     if ($yesterdayData) {
-                        $this->logger->warning("检测到 dailyUsage > totalUsedGB，但差值({$difference}GB)小于100GB阈值，判断为API数据异常而非真正的流量重置，跳过回溯更新");
+                        $this->logger->warning("检测到 dailyUsage > totalUsedGB，但差值({$difference}GB)小于{$resetThreshold}GB阈值，判断为API数据异常而非真正的流量重置，跳过回溯更新");
                         
                         // API数据异常：今天的值比昨天小，但差值不足100GB
                         // 这种情况下不应该保存异常数据，跳过本次更新
@@ -411,27 +396,21 @@ class TrafficMonitor {
             return false;
         }
         
-        // 检测是否是每月1日（跨月）
-        $isFirstDayOfMonth = (date('d', strtotime($date)) === '01');
-        
         // 获取前一天最后一个快照（23:55）作为基准点
         $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
         $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
         
         $totalDailyUsage = 0;
         
-        // 如果是每月1日，不与上月最后一天做差值，直接计算当天的增量
-        if ($isFirstDayOfMonth) {
-            $this->logger->info("检测到跨月：{$date} 是每月1日，不与上月数据做差值计算");
-            // 从第一个快照开始，但不累加第一个快照的绝对值，只计算增量
-            $startIndex = 1;  // 从第二个快照开始计算增量
-            // 注意：这里不累加第一个快照的值，因为那是上月累计
-        } elseif ($yesterdayLastSnapshot && !empty($snapshots)) {
+        // 统一逻辑：无论是否跨月，都从昨天最后快照开始计算
+        // 跨月时 API 重置会导致负增量，负增量处理逻辑会正确使用当前快照绝对值
+        if ($yesterdayLastSnapshot && !empty($snapshots)) {
             $hasMidnightSnapshot = isset($snapshots[0]['snapshot_time']) && $snapshots[0]['snapshot_time'] === '00:00:00';
             if ($hasMidnightSnapshot) {
                 // 有 00:00 快照时，先计算跨日增量（昨天最后快照 → 今天 00:00）
                 $crossDayIncrement = ($snapshots[0]['total_bytes'] - $yesterdayLastSnapshot['total_bytes']) / (1024 * 1024 * 1024);
-                if ($crossDayIncrement > 0 && $crossDayIncrement < 50) {
+                $crossDayMaxGB = defined('TRAFFIC_CROSSDAY_MAX_GB') ? TRAFFIC_CROSSDAY_MAX_GB : 50;
+                if ($crossDayIncrement > 0 && $crossDayIncrement < $crossDayMaxGB) {
                     $totalDailyUsage += $crossDayIncrement;
                     $this->logger->debug("跨日增量(昨天最后→今天00:00): {$crossDayIncrement}GB");
                 } elseif ($crossDayIncrement < 0) {
@@ -456,8 +435,9 @@ class TrafficMonitor {
                 $startIndex = 1;
             }
         } else {
-            // 没有前一天的数据，从第一个快照开始
-            $startIndex = 0;
+            // 没有前一天的数据，只计算当天快照间的增量（不使用首个快照的绝对值，因为那是月度累计）
+            $this->logger->warning("无前一天快照数据，仅计算当天快照间增量（可能丢失首个快照前的流量）");
+            $startIndex = 1;
         }
         
         // 计算当日各快照之间的增量
@@ -472,9 +452,6 @@ class TrafficMonitor {
                 } else {
                     $totalDailyUsage += $increment;
                 }
-            } elseif ($i === 0 && $startIndex === 0) {
-                // 第一个快照且没有前一天数据，直接使用其值
-                $totalDailyUsage += $snapshots[$i]['total_bytes'] / (1024 * 1024 * 1024);
             }
         }
         
