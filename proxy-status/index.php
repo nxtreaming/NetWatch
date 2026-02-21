@@ -279,7 +279,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                 
                 <?php if (isset($realtimeData['port']) && $realtimeData['port'] > 0): ?>
                 <div class="stat-card gradient-blue">
-                    <h3>🔌 监控端口</h3>
+                    <h3>🔌 监听端口</h3>
                     <div class="value"><?php echo $realtimeData['port']; ?></div>
                 </div>
                 <?php endif; ?>
