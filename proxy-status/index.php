@@ -215,9 +215,13 @@ if (!$isFirstDayOfMonth && $prevMonthLastSnapshot && $yesterdayLastTotal !== nul
 // 今日表格行的当日使用与“已用流量”保持算术一致
 $todayDailyUsageForDisplay = $todayDailyUsage;
 if (!$isFirstDayOfMonth && $yesterdayUsedBandwidthForDisplay > 0) {
-    $todayDailyUsageForDisplay = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
-    if ($todayDailyUsageForDisplay < 0) {
-        $todayDailyUsageForDisplay = $todayDailyUsage;
+    $reconciledDailyUsage = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
+    if ($reconciledDailyUsage >= 0) {
+        // 仅在两种口径接近时采用“已用差值”展示，避免新一天基线偏差导致低估当日使用
+        $dailyUsageToleranceGB = 2.0;
+        if (abs($reconciledDailyUsage - $todayDailyUsage) <= $dailyUsageToleranceGB) {
+            $todayDailyUsageForDisplay = $reconciledDailyUsage;
+        }
     }
 }
 
