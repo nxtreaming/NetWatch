@@ -656,16 +656,8 @@ class TrafficMonitor {
             ) / (1024 * 1024 * 1024);
         }
 
-        if (!$isFirstDayOfMonth && $prevMonthLastSnapshot && $yesterdayLastTotal !== null) {
-            $prevMonthLastTotal = (
-                floatval($prevMonthLastSnapshot['rx_bytes']) + floatval($prevMonthLastSnapshot['tx_bytes'])
-            ) / (1024 * 1024 * 1024);
-
-            $snapshotBasedYesterdayUsed = $yesterdayLastTotal - $prevMonthLastTotal;
-            if ($snapshotBasedYesterdayUsed >= 0) {
-                $yesterdayUsedBandwidthForDisplay = $snapshotBasedYesterdayUsed;
-            }
-        }
+        // 单一标准：累计链路统一使用昨日统计表中的 used_bandwidth 作为基线，
+        // 今日日增量使用快照算法。避免“昨日累计基线”在展示层被替换导致表格不闭合。
 
         $snapshotDailyUsage = $this->calculateDailyUsageFromSnapshots($todayStr);
         if ($snapshotDailyUsage !== false) {
