@@ -198,11 +198,8 @@ if ($isFirstDayOfMonth) {
     }
 }
 
-// 计算今日已用流量（用于表格今日行），不覆盖顶部“当月使用流量”展示值
+// 今日表格行的已用流量与顶部“当月使用流量”保持同口径
 $todayUsedBandwidth = $totalTraffic;
-if (!$isFirstDayOfMonth) {
-    $todayUsedBandwidth = $yesterdayUsedBandwidth + $todayDailyUsage;
-}
 
 // 如果搜索结果包含今日，用实时计算的数据替换
 foreach ($recentStats as &$stat) {

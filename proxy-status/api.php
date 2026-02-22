@@ -125,11 +125,6 @@ try {
                     }
                 }
                 
-                // 重新计算今日已用流量，确保一致性：今日已用 = 昨日已用 + 今日使用
-                if (!$isFirstDayOfMonth) {
-                    $totalTraffic = $yesterdayUsedBandwidth + $todayDailyUsage;
-                }
-                
                 // 替换今日数据
                 foreach ($stats as &$stat) {
                     if ($stat['usage_date'] === $todayStr) {
