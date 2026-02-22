@@ -168,6 +168,7 @@ $isFirstDayOfMonth = (date('d') === '01');
 $todayDailyUsage = 0;
 $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
 $yesterdayUsedBandwidth = 0;
+$yesterdayLastTotal = null;
 
 if ($isFirstDayOfMonth) {
     // 每月1日：当日使用 = 当月累计（本月第一天）
@@ -201,10 +202,20 @@ if ($isFirstDayOfMonth) {
 // 今日表格行的已用流量与顶部“当月使用流量”保持同口径
 $todayUsedBandwidth = $totalTraffic;
 
+// 今日显示用的“昨日已用流量”优先使用快照同源口径（与顶部总量一致）
+$yesterdayUsedBandwidthForDisplay = $yesterdayUsedBandwidth;
+if (!$isFirstDayOfMonth && $prevMonthLastSnapshot && $yesterdayLastTotal !== null) {
+    $prevMonthLastTotal = ($prevMonthLastSnapshot['rx_bytes'] + $prevMonthLastSnapshot['tx_bytes']) / (1024*1024*1024);
+    $snapshotBasedYesterdayUsed = $yesterdayLastTotal - $prevMonthLastTotal;
+    if ($snapshotBasedYesterdayUsed >= 0) {
+        $yesterdayUsedBandwidthForDisplay = $snapshotBasedYesterdayUsed;
+    }
+}
+
 // 今日表格行的当日使用与“已用流量”保持算术一致
 $todayDailyUsageForDisplay = $todayDailyUsage;
-if (!$isFirstDayOfMonth && $yesterdayUsedBandwidth > 0) {
-    $todayDailyUsageForDisplay = $todayUsedBandwidth - $yesterdayUsedBandwidth;
+if (!$isFirstDayOfMonth && $yesterdayUsedBandwidthForDisplay > 0) {
+    $todayDailyUsageForDisplay = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
     if ($todayDailyUsageForDisplay < 0) {
         $todayDailyUsageForDisplay = $todayDailyUsage;
     }

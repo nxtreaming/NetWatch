@@ -97,6 +97,7 @@ try {
                 $isFirstDayOfMonth = (date('d') === '01');
                 $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
                 $yesterdayUsedBandwidth = 0;
+                $yesterdayLastTotal = null;
                 
                 if ($isFirstDayOfMonth) {
                     $todayDailyUsage = $totalTraffic;
@@ -125,10 +126,20 @@ try {
                     }
                 }
                 
+                // 今日显示用的“昨日已用流量”优先使用快照同源口径（与顶部总量一致）
+                $yesterdayUsedBandwidthForDisplay = $yesterdayUsedBandwidth;
+                if (!$isFirstDayOfMonth && $prevMonthLastSnapshot && $yesterdayLastTotal !== null) {
+                    $prevMonthLastTotal = ($prevMonthLastSnapshot['rx_bytes'] + $prevMonthLastSnapshot['tx_bytes']) / (1024*1024*1024);
+                    $snapshotBasedYesterdayUsed = $yesterdayLastTotal - $prevMonthLastTotal;
+                    if ($snapshotBasedYesterdayUsed >= 0) {
+                        $yesterdayUsedBandwidthForDisplay = $snapshotBasedYesterdayUsed;
+                    }
+                }
+
                 // 今日表格行的当日使用与“已用流量”保持算术一致
                 $todayDailyUsageForDisplay = $todayDailyUsage;
-                if (!$isFirstDayOfMonth && $yesterdayUsedBandwidth > 0) {
-                    $todayDailyUsageForDisplay = $totalTraffic - $yesterdayUsedBandwidth;
+                if (!$isFirstDayOfMonth && $yesterdayUsedBandwidthForDisplay > 0) {
+                    $todayDailyUsageForDisplay = $totalTraffic - $yesterdayUsedBandwidthForDisplay;
                     if ($todayDailyUsageForDisplay < 0) {
                         $todayDailyUsageForDisplay = $todayDailyUsage;
                     }
