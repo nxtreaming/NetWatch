@@ -130,7 +130,7 @@ try {
                 if (!$isFirstDayOfMonth && $yesterdayUsedBandwidth > 0) {
                     $todayDailyUsageForDisplay = $totalTraffic - $yesterdayUsedBandwidth;
                     if ($todayDailyUsageForDisplay < 0) {
-                        $todayDailyUsageForDisplay = $totalTraffic;
+                        $todayDailyUsageForDisplay = $todayDailyUsage;
                     }
                 }
 

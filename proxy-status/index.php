@@ -206,7 +206,7 @@ $todayDailyUsageForDisplay = $todayDailyUsage;
 if (!$isFirstDayOfMonth && $yesterdayUsedBandwidth > 0) {
     $todayDailyUsageForDisplay = $todayUsedBandwidth - $yesterdayUsedBandwidth;
     if ($todayDailyUsageForDisplay < 0) {
-        $todayDailyUsageForDisplay = $todayUsedBandwidth;
+        $todayDailyUsageForDisplay = $todayDailyUsage;
     }
 }
 
