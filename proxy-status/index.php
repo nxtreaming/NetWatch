@@ -201,10 +201,19 @@ if ($isFirstDayOfMonth) {
 // 今日表格行的已用流量与顶部“当月使用流量”保持同口径
 $todayUsedBandwidth = $totalTraffic;
 
+// 今日表格行的当日使用与“已用流量”保持算术一致
+$todayDailyUsageForDisplay = $todayDailyUsage;
+if (!$isFirstDayOfMonth && $yesterdayUsedBandwidth > 0) {
+    $todayDailyUsageForDisplay = $todayUsedBandwidth - $yesterdayUsedBandwidth;
+    if ($todayDailyUsageForDisplay < 0) {
+        $todayDailyUsageForDisplay = $todayUsedBandwidth;
+    }
+}
+
 // 如果搜索结果包含今日，用实时计算的数据替换
 foreach ($recentStats as &$stat) {
     if ($stat['usage_date'] === $todayStr) {
-        $stat['daily_usage'] = $todayDailyUsage;
+        $stat['daily_usage'] = $todayDailyUsageForDisplay;
         $stat['used_bandwidth'] = $todayUsedBandwidth;
         break;
     }
@@ -387,7 +396,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
                             $isToday = ($currentDate === $todayStr);
                             
                             // 今日用实时计算值，其他用数据库值
-                            $calculatedDailyUsage = $isToday ? $todayDailyUsage : (isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth']);
+                            $calculatedDailyUsage = $isToday ? $todayDailyUsageForDisplay : (isset($stat['daily_usage']) ? $stat['daily_usage'] : $stat['used_bandwidth']);
                             $displayUsedBandwidth = $isToday ? $todayUsedBandwidth : $stat['used_bandwidth'];
                             
                             $displayTotalBandwidth = $stat['total_bandwidth'];

@@ -125,10 +125,19 @@ try {
                     }
                 }
                 
+                // 今日表格行的当日使用与“已用流量”保持算术一致
+                $todayDailyUsageForDisplay = $todayDailyUsage;
+                if (!$isFirstDayOfMonth && $yesterdayUsedBandwidth > 0) {
+                    $todayDailyUsageForDisplay = $totalTraffic - $yesterdayUsedBandwidth;
+                    if ($todayDailyUsageForDisplay < 0) {
+                        $todayDailyUsageForDisplay = $totalTraffic;
+                    }
+                }
+
                 // 替换今日数据
                 foreach ($stats as &$stat) {
                     if ($stat['usage_date'] === $todayStr) {
-                        $stat['daily_usage'] = $todayDailyUsage;
+                        $stat['daily_usage'] = $todayDailyUsageForDisplay;
                         $stat['used_bandwidth'] = $totalTraffic;
                         break;
                     }
