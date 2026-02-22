@@ -410,9 +410,13 @@ class TrafficMonitor {
                 // 有 00:00 快照时，先计算跨日增量（昨天最后快照 → 今天 00:00）
                 $crossDayIncrement = ($snapshots[0]['total_bytes'] - $yesterdayLastSnapshot['total_bytes']) / (1024 * 1024 * 1024);
                 $crossDayMaxGB = defined('TRAFFIC_CROSSDAY_MAX_GB') ? TRAFFIC_CROSSDAY_MAX_GB : 50;
-                if ($crossDayIncrement > 0 && $crossDayIncrement < $crossDayMaxGB) {
+                if ($crossDayIncrement > 0) {
                     $totalDailyUsage += $crossDayIncrement;
-                    $this->logger->debug("跨日增量(昨天最后→今天00:00): {$crossDayIncrement}GB");
+                    if ($crossDayIncrement >= $crossDayMaxGB) {
+                        $this->logger->warning("跨日增量异常偏大但已计入(昨天最后→今天00:00): {$crossDayIncrement}GB >= {$crossDayMaxGB}GB");
+                    } else {
+                        $this->logger->debug("跨日增量(昨天最后→今天00:00): {$crossDayIncrement}GB");
+                    }
                 } elseif ($crossDayIncrement < 0) {
                     // 负增量说明发生了流量重置，将 00:00 的值作为新起点
                     $totalDailyUsage += $snapshots[0]['total_bytes'] / (1024 * 1024 * 1024);
