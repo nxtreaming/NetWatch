@@ -660,29 +660,17 @@ class TrafficMonitor {
         // 今日日增量使用快照算法。避免“昨日累计基线”在展示层被替换导致表格不闭合。
 
         $snapshotDailyUsage = $this->calculateDailyUsageFromSnapshots($todayStr);
-        if ($snapshotDailyUsage !== false) {
-            $todayDailyUsage = $snapshotDailyUsage;
-        } elseif ($isFirstDayOfMonth) {
-            $todayDailyUsage = $totalTraffic;
-            $todayDailySource = 'first_day_total_traffic_fallback';
-        } elseif ($yesterdayLastTotal !== null) {
-            $todayDailyUsage = $totalTrafficRaw - $yesterdayLastTotal;
-            if ($todayDailyUsage < 0) {
-                $todayDailyUsage = $totalTraffic;
-            }
-            $todayDailySource = 'realtime_minus_yesterday_last_snapshot_fallback';
-        } else {
-            $todayDailyUsage = $totalTraffic - $yesterdayUsedBandwidthForDisplay;
-            if ($todayDailyUsage < 0) {
-                $todayDailyUsage = $totalTraffic;
-            }
-            $todayDailySource = 'total_minus_yesterday_used_fallback';
-        }
+        $todayUsedBandwidth = $totalTraffic;
 
         if ($isFirstDayOfMonth) {
-            $todayUsedBandwidth = $todayDailyUsage;
+            $todayDailyUsage = $todayUsedBandwidth;
+            $todayDailySource = 'first_day_total_traffic';
         } else {
-            $todayUsedBandwidth = $yesterdayUsedBandwidthForDisplay + $todayDailyUsage;
+            $todayDailyUsage = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
+            if ($todayDailyUsage < 0) {
+                $todayDailyUsage = 0.0;
+            }
+            $todayDailySource = 'total_traffic_minus_yesterday_used';
         }
 
         if ($todayUsedBandwidth < 0) {
@@ -696,7 +684,7 @@ class TrafficMonitor {
             : false;
         if ($enableDailyStandardLog) {
             $this->logger->info(
-                "单一口径校验: date={$todayStr}, source={$todayDailySource}, yesterday_used={$yesterdayUsedBandwidthForDisplay}GB, today_daily={$todayDailyUsage}GB, today_used={$todayUsedBandwidth}GB"
+                "单一口径校验: date={$todayStr}, source={$todayDailySource}, yesterday_used={$yesterdayUsedBandwidthForDisplay}GB, today_daily={$todayDailyUsage}GB, today_used={$todayUsedBandwidth}GB, snapshot_daily=" . (($snapshotDailyUsage !== false) ? $snapshotDailyUsage : 'false') . "GB"
             );
         }
 
