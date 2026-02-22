@@ -124,6 +124,22 @@ $todayUsedBandwidth = $todayContext['today_used_bandwidth'];
 $todayDailyUsageForDisplay = $todayContext['today_daily_usage_for_display'];
 $todayStr = date('Y-m-d');
 
+// 表格口径对齐：若有昨天行，强制今日当日使用 = 今日已用 - 昨日已用
+$yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+$yesterdayUsedInTable = null;
+foreach ($recentStats as $row) {
+    if ($row['usage_date'] === $yesterdayStr && isset($row['used_bandwidth'])) {
+        $yesterdayUsedInTable = floatval($row['used_bandwidth']);
+        break;
+    }
+}
+if ($yesterdayUsedInTable !== null) {
+    $todayDeltaByTable = $todayUsedBandwidth - $yesterdayUsedInTable;
+    if ($todayDeltaByTable >= 0) {
+        $todayDailyUsageForDisplay = $todayDeltaByTable;
+    }
+}
+
 // 如果搜索结果包含今日，用实时计算的数据替换
 foreach ($recentStats as &$stat) {
     if ($stat['usage_date'] === $todayStr) {
