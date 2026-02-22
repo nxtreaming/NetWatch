@@ -634,40 +634,28 @@ class TrafficMonitor {
      */
     public function buildTodayDisplayContext(float $totalTrafficRaw, float $totalTraffic, ?array $prevMonthLastSnapshot): array {
         $isFirstDayOfMonth = (date('d') === '01');
-        $todayDailyUsage = 0.0;
+        $todayStr = date('Y-m-d');
         $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+
+        $todayDailyUsage = 0.0;
         $yesterdayUsedBandwidth = 0.0;
+        $yesterdayUsedBandwidthForDisplay = 0.0;
         $yesterdayLastTotal = null;
+        $todayDailySource = 'snapshot_increment';
 
-        if ($isFirstDayOfMonth) {
-            $todayDailyUsage = $totalTraffic;
-        } else {
-            $yesterdayStats = $this->getStatsForDate($yesterdayStr);
-            if ($yesterdayStats && isset($yesterdayStats['used_bandwidth'])) {
-                $yesterdayUsedBandwidth = floatval($yesterdayStats['used_bandwidth']);
-            }
-
-            $yesterdayLastSnapshot = $this->getLastSnapshotOfDay($yesterdayStr);
-            if ($yesterdayLastSnapshot) {
-                $yesterdayLastTotal = (
-                    floatval($yesterdayLastSnapshot['rx_bytes']) + floatval($yesterdayLastSnapshot['tx_bytes'])
-                ) / (1024 * 1024 * 1024);
-
-                $todayDailyUsage = $totalTrafficRaw - $yesterdayLastTotal;
-                if ($todayDailyUsage < 0) {
-                    $todayDailyUsage = $totalTraffic;
-                }
-            } else {
-                $todayDailyUsage = $totalTraffic - $yesterdayUsedBandwidth;
-                if ($todayDailyUsage < 0) {
-                    $todayDailyUsage = $totalTraffic;
-                }
-            }
+        $yesterdayStats = $this->getStatsForDate($yesterdayStr);
+        if ($yesterdayStats && isset($yesterdayStats['used_bandwidth'])) {
+            $yesterdayUsedBandwidth = floatval($yesterdayStats['used_bandwidth']);
+            $yesterdayUsedBandwidthForDisplay = $yesterdayUsedBandwidth;
         }
 
-        $todayUsedBandwidth = $totalTraffic;
+        $yesterdayLastSnapshot = $this->getLastSnapshotOfDay($yesterdayStr);
+        if ($yesterdayLastSnapshot) {
+            $yesterdayLastTotal = (
+                floatval($yesterdayLastSnapshot['rx_bytes']) + floatval($yesterdayLastSnapshot['tx_bytes'])
+            ) / (1024 * 1024 * 1024);
+        }
 
-        $yesterdayUsedBandwidthForDisplay = $yesterdayUsedBandwidth;
         if (!$isFirstDayOfMonth && $prevMonthLastSnapshot && $yesterdayLastTotal !== null) {
             $prevMonthLastTotal = (
                 floatval($prevMonthLastSnapshot['rx_bytes']) + floatval($prevMonthLastSnapshot['tx_bytes'])
@@ -679,15 +667,45 @@ class TrafficMonitor {
             }
         }
 
-        $todayDailyUsageForDisplay = $todayDailyUsage;
-        if (!$isFirstDayOfMonth && $yesterdayUsedBandwidthForDisplay > 0) {
-            $reconciledDailyUsage = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
-            if ($reconciledDailyUsage >= 0) {
-                $dailyUsageToleranceGB = 2.0;
-                if (abs($reconciledDailyUsage - $todayDailyUsage) <= $dailyUsageToleranceGB) {
-                    $todayDailyUsageForDisplay = $reconciledDailyUsage;
-                }
+        $snapshotDailyUsage = $this->calculateDailyUsageFromSnapshots($todayStr);
+        if ($snapshotDailyUsage !== false) {
+            $todayDailyUsage = $snapshotDailyUsage;
+        } elseif ($isFirstDayOfMonth) {
+            $todayDailyUsage = $totalTraffic;
+            $todayDailySource = 'first_day_total_traffic_fallback';
+        } elseif ($yesterdayLastTotal !== null) {
+            $todayDailyUsage = $totalTrafficRaw - $yesterdayLastTotal;
+            if ($todayDailyUsage < 0) {
+                $todayDailyUsage = $totalTraffic;
             }
+            $todayDailySource = 'realtime_minus_yesterday_last_snapshot_fallback';
+        } else {
+            $todayDailyUsage = $totalTraffic - $yesterdayUsedBandwidthForDisplay;
+            if ($todayDailyUsage < 0) {
+                $todayDailyUsage = $totalTraffic;
+            }
+            $todayDailySource = 'total_minus_yesterday_used_fallback';
+        }
+
+        if ($isFirstDayOfMonth) {
+            $todayUsedBandwidth = $todayDailyUsage;
+        } else {
+            $todayUsedBandwidth = $yesterdayUsedBandwidthForDisplay + $todayDailyUsage;
+        }
+
+        if ($todayUsedBandwidth < 0) {
+            $todayUsedBandwidth = $totalTraffic;
+        }
+
+        $todayDailyUsageForDisplay = $todayDailyUsage;
+
+        $enableDailyStandardLog = defined('TRAFFIC_DAILY_STANDARD_LOG')
+            ? (bool) TRAFFIC_DAILY_STANDARD_LOG
+            : false;
+        if ($enableDailyStandardLog) {
+            $this->logger->info(
+                "单一口径校验: date={$todayStr}, source={$todayDailySource}, yesterday_used={$yesterdayUsedBandwidthForDisplay}GB, today_daily={$todayDailyUsage}GB, today_used={$todayUsedBandwidth}GB"
+            );
         }
 
         return [

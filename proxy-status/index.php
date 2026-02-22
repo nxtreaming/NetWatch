@@ -124,22 +124,6 @@ $todayUsedBandwidth = $todayContext['today_used_bandwidth'];
 $todayDailyUsageForDisplay = $todayContext['today_daily_usage_for_display'];
 $todayStr = date('Y-m-d');
 
-// 表格口径对齐：若有昨天行，强制今日当日使用 = 今日已用 - 昨日已用
-$yesterdayStr = date('Y-m-d', strtotime('-1 day'));
-$yesterdayUsedInTable = null;
-foreach ($recentStats as $row) {
-    if ($row['usage_date'] === $yesterdayStr && isset($row['used_bandwidth'])) {
-        $yesterdayUsedInTable = floatval($row['used_bandwidth']);
-        break;
-    }
-}
-if ($yesterdayUsedInTable !== null) {
-    $todayDeltaByTable = $todayUsedBandwidth - $yesterdayUsedInTable;
-    if ($todayDeltaByTable >= 0) {
-        $todayDailyUsageForDisplay = $todayDeltaByTable;
-    }
-}
-
 // 如果搜索结果包含今日，用实时计算的数据替换
 foreach ($recentStats as &$stat) {
     if ($stat['usage_date'] === $todayStr) {
@@ -151,7 +135,12 @@ foreach ($recentStats as &$stat) {
 unset($stat);
 
 // 定义百分比变量供后续使用
+$displayRemainingBandwidth = $realtimeData['remaining_bandwidth'];
 $percentage = $realtimeData['usage_percentage'];
+if (($realtimeData['total_bandwidth'] ?? 0) > 0) {
+    $displayRemainingBandwidth = max(0, $realtimeData['total_bandwidth'] - $todayUsedBandwidth);
+    $percentage = ($todayUsedBandwidth / $realtimeData['total_bandwidth']) * 100;
+}
 // 抽取常用变量，避免重复判断
 $hasQuota = ($realtimeData['total_bandwidth'] ?? 0) > 0;
 $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' : 'primary');
@@ -170,20 +159,20 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             
             <div class="stat-card">
                 <h2>当月使用流量</h2>
-                <div class="value"><?php echo $trafficMonitor->formatBandwidth($totalTraffic); ?></div>
+                <div class="value"><?php echo $trafficMonitor->formatBandwidth($todayUsedBandwidth); ?></div>
                 <div class="label">Total Used</div>
             </div>
             
             <?php if ($hasQuota): ?>
             <div class="stat-card success">
                 <h2>剩余流量</h2>
-                <div class="value"><?php echo $trafficMonitor->formatBandwidth($realtimeData['remaining_bandwidth']); ?></div>
+                <div class="value"><?php echo $trafficMonitor->formatBandwidth($displayRemainingBandwidth); ?></div>
                 <div class="label">Remaining</div>
             </div>
             
             <div class="stat-card <?php echo $usageClass; ?>">
                 <h2>使用率</h2>
-                <div class="value"><?php echo $trafficMonitor->formatPercentage($realtimeData['usage_percentage']); ?></div>
+                <div class="value"><?php echo $trafficMonitor->formatPercentage($percentage); ?></div>
                 <div class="label">Usage Percentage</div>
             </div>
             <?php endif; ?>
@@ -194,7 +183,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             <h2>流量使用进度</h2>
             <div class="progress-bar-container">
                 <div class="progress-bar <?php echo $usageClass; ?>" style="width: <?php echo min($percentage, 100); ?>%">
-                    <?php echo $trafficMonitor->formatPercentage($realtimeData['usage_percentage']); ?>
+                    <?php echo $trafficMonitor->formatPercentage($percentage); ?>
                 </div>
             </div>
         </div>

@@ -80,22 +80,6 @@ try {
                 $todayDailyUsageForDisplay = $todayContext['today_daily_usage_for_display'];
                 $todayUsedBandwidth = $todayContext['today_used_bandwidth'];
 
-                // 表格口径对齐：若有昨天行，强制今日当日使用 = 今日已用 - 昨日已用
-                $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
-                $yesterdayUsedInTable = null;
-                foreach ($stats as $row) {
-                    if ($row['usage_date'] === $yesterdayStr && isset($row['used_bandwidth'])) {
-                        $yesterdayUsedInTable = floatval($row['used_bandwidth']);
-                        break;
-                    }
-                }
-                if ($yesterdayUsedInTable !== null) {
-                    $todayDeltaByTable = $todayUsedBandwidth - $yesterdayUsedInTable;
-                    if ($todayDeltaByTable >= 0) {
-                        $todayDailyUsageForDisplay = $todayDeltaByTable;
-                    }
-                }
-
                 // 替换今日数据
                 foreach ($stats as &$stat) {
                     if ($stat['usage_date'] === $todayStr) {
