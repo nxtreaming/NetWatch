@@ -138,8 +138,8 @@ unset($stat);
 $displayRemainingBandwidth = $realtimeData['remaining_bandwidth'];
 $percentage = $realtimeData['usage_percentage'];
 if (($realtimeData['total_bandwidth'] ?? 0) > 0) {
-    $displayRemainingBandwidth = max(0, $realtimeData['total_bandwidth'] - $todayUsedBandwidth);
-    $percentage = ($todayUsedBandwidth / $realtimeData['total_bandwidth']) * 100;
+    $displayRemainingBandwidth = max(0, $realtimeData['total_bandwidth'] - $totalTraffic);
+    $percentage = ($totalTraffic / $realtimeData['total_bandwidth']) * 100;
 }
 // 抽取常用变量，避免重复判断
 $hasQuota = ($realtimeData['total_bandwidth'] ?? 0) > 0;
@@ -159,7 +159,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             
             <div class="stat-card">
                 <h2>当月使用流量</h2>
-                <div class="value"><?php echo $trafficMonitor->formatBandwidth($todayUsedBandwidth); ?></div>
+                <div class="value"><?php echo $trafficMonitor->formatBandwidth($totalTraffic); ?></div>
                 <div class="label">Total Used</div>
             </div>
             
