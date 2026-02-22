@@ -71,89 +71,20 @@ try {
             $realtimeData = $trafficMonitor->getRealtimeTraffic();
             
             if ($realtimeData) {
-                // 计算当月累计流量
-                $totalTrafficRaw = 0;
-                if (isset($realtimeData['rx_bytes']) && isset($realtimeData['tx_bytes'])) {
-                    $rxBytes = floatval($realtimeData['rx_bytes']);
-                    $txBytes = floatval($realtimeData['tx_bytes']);
-                    $totalTrafficRaw = ($rxBytes + $txBytes) / (1024*1024*1024);
-                }
-                
-                // 获取上月最后快照计算当月累计
-                $firstDayOfMonth = date('Y-m-01');
-                $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
-                $prevMonthLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($lastDayOfPrevMonth);
-                
-                $totalTraffic = $totalTrafficRaw;
-                if ($prevMonthLastSnapshot) {
-                    $prevTotal = ($prevMonthLastSnapshot['rx_bytes'] + $prevMonthLastSnapshot['tx_bytes']) / (1024*1024*1024);
-                    $monthlyUsed = $totalTrafficRaw - $prevTotal;
-                    if ($monthlyUsed >= 0) {
-                        $totalTraffic = $monthlyUsed;
-                    }
-                }
-                
-                // 计算今日使用量（与 index.php 保持一致，使用快照数据）
-                $isFirstDayOfMonth = (date('d') === '01');
-                $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
-                $yesterdayUsedBandwidth = 0;
-                $yesterdayLastTotal = null;
-                
-                if ($isFirstDayOfMonth) {
-                    $todayDailyUsage = $totalTraffic;
-                } else {
-                    // 获取昨日 used_bandwidth（用于后续一致性重算）
-                    $yesterdayStats = $trafficMonitor->getStatsForDate($yesterdayStr);
-                    if ($yesterdayStats && isset($yesterdayStats['used_bandwidth'])) {
-                        $yesterdayUsedBandwidth = floatval($yesterdayStats['used_bandwidth']);
-                    }
-                    
-                    // 使用快照计算今日增量（今日原始值 - 昨日最后快照）
-                    $yesterdayLastSnapshot = $trafficMonitor->getLastSnapshotOfDay($yesterdayStr);
-                    if ($yesterdayLastSnapshot) {
-                        $yesterdayLastTotal = ($yesterdayLastSnapshot['rx_bytes'] + $yesterdayLastSnapshot['tx_bytes']) / (1024*1024*1024);
-                        $todayDailyUsage = $totalTrafficRaw - $yesterdayLastTotal;
-                        
-                        if ($todayDailyUsage < 0) {
-                            $todayDailyUsage = $totalTraffic;
-                        }
-                    } else {
-                        // 没有昨日快照，使用数据库值计算
-                        $todayDailyUsage = $totalTraffic - $yesterdayUsedBandwidth;
-                        if ($todayDailyUsage < 0) {
-                            $todayDailyUsage = $totalTraffic;
-                        }
-                    }
-                }
-                
-                // 今日显示用的“昨日已用流量”优先使用快照同源口径（与顶部总量一致）
-                $yesterdayUsedBandwidthForDisplay = $yesterdayUsedBandwidth;
-                if (!$isFirstDayOfMonth && $prevMonthLastSnapshot && $yesterdayLastTotal !== null) {
-                    $prevMonthLastTotal = ($prevMonthLastSnapshot['rx_bytes'] + $prevMonthLastSnapshot['tx_bytes']) / (1024*1024*1024);
-                    $snapshotBasedYesterdayUsed = $yesterdayLastTotal - $prevMonthLastTotal;
-                    if ($snapshotBasedYesterdayUsed >= 0) {
-                        $yesterdayUsedBandwidthForDisplay = $snapshotBasedYesterdayUsed;
-                    }
-                }
+                $monthlyContext = $trafficMonitor->buildMonthlyTrafficContext($realtimeData);
+                $totalTraffic = $monthlyContext['total_traffic'];
+                $totalTrafficRaw = $monthlyContext['total_traffic_raw'];
+                $prevMonthLastSnapshot = $monthlyContext['prev_month_last_snapshot'];
 
-                // 今日表格行的当日使用与“已用流量”保持算术一致
-                $todayDailyUsageForDisplay = $todayDailyUsage;
-                if (!$isFirstDayOfMonth && $yesterdayUsedBandwidthForDisplay > 0) {
-                    $reconciledDailyUsage = $totalTraffic - $yesterdayUsedBandwidthForDisplay;
-                    if ($reconciledDailyUsage >= 0) {
-                        // 仅在两种口径接近时采用“已用差值”展示，避免新一天基线偏差导致低估当日使用
-                        $dailyUsageToleranceGB = 2.0;
-                        if (abs($reconciledDailyUsage - $todayDailyUsage) <= $dailyUsageToleranceGB) {
-                            $todayDailyUsageForDisplay = $reconciledDailyUsage;
-                        }
-                    }
-                }
+                $todayContext = $trafficMonitor->buildTodayDisplayContext($totalTrafficRaw, $totalTraffic, $prevMonthLastSnapshot);
+                $todayDailyUsageForDisplay = $todayContext['today_daily_usage_for_display'];
+                $todayUsedBandwidth = $todayContext['today_used_bandwidth'];
 
                 // 替换今日数据
                 foreach ($stats as &$stat) {
                     if ($stat['usage_date'] === $todayStr) {
                         $stat['daily_usage'] = $todayDailyUsageForDisplay;
-                        $stat['used_bandwidth'] = $totalTraffic;
+                        $stat['used_bandwidth'] = $todayUsedBandwidth;
                         break;
                     }
                 }

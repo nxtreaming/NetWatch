@@ -553,4 +553,140 @@ class TrafficMonitor {
     public function getSnapshotsByDate(string $date): array {
         return $this->db->getTrafficSnapshotsByDate($date);
     }
+
+    /**
+     * 构建当月流量计算上下文（统一口径，供页面和 API 复用）
+     * @param array|null $realtimeData 实时流量数据
+     * @return array
+     */
+    public function buildMonthlyTrafficContext(?array $realtimeData): array {
+        $totalTrafficRaw = 0.0;
+        if (
+            isset($realtimeData['rx_bytes'], $realtimeData['tx_bytes']) &&
+            ($realtimeData['rx_bytes'] > 0 || $realtimeData['tx_bytes'] > 0)
+        ) {
+            $rxBytes = floatval($realtimeData['rx_bytes']);
+            $txBytes = floatval($realtimeData['tx_bytes']);
+            $totalTrafficRaw = ($rxBytes + $txBytes) / (1024 * 1024 * 1024);
+        } elseif (isset($realtimeData['used_bandwidth'])) {
+            $totalTrafficRaw = floatval($realtimeData['used_bandwidth']);
+        }
+
+        $totalTraffic = $totalTrafficRaw;
+        $monthlyRxBytes = isset($realtimeData['rx_bytes']) ? floatval($realtimeData['rx_bytes']) : 0.0;
+        $monthlyTxBytes = isset($realtimeData['tx_bytes']) ? floatval($realtimeData['tx_bytes']) : 0.0;
+
+        $firstDayOfMonth = date('Y-m-01');
+        $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
+        $prevMonthLastSnapshot = $this->getLastSnapshotOfDay($lastDayOfPrevMonth);
+
+        if ($prevMonthLastSnapshot) {
+            $prevRxBytes = floatval($prevMonthLastSnapshot['rx_bytes']);
+            $prevTxBytes = floatval($prevMonthLastSnapshot['tx_bytes']);
+
+            $monthlyRx = $monthlyRxBytes - $prevRxBytes;
+            if ($monthlyRx >= 0) {
+                $monthlyRxBytes = $monthlyRx;
+            }
+
+            $monthlyTx = $monthlyTxBytes - $prevTxBytes;
+            if ($monthlyTx >= 0) {
+                $monthlyTxBytes = $monthlyTx;
+            }
+
+            $totalTraffic = ($monthlyRxBytes + $monthlyTxBytes) / (1024 * 1024 * 1024);
+        } else {
+            $prevMonthLastDayData = $this->getStatsForDate($lastDayOfPrevMonth);
+            if ($prevMonthLastDayData && isset($prevMonthLastDayData['used_bandwidth'])) {
+                $monthlyUsed = $totalTrafficRaw - floatval($prevMonthLastDayData['used_bandwidth']);
+                if ($monthlyUsed >= 0) {
+                    $totalTraffic = $monthlyUsed;
+                }
+            }
+        }
+
+        return [
+            'total_traffic_raw' => $totalTrafficRaw,
+            'total_traffic' => $totalTraffic,
+            'monthly_rx_bytes' => $monthlyRxBytes,
+            'monthly_tx_bytes' => $monthlyTxBytes,
+            'prev_month_last_snapshot' => $prevMonthLastSnapshot,
+        ];
+    }
+
+    /**
+     * 构建今日展示计算上下文（统一口径，供页面和 API 复用）
+     * @param float $totalTrafficRaw API 原始累计值（GB）
+     * @param float $totalTraffic 当月累计展示值（GB）
+     * @param array|null $prevMonthLastSnapshot 上月最后快照
+     * @return array
+     */
+    public function buildTodayDisplayContext(float $totalTrafficRaw, float $totalTraffic, ?array $prevMonthLastSnapshot): array {
+        $isFirstDayOfMonth = (date('d') === '01');
+        $todayDailyUsage = 0.0;
+        $yesterdayStr = date('Y-m-d', strtotime('-1 day'));
+        $yesterdayUsedBandwidth = 0.0;
+        $yesterdayLastTotal = null;
+
+        if ($isFirstDayOfMonth) {
+            $todayDailyUsage = $totalTraffic;
+        } else {
+            $yesterdayStats = $this->getStatsForDate($yesterdayStr);
+            if ($yesterdayStats && isset($yesterdayStats['used_bandwidth'])) {
+                $yesterdayUsedBandwidth = floatval($yesterdayStats['used_bandwidth']);
+            }
+
+            $yesterdayLastSnapshot = $this->getLastSnapshotOfDay($yesterdayStr);
+            if ($yesterdayLastSnapshot) {
+                $yesterdayLastTotal = (
+                    floatval($yesterdayLastSnapshot['rx_bytes']) + floatval($yesterdayLastSnapshot['tx_bytes'])
+                ) / (1024 * 1024 * 1024);
+
+                $todayDailyUsage = $totalTrafficRaw - $yesterdayLastTotal;
+                if ($todayDailyUsage < 0) {
+                    $todayDailyUsage = $totalTraffic;
+                }
+            } else {
+                $todayDailyUsage = $totalTraffic - $yesterdayUsedBandwidth;
+                if ($todayDailyUsage < 0) {
+                    $todayDailyUsage = $totalTraffic;
+                }
+            }
+        }
+
+        $todayUsedBandwidth = $totalTraffic;
+
+        $yesterdayUsedBandwidthForDisplay = $yesterdayUsedBandwidth;
+        if (!$isFirstDayOfMonth && $prevMonthLastSnapshot && $yesterdayLastTotal !== null) {
+            $prevMonthLastTotal = (
+                floatval($prevMonthLastSnapshot['rx_bytes']) + floatval($prevMonthLastSnapshot['tx_bytes'])
+            ) / (1024 * 1024 * 1024);
+
+            $snapshotBasedYesterdayUsed = $yesterdayLastTotal - $prevMonthLastTotal;
+            if ($snapshotBasedYesterdayUsed >= 0) {
+                $yesterdayUsedBandwidthForDisplay = $snapshotBasedYesterdayUsed;
+            }
+        }
+
+        $todayDailyUsageForDisplay = $todayDailyUsage;
+        if (!$isFirstDayOfMonth && $yesterdayUsedBandwidthForDisplay > 0) {
+            $reconciledDailyUsage = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
+            if ($reconciledDailyUsage >= 0) {
+                $dailyUsageToleranceGB = 2.0;
+                if (abs($reconciledDailyUsage - $todayDailyUsage) <= $dailyUsageToleranceGB) {
+                    $todayDailyUsageForDisplay = $reconciledDailyUsage;
+                }
+            }
+        }
+
+        return [
+            'is_first_day_of_month' => $isFirstDayOfMonth,
+            'yesterday_date' => $yesterdayStr,
+            'today_daily_usage' => $todayDailyUsage,
+            'today_used_bandwidth' => $todayUsedBandwidth,
+            'yesterday_used_bandwidth' => $yesterdayUsedBandwidth,
+            'yesterday_used_bandwidth_for_display' => $yesterdayUsedBandwidthForDisplay,
+            'today_daily_usage_for_display' => $todayDailyUsageForDisplay,
+        ];
+    }
 }
