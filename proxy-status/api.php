@@ -7,6 +7,16 @@
 header('Content-Type: application/json');
 
 require_once '../config.php';
+
+// CORS: 仅允许同源请求，不对外暴露通配符
+$allowedOrigin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+if (!empty($_SERVER['HTTP_ORIGIN'])) {
+    if ($_SERVER['HTTP_ORIGIN'] === $allowedOrigin) {
+        header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+        header('Vary: Origin');
+    }
+    // 非同源请求不添加 CORS 头，浏览器将拒绝跨域访问
+}
 require_once '../auth.php';
 require_once '../traffic_monitor.php';
 
@@ -103,8 +113,10 @@ try {
     }
     
 } catch (Exception $e) {
+    // 记录详细错误到服务器日志，不向客户端暴露内部信息
+    error_log('[NetWatch][proxy-status/api] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => '请求处理失败，请稍后重试'
     ]);
 }

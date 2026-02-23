@@ -20,7 +20,7 @@ class RateLimiter {
         $this->storageDir = $storageDir ?? sys_get_temp_dir() . '/netwatch_ratelimit';
         
         if (!is_dir($this->storageDir)) {
-            @mkdir($this->storageDir, 0755, true);
+            @mkdir($this->storageDir, 0700, true);
         }
     }
     
@@ -106,30 +106,92 @@ class RateLimiter {
     }
     
     /**
-     * 获取客户端IP
+     * 获取客户端 IP
+     *
+     * 安全策略：默认信任 REMOTE_ADDR。
+     * 仅当 REMOTE_ADDR 在可信任代理 CIDR 列表中时，才读取转发头中的真实客户端 IP。
+     * 这样可防止攻击者通过伪造 X-Forwarded-For 绕过限流。
+     *
+     * @param array $trustedProxyCidrs 可信任代理 CIDR 列表，例如 ['127.0.0.1/32', '10.0.0.0/8']
+     *                                  如果为空数组，则仅使用 REMOTE_ADDR
      */
-    public static function getClientIp(): string {
-        $headers = [
-            'HTTP_CF_CONNECTING_IP',     // Cloudflare
-            'HTTP_X_FORWARDED_FOR',      // 代理
-            'HTTP_X_REAL_IP',            // Nginx
-            'REMOTE_ADDR'
+    public static function getClientIp(array $trustedProxyCidrs = []): string {
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        // 如果没有配置可信任代理，直接返回 REMOTE_ADDR
+        if (empty($trustedProxyCidrs)) {
+            // 尝试从环境变量读取可信任代理配置
+            $envCidrs = defined('TRUSTED_PROXY_CIDRS') ? TRUSTED_PROXY_CIDRS : '';
+            if (empty($envCidrs)) {
+                return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : '0.0.0.0';
+            }
+            $trustedProxyCidrs = array_filter(array_map('trim', explode(',', $envCidrs)));
+        }
+
+        // 检查 REMOTE_ADDR 是否在可信任代理列表中
+        if (!self::isIpInCidrs($remoteAddr, $trustedProxyCidrs)) {
+            return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : '0.0.0.0';
+        }
+
+        // REMOTE_ADDR 是可信任代理，按优先级读取转发头
+        $forwardingHeaders = [
+            'HTTP_CF_CONNECTING_IP',  // Cloudflare
+            'HTTP_X_FORWARDED_FOR',   // 标准代理头
+            'HTTP_X_REAL_IP',         // Nginx
         ];
-        
-        foreach ($headers as $header) {
+
+        foreach ($forwardingHeaders as $header) {
             if (!empty($_SERVER[$header])) {
                 $ip = $_SERVER[$header];
-                // 处理多个IP的情况
+                // X-Forwarded-For 可能包含多个 IP，取最左边（最近客户端）
                 if (strpos($ip, ',') !== false) {
                     $ip = trim(explode(',', $ip)[0]);
                 }
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $ip;
+                }
+                // 如果是私有 IP 也接受（内网环境）
                 if (filter_var($ip, FILTER_VALIDATE_IP)) {
                     return $ip;
                 }
             }
         }
-        
-        return '0.0.0.0';
+
+        return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : '0.0.0.0';
+    }
+
+    /**
+     * 检查 IP 是否属于给定的 CIDR 列表
+     * 支持单个 IP（如 '127.0.0.1'）和 CIDR 表示法（如 '10.0.0.0/8'）
+     */
+    private static function isIpInCidrs(string $ip, array $cidrs): bool {
+        $ipLong = ip2long($ip);
+        if ($ipLong === false) {
+            return false;
+        }
+        foreach ($cidrs as $cidr) {
+            if (strpos($cidr, '/') === false) {
+                // 单个 IP 地址
+                if (ip2long($cidr) === $ipLong) {
+                    return true;
+                }
+            } else {
+                [$network, $prefix] = explode('/', $cidr, 2);
+                $prefix = (int)$prefix;
+                if ($prefix < 0 || $prefix > 32) {
+                    continue;
+                }
+                $networkLong = ip2long($network);
+                if ($networkLong === false) {
+                    continue;
+                }
+                $mask = $prefix === 0 ? 0 : (~0 << (32 - $prefix));
+                if (($ipLong & $mask) === ($networkLong & $mask)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     
     /**

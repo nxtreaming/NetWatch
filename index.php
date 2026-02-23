@@ -16,8 +16,17 @@ Auth::requireLogin();
 $monitor = new NetworkMonitor();
 $action = $_GET['action'] ?? 'dashboard';
 
-// 处理登出请求
+// 处理登出请求（仅接受 POST + CSRF，防止 CSRF 强制登出）
 if ($action === 'logout') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Location: index.php');
+        exit;
+    }
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!Auth::validateCsrfToken($csrfToken)) {
+        header('Location: index.php');
+        exit;
+    }
     Auth::logout();
     header('Location: login.php?action=logout');
     exit;
@@ -185,7 +194,7 @@ $recentLogs = $monitor->getRecentLogs(20);
                     <div class="user-info">
                         <div class="user-row">
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='?action=logout'); return false;">退出</a>
+                            <button type="button" class="logout-btn" onclick="showCustomConfirm('确定要退出登录吗？', () => submitLogout()); return false;">退出</button>
                         </div>
                     </div>
                 </div>
@@ -380,6 +389,11 @@ $recentLogs = $monitor->getRecentLogs(20);
         </div>
     </div>
     
+    <!-- 登出表单（POST + CSRF，防止 CSRF 强制登出） -->
+    <form id="logout-form" method="POST" action="?action=logout" style="display:none;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
+    </form>
+
     <!-- JavaScript 文件引用 -->
     <!-- 新模块化JS（提供NetWatch命名空间和UI组件） -->
     <script src="includes/js/core.js?v=<?php echo filemtime(__DIR__ . '/includes/js/core.js'); ?>"></script>
@@ -391,6 +405,10 @@ $recentLogs = $monitor->getRecentLogs(20);
     <script src="includes/offline-simple.js?v=<?php echo filemtime(__DIR__ . '/includes/offline-simple.js'); ?>"></script>
     
     <script>
+        function submitLogout() {
+            document.getElementById('logout-form').submit();
+        }
+
         // 页面特定的初始化代码
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('search-input');

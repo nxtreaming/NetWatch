@@ -4,9 +4,10 @@
  * 负责管理和启动多个并行批次
  */
 
-// 设置错误报告
+// 设置错误报告：仅记录到日志，不向外部输出
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
 // 设置执行时间限制
 set_time_limit(0); // 无限制
@@ -131,33 +132,25 @@ try {
  * @return resource|false 进程句柄
  */
 function startBatchProcess(string $batchId, int $offset, int $limit, string $statusFile, bool $offlineOnly = false) {
-    // 构建命令行参数
     $scriptPath = __DIR__ . '/parallel_worker.php';
     $offlineFlag = $offlineOnly ? '1' : '0';
-    $command = sprintf(
-        'php "%s" "%s" %d %d "%s" %s > /dev/null 2>&1 &',
-        $scriptPath,
-        $batchId,
-        $offset,
-        $limit,
-        $statusFile,
-        $offlineFlag
-    );
-    
-    // 在Windows系统上使用不同的命令
+
+    // 所有参数均通过 escapeshellarg 转义，防止命令注入
+    $args = implode(' ', [
+        escapeshellarg($scriptPath),
+        escapeshellarg($batchId),
+        (int)$offset,
+        (int)$limit,
+        escapeshellarg($statusFile),
+        $offlineFlag,
+    ]);
+
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-        $command = sprintf(
-            'start /B php "%s" "%s" %d %d "%s" %s',
-            $scriptPath,
-            $batchId,
-            $offset,
-            $limit,
-            $statusFile,
-            $offlineFlag
-        );
+        $command = 'start /B php ' . $args;
+    } else {
+        $command = 'php ' . $args . ' > /dev/null 2>&1 &';
     }
-    
-    // 启动进程
+
     $process = popen($command, 'r');
     return $process;
 }

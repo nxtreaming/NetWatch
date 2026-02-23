@@ -185,9 +185,10 @@ class AjaxHandler {
                 'email_sent' => $emailSent
             ]);
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] checkAll: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => '检查失败: ' . $e->getMessage()
+                'error' => '检查失败，请稍后重试'
             ]);
         }
     }
@@ -243,9 +244,10 @@ class AjaxHandler {
                 'execution_time' => $executionTime
             ]);
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] getProxyCount: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => '获取代理数量失败: ' . $e->getMessage()
+                'error' => '获取代理数量失败，请稍后重试'
             ]);
         }
     }
@@ -333,14 +335,16 @@ class AjaxHandler {
             ]);
             
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] checkBatch: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => '批量检查失败: ' . $e->getMessage()
+                'error' => '批量检查失败，请稍后重试'
             ]);
         } catch (Error $e) {
+            error_log('[NetWatch][ajax] checkBatch fatal: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'PHP Fatal Error: ' . $e->getMessage()
+                'error' => '服务器内部错误，请稍后重试'
             ]);
         }
     }
@@ -385,9 +389,10 @@ class AjaxHandler {
                 'email_sent' => $emailSent
             ]);
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] checkFailedProxies: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => '检查失败代理失败: ' . $e->getMessage()
+                'error' => '检查失败代理时出错，请稍后重试'
             ]);
         }
     }
@@ -423,9 +428,10 @@ class AjaxHandler {
             echo json_encode($result);
         } catch (Exception $e) {
             $checkType = $offlineOnly ? '离线代理' : '并行';
+            error_log('[NetWatch][ajax] startParallelCheck: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => "启动{$checkType}检测失败: " . $e->getMessage()
+                'error' => "启动{$checkType}检测失败，请稍后重试"
             ]);
         }
     }
@@ -440,14 +446,26 @@ class AjaxHandler {
                 echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
                 return;
             }
+            // 严格校验 session_id 格式，防止路径遍历和 IDOR
+            if (!self::isValidParallelSessionId($sessionId)) {
+                echo json_encode(['success' => false, 'error' => '无效的会话ID']);
+                return;
+            }
+            // 校验 session_id 归属：必须以当前 PHP session_id 为前缀
+            if (!self::isOwnedParallelSessionId($sessionId)) {
+                error_log('[NetWatch][ajax] getParallelProgress: session_id ownership mismatch: ' . $sessionId);
+                echo json_encode(['success' => false, 'error' => '无权访问该检测任务']);
+                return;
+            }
             $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
             
             $progress = $parallelMonitor->getParallelProgress();
             echo json_encode($progress);
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] getParallelProgress: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => '获取进度失败: ' . $e->getMessage()
+                'error' => '获取进度失败，请稍后重试'
             ]);
         }
     }
@@ -462,6 +480,17 @@ class AjaxHandler {
                 echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
                 return;
             }
+            // 严格校验 session_id 格式，防止路径遍历和 IDOR
+            if (!self::isValidParallelSessionId($sessionId)) {
+                echo json_encode(['success' => false, 'error' => '无效的会话ID']);
+                return;
+            }
+            // 校验 session_id 归属：必须以当前 PHP session_id 为前缀
+            if (!self::isOwnedParallelSessionId($sessionId)) {
+                error_log('[NetWatch][ajax] cancelParallelCheck: session_id ownership mismatch: ' . $sessionId);
+                echo json_encode(['success' => false, 'error' => '无权操作该检测任务']);
+                return;
+            }
 
             if (file_exists(__DIR__ . '/AuditLogger.php')) {
                 require_once __DIR__ . '/AuditLogger.php';
@@ -472,9 +501,10 @@ class AjaxHandler {
             $result = $parallelMonitor->cancelParallelCheck();
             echo json_encode($result);
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] cancelParallelCheck: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => '取消检测失败: ' . $e->getMessage()
+                'error' => '取消检测失败，请稍后重试'
             ]);
         }
     }
@@ -501,9 +531,10 @@ class AjaxHandler {
                 'statuses' => $statuses
             ]);
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] debugStatuses: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => '获取状态信息失败，请稍后重试'
             ]);
         }
     }
@@ -533,9 +564,10 @@ class AjaxHandler {
                 'updated' => $updated
             ]);
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] createTestData: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => '创建测试数据失败，请稍后重试'
             ]);
         }
     }
@@ -568,11 +600,36 @@ class AjaxHandler {
                 'status_filter' => $statusFilter
             ]);
         } catch (Exception $e) {
+            error_log('[NetWatch][ajax] search: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => '搜索失败: ' . $e->getMessage()
+                'error' => '搜索失败，请稍后重试'
             ]);
         }
+    }
+
+    /**
+     * 校验并行任务 session_id 格式（防止路径遍历 / IDOR）
+     * 允许字符：字母、数字、下划线、连字符，长度 20-120
+     */
+    private static function isValidParallelSessionId(string $sessionId): bool {
+        return (bool) preg_match('/^[A-Za-z0-9_-]{20,120}$/', $sessionId);
+    }
+
+    /**
+     * 校验并行任务 session_id 归属当前登录用户
+     * session_id 由 handleStartParallelCheck 生成，格式为：{php_session_id}_{timestamp}_{rand}
+     * 校验前缀就能确保不同用户无法互相访问任务
+     */
+    private static function isOwnedParallelSessionId(string $sessionId): bool {
+        if (session_status() === PHP_SESSION_NONE) {
+            return false;
+        }
+        $phpSessionId = session_id();
+        if (empty($phpSessionId)) {
+            return false;
+        }
+        return strncmp($sessionId, $phpSessionId . '_', strlen($phpSessionId) + 1) === 0;
     }
 
 }

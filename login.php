@@ -70,9 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 处理登出操作
+// 登出操作由 index.php 的 POST+CSRF 表单处理完成后重定向到此页
+// login.php 仅负责显示登出成功提示，不再执行 Auth::logout()
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    Auth::logout();
     $success = '已成功登出';
 }
 ?>
