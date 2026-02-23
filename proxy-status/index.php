@@ -128,6 +128,16 @@ $todayStr = date('Y-m-d');
 // 避免跨日保护回退后出现“顶部 < 表格今日行”的不一致
 $displayMonthlyUsed = max($totalTraffic, $todayUsedBandwidth);
 
+// 流量详情展示也需与顶部“当月使用流量”一致：保证 RX + TX = displayMonthlyUsed
+$displayMonthlyRxBytes = $monthlyRxBytes;
+$displayMonthlyTxBytes = $monthlyTxBytes;
+$rawMonthlyUsed = ($monthlyRxBytes + $monthlyTxBytes) / (1024 * 1024 * 1024);
+if ($displayMonthlyUsed > $rawMonthlyUsed && $rawMonthlyUsed > 0) {
+    $scale = $displayMonthlyUsed / $rawMonthlyUsed;
+    $displayMonthlyRxBytes = $monthlyRxBytes * $scale;
+    $displayMonthlyTxBytes = $monthlyTxBytes * $scale;
+}
+
 // 如果搜索结果包含今日，用实时计算的数据替换
 foreach ($recentStats as &$stat) {
     if ($stat['usage_date'] === $todayStr) {
@@ -199,12 +209,12 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             <div class="stats-grid2 mt-20">
                 <div class="stat-card gradient-purple">
                     <h3>⬇️ 接收流量 (RX)</h3>
-                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($monthlyRxBytes / (1024*1024*1024)); ?></div>
+                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($displayMonthlyRxBytes / (1024*1024*1024)); ?></div>
                 </div>
                 
                 <div class="stat-card gradient-pink">
                     <h3>⬆️ 发送流量 (TX)</h3>
-                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($monthlyTxBytes / (1024*1024*1024)); ?></div>
+                    <div class="value"><?php echo $trafficMonitor->formatBandwidth($displayMonthlyTxBytes / (1024*1024*1024)); ?></div>
                 </div>
                 
                 <?php if (isset($realtimeData['port']) && $realtimeData['port'] > 0): ?>
