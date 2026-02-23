@@ -663,39 +663,32 @@ class TrafficMonitor {
         $todayUsedBandwidth = $totalTraffic;
 
         if ($isFirstDayOfMonth) {
-            $firstDayFromTotal = max(0.0, $todayUsedBandwidth);
-            $firstDayFromSnapshot = ($snapshotDailyUsage !== false) ? max(0.0, $snapshotDailyUsage) : -1.0;
-
-            if ($firstDayFromSnapshot >= 0.0 && $firstDayFromSnapshot > $firstDayFromTotal) {
-                $todayDailyUsage = $firstDayFromSnapshot;
+            // 月初：优先使用快照增量；仅在快照不可用时回退 total 链路
+            if ($snapshotDailyUsage !== false) {
+                $todayDailyUsage = max(0.0, $snapshotDailyUsage);
                 $todayUsedBandwidth = $todayDailyUsage;
-                $todayDailySource = 'first_day_snapshot_daily_max';
+                $todayDailySource = 'first_day_snapshot_daily_only';
             } else {
-                $todayDailyUsage = $firstDayFromTotal;
+                $todayDailyUsage = max(0.0, $todayUsedBandwidth);
                 $todayUsedBandwidth = $todayDailyUsage;
-                $todayDailySource = 'first_day_total_traffic';
+                $todayDailySource = 'first_day_total_traffic_fallback';
             }
         } else {
-            // 非月初：使用“双基准取大值”防止漏计
-            // 1) total 链路：today_total - yesterday_used
-            // 2) snapshot 链路：当日快照增量累加
-            // 取两者较大值，避免 realtime/API 延迟导致当日使用量被低估。
-            $dailyFromTotal = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
-            if ($dailyFromTotal < 0) {
-                $dailyFromTotal = 0.0;
-            }
-
-            $dailyFromSnapshot = ($snapshotDailyUsage !== false) ? max(0.0, $snapshotDailyUsage) : -1.0;
-
-            if ($dailyFromSnapshot >= 0.0 && $dailyFromSnapshot > $dailyFromTotal) {
-                $todayDailyUsage = $dailyFromSnapshot;
-                $todayDailySource = 'snapshot_daily_max';
+            // 非月初：单一数据源策略
+            // 快照可用 => 今日使用 = 快照日增量；今日已用 = 昨日已用 + 今日使用
+            // 快照不可用 => 回退 total 链路
+            if ($snapshotDailyUsage !== false) {
+                $todayDailyUsage = max(0.0, $snapshotDailyUsage);
+                $todayUsedBandwidth = $yesterdayUsedBandwidthForDisplay + $todayDailyUsage;
+                $todayDailySource = 'snapshot_daily_only';
             } else {
-                $todayDailyUsage = $dailyFromTotal;
-                $todayDailySource = 'total_traffic_minus_yesterday_used';
+                $todayDailyUsage = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
+                if ($todayDailyUsage < 0) {
+                    $todayDailyUsage = 0.0;
+                }
+                $todayUsedBandwidth = $yesterdayUsedBandwidthForDisplay + $todayDailyUsage;
+                $todayDailySource = 'total_traffic_fallback';
             }
-
-            $todayUsedBandwidth = $yesterdayUsedBandwidthForDisplay + $todayDailyUsage;
         }
 
         if ($todayUsedBandwidth < 0) {
