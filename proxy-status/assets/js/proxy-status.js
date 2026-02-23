@@ -79,6 +79,14 @@
     const displayLabels = labels;
     const displayData = totalData;
 
+    // 显示当前图上采样点增量总和（单位 GB）
+    const chartIntervalSumEl = document.getElementById('chart-interval-sum');
+    if (chartIntervalSumEl) {
+      const totalIntervalMb = displayData.reduce((sum, value) => sum + (Number(value) || 0), 0);
+      const totalIntervalGb = totalIntervalMb / 1024;
+      chartIntervalSumEl.textContent = `当前图上采样点增量总和：${totalIntervalGb.toFixed(2)} GB`;
+    }
+
     window.trafficChartInstance = new Chart(ctx, {
       type: 'line',
       data: {
