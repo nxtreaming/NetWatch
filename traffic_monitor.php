@@ -666,11 +666,25 @@ class TrafficMonitor {
             $todayDailyUsage = $todayUsedBandwidth;
             $todayDailySource = 'first_day_total_traffic';
         } else {
+            // 保护性回退：当日累计值不应小于昨日累计值（除非是真正的计费周期重置）
+            // 展示层优先保证“已用流量”单调不减，避免跨日后出现倒退。
+            if ($todayUsedBandwidth < $yesterdayUsedBandwidthForDisplay) {
+                if ($snapshotDailyUsage !== false && $snapshotDailyUsage >= 0) {
+                    $todayUsedBandwidth = $yesterdayUsedBandwidthForDisplay + $snapshotDailyUsage;
+                    $todayDailySource = 'fallback_yesterday_plus_snapshot_daily';
+                } else {
+                    $todayUsedBandwidth = $yesterdayUsedBandwidthForDisplay;
+                    $todayDailySource = 'fallback_clamp_to_yesterday_used';
+                }
+            }
+
             $todayDailyUsage = $todayUsedBandwidth - $yesterdayUsedBandwidthForDisplay;
             if ($todayDailyUsage < 0) {
                 $todayDailyUsage = 0.0;
             }
-            $todayDailySource = 'total_traffic_minus_yesterday_used';
+            if ($todayDailySource === 'snapshot_increment') {
+                $todayDailySource = 'total_traffic_minus_yesterday_used';
+            }
         }
 
         if ($todayUsedBandwidth < 0) {
