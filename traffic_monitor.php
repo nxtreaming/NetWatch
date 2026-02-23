@@ -712,4 +712,55 @@ class TrafficMonitor {
             'today_daily_usage_for_display' => $todayDailyUsageForDisplay,
         ];
     }
+
+    /**
+     * 构建 Proxy-Status 页面/API 的统一展示上下文
+     *
+     * 目标：从单一入口计算并返回「顶部总量 + 今日行 + RX/TX 详情」所需数据，
+     * 避免页面层各自修补导致口径漂移。
+     *
+     * @param array|null $realtimeData 实时流量数据
+     * @return array
+     */
+    public function buildProxyStatusDisplayContext(?array $realtimeData): array {
+        $monthlyContext = $this->buildMonthlyTrafficContext($realtimeData);
+        $todayContext = $this->buildTodayDisplayContext(
+            $monthlyContext['total_traffic_raw'],
+            $monthlyContext['total_traffic'],
+            $monthlyContext['prev_month_last_snapshot']
+        );
+
+        // 统一展示总量：确保与今日行保持一致，不出现“顶部 < 今日表格”的回退
+        $displayMonthlyUsed = max(
+            floatval($monthlyContext['total_traffic']),
+            floatval($todayContext['today_used_bandwidth'])
+        );
+
+        // 统一展示 RX/TX：确保 RX + TX = displayMonthlyUsed
+        $monthlyRxBytes = floatval($monthlyContext['monthly_rx_bytes']);
+        $monthlyTxBytes = floatval($monthlyContext['monthly_tx_bytes']);
+        $displayMonthlyRxBytes = $monthlyRxBytes;
+        $displayMonthlyTxBytes = $monthlyTxBytes;
+
+        $rawMonthlyUsed = ($monthlyRxBytes + $monthlyTxBytes) / (1024 * 1024 * 1024);
+        if ($displayMonthlyUsed > $rawMonthlyUsed) {
+            if ($rawMonthlyUsed > 0) {
+                $scale = $displayMonthlyUsed / $rawMonthlyUsed;
+                $displayMonthlyRxBytes = $monthlyRxBytes * $scale;
+                $displayMonthlyTxBytes = $monthlyTxBytes * $scale;
+            } else {
+                // 无可用 RX/TX 基线时，退化为总量展示，保证 UI 数学关系成立
+                $displayMonthlyRxBytes = 0.0;
+                $displayMonthlyTxBytes = $displayMonthlyUsed * 1024 * 1024 * 1024;
+            }
+        }
+
+        return [
+            'monthly_context' => $monthlyContext,
+            'today_context' => $todayContext,
+            'display_monthly_used' => $displayMonthlyUsed,
+            'display_monthly_rx_bytes' => $displayMonthlyRxBytes,
+            'display_monthly_tx_bytes' => $displayMonthlyTxBytes,
+        ];
+    }
 }

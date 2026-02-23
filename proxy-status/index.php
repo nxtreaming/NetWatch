@@ -109,8 +109,9 @@ if (!$realtimeData) {
     ];
 }
 
-// 统一计算当月上下文（与 API 共用，避免口径漂移）
-$monthlyContext = $trafficMonitor->buildMonthlyTrafficContext($realtimeData);
+// 统一计算展示上下文（单一入口，避免顶部/表格/RX-TX 口径漂移）
+$displayContext = $trafficMonitor->buildProxyStatusDisplayContext($realtimeData);
+$monthlyContext = $displayContext['monthly_context'];
 $totalTrafficRaw = $monthlyContext['total_traffic_raw'];
 $totalTraffic = $monthlyContext['total_traffic'];
 $monthlyRxBytes = $monthlyContext['monthly_rx_bytes'];
@@ -118,25 +119,15 @@ $monthlyTxBytes = $monthlyContext['monthly_tx_bytes'];
 $prevMonthLastSnapshot = $monthlyContext['prev_month_last_snapshot'];
 
 // 统一计算今日展示上下文（与 API 共用，避免重复修修补补）
-$todayContext = $trafficMonitor->buildTodayDisplayContext($totalTrafficRaw, $totalTraffic, $prevMonthLastSnapshot);
+$todayContext = $displayContext['today_context'];
 $todayDailyUsage = $todayContext['today_daily_usage'];
 $todayUsedBandwidth = $todayContext['today_used_bandwidth'];
 $todayDailyUsageForDisplay = $todayContext['today_daily_usage_for_display'];
 $todayStr = date('Y-m-d');
 
-// 页面展示统一口径：顶部卡片与表格“今日已用流量”保持一致
-// 避免跨日保护回退后出现“顶部 < 表格今日行”的不一致
-$displayMonthlyUsed = max($totalTraffic, $todayUsedBandwidth);
-
-// 流量详情展示也需与顶部“当月使用流量”一致：保证 RX + TX = displayMonthlyUsed
-$displayMonthlyRxBytes = $monthlyRxBytes;
-$displayMonthlyTxBytes = $monthlyTxBytes;
-$rawMonthlyUsed = ($monthlyRxBytes + $monthlyTxBytes) / (1024 * 1024 * 1024);
-if ($displayMonthlyUsed > $rawMonthlyUsed && $rawMonthlyUsed > 0) {
-    $scale = $displayMonthlyUsed / $rawMonthlyUsed;
-    $displayMonthlyRxBytes = $monthlyRxBytes * $scale;
-    $displayMonthlyTxBytes = $monthlyTxBytes * $scale;
-}
+$displayMonthlyUsed = $displayContext['display_monthly_used'];
+$displayMonthlyRxBytes = $displayContext['display_monthly_rx_bytes'];
+$displayMonthlyTxBytes = $displayContext['display_monthly_tx_bytes'];
 
 // 如果搜索结果包含今日，用实时计算的数据替换
 foreach ($recentStats as &$stat) {

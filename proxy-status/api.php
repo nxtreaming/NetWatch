@@ -81,12 +81,8 @@ try {
             $realtimeData = $trafficMonitor->getRealtimeTraffic();
             
             if ($realtimeData) {
-                $monthlyContext = $trafficMonitor->buildMonthlyTrafficContext($realtimeData);
-                $totalTraffic = $monthlyContext['total_traffic'];
-                $totalTrafficRaw = $monthlyContext['total_traffic_raw'];
-                $prevMonthLastSnapshot = $monthlyContext['prev_month_last_snapshot'];
-
-                $todayContext = $trafficMonitor->buildTodayDisplayContext($totalTrafficRaw, $totalTraffic, $prevMonthLastSnapshot);
+                $displayContext = $trafficMonitor->buildProxyStatusDisplayContext($realtimeData);
+                $todayContext = $displayContext['today_context'];
                 $todayDailyUsageForDisplay = $todayContext['today_daily_usage_for_display'];
                 $todayUsedBandwidth = $todayContext['today_used_bandwidth'];
 
