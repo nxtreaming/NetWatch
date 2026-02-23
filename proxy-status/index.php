@@ -124,6 +124,10 @@ $todayUsedBandwidth = $todayContext['today_used_bandwidth'];
 $todayDailyUsageForDisplay = $todayContext['today_daily_usage_for_display'];
 $todayStr = date('Y-m-d');
 
+// 页面展示统一口径：顶部卡片与表格“今日已用流量”保持一致
+// 避免跨日保护回退后出现“顶部 < 表格今日行”的不一致
+$displayMonthlyUsed = max($totalTraffic, $todayUsedBandwidth);
+
 // 如果搜索结果包含今日，用实时计算的数据替换
 foreach ($recentStats as &$stat) {
     if ($stat['usage_date'] === $todayStr) {
@@ -138,8 +142,8 @@ unset($stat);
 $displayRemainingBandwidth = $realtimeData['remaining_bandwidth'];
 $percentage = $realtimeData['usage_percentage'];
 if (($realtimeData['total_bandwidth'] ?? 0) > 0) {
-    $displayRemainingBandwidth = max(0, $realtimeData['total_bandwidth'] - $totalTraffic);
-    $percentage = ($totalTraffic / $realtimeData['total_bandwidth']) * 100;
+    $displayRemainingBandwidth = max(0, $realtimeData['total_bandwidth'] - $displayMonthlyUsed);
+    $percentage = ($displayMonthlyUsed / $realtimeData['total_bandwidth']) * 100;
 }
 // 抽取常用变量，避免重复判断
 $hasQuota = ($realtimeData['total_bandwidth'] ?? 0) > 0;
@@ -159,7 +163,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             
             <div class="stat-card">
                 <h2>当月使用流量</h2>
-                <div class="value"><?php echo $trafficMonitor->formatBandwidth($totalTraffic); ?></div>
+                <div class="value"><?php echo $trafficMonitor->formatBandwidth($displayMonthlyUsed); ?></div>
                 <div class="label">Total Used</div>
             </div>
             
