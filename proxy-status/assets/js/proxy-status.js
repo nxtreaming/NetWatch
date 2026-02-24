@@ -33,7 +33,7 @@
       const response = await fetch(`api.php?action=chart&date=${encodeURIComponent(date)}`);
       const result = await response.json();
       if (result.success) {
-        createTrafficChart(result.data, date === TODAY);
+        createTrafficChart(result.data, date === TODAY, result.chart_context || {});
       } else {
         console.error('图表更新失败:', result.message);
       }
@@ -42,19 +42,21 @@
     }
   }
 
-  function createTrafficChart(snapshots, isViewingToday) {
+  function createTrafficChart(snapshots, isViewingToday, chartContext) {
     if (!snapshots || snapshots.length === 0) return;
 
     const labels = snapshots.map(s => s.snapshot_time.substring(0, 5));
     const rxData = [];
     const txData = [];
     const totalData = [];
+    const initialIntervalMb = Number((chartContext && chartContext.initial_interval_mb) || 0);
+    const normalizedInitialIntervalMb = initialIntervalMb > 0 ? Number(initialIntervalMb.toFixed(2)) : 0;
 
     for (let i = 0; i < snapshots.length; i++) {
       if (i === 0) {
         rxData.push(0);
         txData.push(0);
-        totalData.push(0);
+        totalData.push(normalizedInitialIntervalMb);
       } else {
         let rxIncrement = (snapshots[i].rx_bytes - snapshots[i - 1].rx_bytes) / (1024 * 1024);
         let txIncrement = (snapshots[i].tx_bytes - snapshots[i - 1].tx_bytes) / (1024 * 1024);
@@ -121,13 +123,13 @@
               title: function (context) {
                 const currentTime = context[0].label;
                 const index = context[0].dataIndex;
-                if (index === 0) return currentTime + ' (起始点)';
+                if (index === 0) return '上一采样点 → ' + currentTime;
                 const prevTime = context[0].chart.data.labels[index - 1];
                 return prevTime + ' → ' + currentTime;
               },
               label: function (context) {
                 const value = parseFloat(context.parsed.y).toFixed(2);
-                return context.dataIndex === 0 ? '本时段流量: 0 MB (起始点)' : '本时段流量: ' + value + ' MB';
+                return '本时段流量: ' + value + ' MB';
               }
             }
           }
@@ -189,7 +191,7 @@
     const infoDiv = document.getElementById('snapshot-info');
     if (infoDiv) infoDiv.style.display = 'none';
     const tipText = document.getElementById('snapshot-tip');
-    if (tipText) tipText.innerHTML = '💡 提示：显示当日从00:00开始的流量数据';
+    if (tipText) tipText.innerHTML = '💡 提示：显示当日连续采样增量（00:00点已包含昨日23:55~00:00）';
   };
 
   window.resetQueryToRecent = function resetQueryToRecent() {
@@ -228,7 +230,7 @@
         }
       }
       const tipText = document.getElementById('snapshot-tip');
-      if (tipText) tipText.innerHTML = '💡 提示：' + (isToday ? '显示当日从00:00开始的流量数据' : '显示当日全天流量数据');
+      if (tipText) tipText.innerHTML = '💡 提示：' + (isToday ? '显示当日连续采样增量（00:00点已包含昨日23:55~00:00）' : '显示当日全天流量数据');
     }
   };
 
@@ -348,7 +350,7 @@
     startAutoRefresh();
 
     if (Array.isArray(data.todaySnapshots) && data.todaySnapshots.length > 0) {
-      createTrafficChart(data.todaySnapshots, !!data.isViewingToday);
+      createTrafficChart(data.todaySnapshots, !!data.isViewingToday, data.chartDisplayContext || {});
     }
   });
 })();

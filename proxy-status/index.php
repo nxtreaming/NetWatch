@@ -41,6 +41,9 @@ if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
     $isViewingToday = true;
 }
 
+// 图表展示上下文：首个采样点补齐跨日增量，保证图表增量总和与当日使用一致
+$chartDisplayContext = $trafficMonitor->buildSnapshotChartContext($snapshotDate, $todaySnapshots);
+
 // 调试：显示快照数据
 if (isset($_GET['debug']) && !empty($todaySnapshots)) {
     echo "<pre style='background: #f5f5f5; padding: 20px; margin: 20px; border: 1px solid #ddd; color: #333;'>";
@@ -254,7 +257,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             
             <?php if (!empty($todaySnapshots)): ?>
             <p id="snapshot-tip" class="tip-text">
-                💡 提示：<?php echo $isViewingToday ? '显示当日从00:00开始的流量数据' : '显示当日全天流量数据'; ?>
+                💡 提示：<?php echo $isViewingToday ? '显示当日连续采样增量（00:00点已包含昨日23:55~00:00）' : '显示当日全天流量数据'; ?>
             </p>
             <div class="chart-canvas-box">
                 <canvas id="trafficChart"></canvas>

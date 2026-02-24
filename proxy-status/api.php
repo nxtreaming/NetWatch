@@ -51,10 +51,13 @@ try {
                 // 获取指定日期数据
                 $snapshots = $trafficMonitor->getSnapshotsByDate($date);
             }
+
+            $chartDisplayContext = $trafficMonitor->buildSnapshotChartContext($date, $snapshots);
             
             echo json_encode([
                 'success' => true,
                 'data' => $snapshots,
+                'chart_context' => $chartDisplayContext,
                 'date' => $date,
                 'is_today' => ($date === date('Y-m-d'))
             ]);

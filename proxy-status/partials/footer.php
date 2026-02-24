@@ -13,6 +13,7 @@
         'today' => date('Y-m-d'),
         'intervalMs' => defined('TRAFFIC_UPDATE_INTERVAL') ? TRAFFIC_UPDATE_INTERVAL * 1000 : 300000,
         'todaySnapshots' => !empty($todaySnapshots) ? array_values($todaySnapshots) : [],
+        'chartDisplayContext' => $chartDisplayContext ?? ['initial_interval_mb' => 0],
         'isViewingToday' => $isViewingToday,
       ];
       echo json_encode($bootstrap, JSON_UNESCAPED_UNICODE);

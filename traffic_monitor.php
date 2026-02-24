@@ -566,6 +566,45 @@ class TrafficMonitor {
     }
 
     /**
+     * 构建实时图展示上下文（统一口径）
+     *
+     * 将「前一日最后快照 -> 当日首个快照」的跨日增量折算到当日首个采样点，
+     * 使图表增量总和与当日使用口径一致。
+     *
+     * @param string $date 查询日期 (Y-m-d)
+     * @param array $snapshots 当日快照（按时间升序）
+     * @return array
+     */
+    public function buildSnapshotChartContext(string $date, array $snapshots): array {
+        $initialIntervalGb = 0.0;
+
+        if (!empty($snapshots)) {
+            $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
+            $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
+
+            if ($yesterdayLastSnapshot) {
+                $firstSnapshot = $snapshots[0];
+                $firstTotalGb = floatval($firstSnapshot['total_bytes']) / (1024 * 1024 * 1024);
+                $yesterdayLastTotalGb = floatval($yesterdayLastSnapshot['total_bytes']) / (1024 * 1024 * 1024);
+                $initialIntervalGb = $firstTotalGb - $yesterdayLastTotalGb;
+
+                // 与日统计口径一致：若出现负增量（重置），使用首个快照绝对值作为新周期起点
+                if ($initialIntervalGb < 0) {
+                    $initialIntervalGb = $firstTotalGb;
+                }
+
+                if ($initialIntervalGb < 0) {
+                    $initialIntervalGb = 0.0;
+                }
+            }
+        }
+
+        return [
+            'initial_interval_mb' => $initialIntervalGb * 1024,
+        ];
+    }
+
+    /**
      * 构建当月流量计算上下文（统一口径，供页面和 API 复用）
      * @param array|null $realtimeData 实时流量数据
      * @return array
