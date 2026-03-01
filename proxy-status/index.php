@@ -262,7 +262,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             <div class="chart-canvas-box">
                 <canvas id="trafficChart"></canvas>
             </div>
-            <p id="chart-interval-sum" class="chart-sum-text">当前图上采样点增量总和：--</p>
+            <p id="chart-interval-sum" class="chart-sum-text">当前采样点增量总和：--</p>
             <?php else: ?>
             <?php renderWarningBanner('<strong>⚠️ 暂无数据</strong><br>' . htmlspecialchars($snapshotDate, ENT_QUOTES, 'UTF-8') . ' 没有流量快照数据'); ?>
             <?php endif; ?>
