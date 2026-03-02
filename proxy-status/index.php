@@ -257,7 +257,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             
             <?php if (!empty($todaySnapshots)): ?>
             <p id="snapshot-tip" class="tip-text">
-                💡 提示：<?php echo $isViewingToday ? '显示当日连续采样增量（00:00点已包含昨日23:55~00:00）' : '显示当日全天流量数据'; ?>
+                💡 提示：<?php echo $isViewingToday ? '显示当日连续采样增量（00:00点包含昨日23:55~00:00）' : '显示当日全天流量数据'; ?>
             </p>
             <div class="chart-canvas-box">
                 <canvas id="trafficChart"></canvas>
