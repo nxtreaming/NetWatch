@@ -100,6 +100,14 @@ class ProxyApi {
         
         return $this->db->validateToken($token);
     }
+
+    /**
+     * 是否允许在API响应中返回代理认证信息
+     * 默认关闭，需在配置中显式开启（仅建议调试/管理员场景）
+     */
+    private function shouldExposeProxyAuth() {
+        return defined('API_EXPOSE_PROXY_AUTH') && API_EXPOSE_PROXY_AUTH === true;
+    }
     
     /**
      * 获取授权的代理列表
@@ -110,6 +118,8 @@ class ProxyApi {
         if (!$tokenInfo) {
             return ApiResponse::error('Invalid or expired token', 401);
         }
+
+        $includeAuth = $this->shouldExposeProxyAuth();
         
         // 获取分配给该Token的代理
         $proxies = $this->db->getTokenProxies($tokenInfo['id']);
@@ -135,15 +145,13 @@ class ProxyApi {
                 'status' => $proxy['status'],
                 'response_time' => $proxy['response_time']
             ];
-            
-            // 如果有认证信息，添加到返回数据中
-            if (!empty($proxy['username']) && !empty($proxy['password'])) {
+
+            if ($includeAuth && !empty($proxy['username']) && !empty($proxy['password'])) {
                 $proxyData['auth'] = [
                     'username' => $proxy['username'],
                     'password' => $proxy['password']
                 ];
-                // S-8: 记录敏感数据访问
-                error_log('[NetWatch][API] Proxy auth data accessed for proxy_id=' . $proxy['id'] . ' by token=' . substr($token, 0, 8) . '...');
+                error_log('[NetWatch][API] Proxy auth data exposed for proxy_id=' . $proxy['id'] . ' by token=' . substr($token, 0, 8) . '...');
             }
             
             $formattedProxies[] = $proxyData;
@@ -335,6 +343,7 @@ try {
             break;
             
         case 'help':
+            $authEnabled = defined('API_EXPOSE_PROXY_AUTH') && API_EXPOSE_PROXY_AUTH === true;
             echo ApiResponse::success([
                 'endpoints' => [
                     'GET /api.php?action=proxies&token=YOUR_TOKEN' => '获取授权的代理列表',
@@ -351,8 +360,11 @@ try {
                 ],
                 'formats' => [
                     'json' => '默认JSON格式',
-                    'txt' => '代理URL格式 (protocol://user:pass@host:port)',
-                    'list' => '简单列表格式 (host:port:user:pass)'
+                    'txt' => $authEnabled ? '代理URL格式 (protocol://user:pass@host:port)' : '代理URL格式 (protocol://host:port)',
+                    'list' => $authEnabled ? '简单列表格式 (host:port:user:pass)' : '简单列表格式 (host:port)'
+                ],
+                'security' => [
+                    'api_expose_proxy_auth' => $authEnabled
                 ]
             ]);
             break;
