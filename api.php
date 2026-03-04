@@ -152,7 +152,7 @@ class ProxyApi {
                     'username' => $proxy['username'],
                     'password' => $proxy['password']
                 ];
-                error_log('[NetWatch][API] Proxy auth data exposed for proxy_id=' . $proxy['id'] . ' by token=' . substr($token, 0, 8) . '...');
+                error_log('[NetWatch][API] Proxy auth data exposed for proxy_id=' . $proxy['id']);
             }
             
             $formattedProxies[] = $proxyData;
