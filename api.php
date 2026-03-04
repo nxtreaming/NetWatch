@@ -31,9 +31,10 @@ if (defined('API_REQUIRE_HTTPS') && API_REQUIRE_HTTPS === true) {
     }
 }
 
+$clientIp = RateLimiter::getClientIp();
+
 // S-8: IP白名单检查（可选）
 if (defined('API_IP_WHITELIST') && !empty(API_IP_WHITELIST)) {
-    $clientIp = RateLimiter::getClientIp();
     $whitelist = is_array(API_IP_WHITELIST) ? API_IP_WHITELIST : explode(',', API_IP_WHITELIST);
     $whitelist = array_map('trim', $whitelist);
     if (!in_array($clientIp, $whitelist, true)) {
@@ -58,7 +59,7 @@ if (empty($tokenForRateLimit)) {
 $rateLimiter = RateLimitPresets::api();
 $rateLimitKey = !empty($tokenForRateLimit)
     ? ('api:token:' . $tokenForRateLimit)
-    : ('api:ip:' . RateLimiter::getClientIp());
+    : ('api:ip:' . $clientIp);
 if (!$rateLimiter->attempt($rateLimitKey)) {
     $rateLimiter->sendTooManyRequestsResponse($rateLimitKey);
 }

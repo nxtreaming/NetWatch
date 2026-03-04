@@ -120,12 +120,10 @@ class RateLimiter {
 
         // 如果没有配置可信任代理，直接返回 REMOTE_ADDR
         if (empty($trustedProxyCidrs)) {
-            // 尝试从环境变量读取可信任代理配置
-            $envCidrs = defined('TRUSTED_PROXY_CIDRS') ? TRUSTED_PROXY_CIDRS : '';
-            if (empty($envCidrs)) {
+            $trustedProxyCidrs = self::getTrustedProxyCidrs();
+            if (empty($trustedProxyCidrs)) {
                 return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : '0.0.0.0';
             }
-            $trustedProxyCidrs = array_filter(array_map('trim', explode(',', $envCidrs)));
         }
 
         // 检查 REMOTE_ADDR 是否在可信任代理列表中
@@ -158,6 +156,61 @@ class RateLimiter {
         }
 
         return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : '0.0.0.0';
+    }
+
+    /**
+     * 从配置中解析可信任代理 CIDR 列表
+     */
+    public static function getTrustedProxyCidrs(): array {
+        if (!defined('TRUSTED_PROXY_CIDRS')) {
+            return [];
+        }
+
+        $rawCidrs = TRUSTED_PROXY_CIDRS;
+        if (is_string($rawCidrs)) {
+            $cidrs = array_filter(array_map('trim', explode(',', $rawCidrs)));
+        } elseif (is_array($rawCidrs)) {
+            $cidrs = array_filter(array_map('trim', $rawCidrs));
+        } else {
+            return [];
+        }
+
+        $safeCidrs = [];
+        foreach ($cidrs as $cidr) {
+            if (!self::isValidCidrOrIp($cidr)) {
+                continue;
+            }
+
+            // 禁止全网信任配置，避免错误配置导致请求头可被滥用
+            if ($cidr === '0.0.0.0/0' || $cidr === '::/0') {
+                continue;
+            }
+
+            $safeCidrs[] = $cidr;
+        }
+
+        return $safeCidrs;
+    }
+
+    /**
+     * 检查是否为合法 IP 或 CIDR
+     */
+    private static function isValidCidrOrIp(string $value): bool {
+        if (strpos($value, '/') === false) {
+            return filter_var($value, FILTER_VALIDATE_IP) !== false;
+        }
+
+        [$network, $prefix] = explode('/', $value, 2);
+        if (filter_var($network, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+            return false;
+        }
+
+        if (!is_numeric($prefix)) {
+            return false;
+        }
+
+        $prefix = (int)$prefix;
+        return $prefix >= 0 && $prefix <= 32;
     }
 
     /**
