@@ -393,6 +393,13 @@ class Database {
         $stmt->execute([$limit, $offset]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * 转义 LIKE 模式中的特殊字符，避免用户输入通过通配符放大查询范围。
+     */
+    private function escapeLikePattern(string $value): string {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
     
     /**
      * 构建搜索条件（公共方法，消除代码重复）
@@ -403,6 +410,11 @@ class Database {
     private function buildSearchConditions(string $searchTerm, string $statusFilter = ''): array {
         $conditions = [];
         $params = [];
+
+        $searchTerm = trim($searchTerm);
+        if (strlen($searchTerm) > 64) {
+            $searchTerm = substr($searchTerm, 0, 64);
+        }
         
         // 处理搜索条件
         if (!empty($searchTerm)) {
@@ -411,12 +423,12 @@ class Database {
                 // 网段搜索
                 $networkPrefix = str_replace(['.x', 'x'], ['', ''], $searchTerm);
                 $networkPrefix = rtrim($networkPrefix, '.');
-                $conditions[] = "ip LIKE ?";
-                $params[] = $networkPrefix . '.%';
+                $conditions[] = "ip LIKE ? ESCAPE '\\\\'";
+                $params[] = $this->escapeLikePattern($networkPrefix) . '.%';
             } else {
                 // 精确IP搜索或部分匹配
-                $conditions[] = "ip LIKE ?";
-                $params[] = '%' . $searchTerm . '%';
+                $conditions[] = "ip LIKE ? ESCAPE '\\\\'";
+                $params[] = '%' . $this->escapeLikePattern($searchTerm) . '%';
             }
         }
         
