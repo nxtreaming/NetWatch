@@ -102,8 +102,9 @@ if (isset($_GET['ajax'])) {
             exit;
         }
         
-        // CSRF Token验证（默认校验，仅对白名单只读操作放行）
-        $csrfExemptActions = [
+        // CSRF Token验证（默认校验，仅放行 GET 只读白名单）
+        $requestMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $csrfExemptReadActions = [
             'sessionCheck',
             'stats',
             'logs',
@@ -114,7 +115,9 @@ if (isset($_GET['ajax'])) {
             'debugStatuses'
         ];
 
-        if (!in_array($action, $csrfExemptActions, true)) {
+        $isCsrfExempt = $requestMethod === 'GET' && in_array($action, $csrfExemptReadActions, true);
+
+        if (!$isCsrfExempt) {
             $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 
             if (!Auth::validateCsrfToken($csrfToken)) {
