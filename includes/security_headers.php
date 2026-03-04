@@ -14,7 +14,7 @@ if (!function_exists('netwatch_send_security_headers')) {
             . "style-src 'self' 'unsafe-inline'; "
             . "img-src 'self' data: https://cloudflareinsights.com; "
             . "font-src 'self' data:; "
-            . "connect-src 'self' https://cloudflareinsights.com https://static.cloudflareinsights.com; "
+            . "connect-src 'self' https://cdn.jsdelivr.net https://cloudflareinsights.com https://static.cloudflareinsights.com; "
             . "object-src 'none'; "
             . "base-uri 'self'; "
             . "frame-ancestors 'none'; "
