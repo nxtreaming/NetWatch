@@ -4,7 +4,10 @@
  */
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../database.php';
+
+Auth::requireLogin();
 
 $db = new Database();
 $today = date('Y-m-d');

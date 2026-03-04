@@ -5,7 +5,10 @@
  */
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../database.php';
+
+Auth::requireLogin();
 
 // 设置时区
 date_default_timezone_set('Asia/Shanghai');

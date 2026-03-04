@@ -262,9 +262,11 @@ class Auth {
      * 要求用户登录（重定向到登录页面）
      */
     public static function requireLogin(): void {
-        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-        if (defined('ENABLE_DEBUG_TOOLS') && ENABLE_DEBUG_TOOLS === false) {
-            if (stripos($scriptName, '/Debug/') !== false || stripos($scriptName, '\\Debug\\') !== false) {
+        if (self::isDebugRequestPath()) {
+            $debugEnabled = defined('ENABLE_DEBUG_TOOLS') && ENABLE_DEBUG_TOOLS === true;
+            $allowInProduction = defined('ALLOW_DEBUG_TOOLS_IN_PRODUCTION') && ALLOW_DEBUG_TOOLS_IN_PRODUCTION === true;
+
+            if (!$debugEnabled || (self::isProductionEnvironment() && !$allowInProduction)) {
                 http_response_code(404);
                 header('Content-Type: text/plain; charset=utf-8');
                 echo 'Not Found';
@@ -303,6 +305,22 @@ class Auth {
             header('Location: ' . $loginPath);
             exit;
         }
+    }
+
+    /**
+     * 是否是 Debug 目录请求
+     */
+    private static function isDebugRequestPath(): bool {
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        return stripos($scriptName, '/Debug/') !== false || stripos($scriptName, '\\Debug\\') !== false;
+    }
+
+    /**
+     * 是否为生产环境（默认按生产环境处理，避免误暴露调试工具）
+     */
+    private static function isProductionEnvironment(): bool {
+        $appEnv = defined('APP_ENV') ? strtolower((string)APP_ENV) : 'production';
+        return !in_array($appEnv, ['local', 'dev', 'development', 'test', 'testing'], true);
     }
     
     /**
