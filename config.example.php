@@ -59,8 +59,7 @@ ExceptionHandler::register();
 
 // 登录配置
 define('LOGIN_USERNAME', 'admin');  // 登录用户名
-define('LOGIN_PASSWORD', 'admin123');  // 登录密码
-// A1 兼容迁移：推荐使用哈希密码（优先级高于 LOGIN_PASSWORD）
+// 明文密码 LOGIN_PASSWORD 已禁用，请使用哈希密码
 // 生成方式示例：php -r "echo password_hash('admin123', PASSWORD_BCRYPT), PHP_EOL;"
 // define('LOGIN_PASSWORD_HASH', '$2y$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
 define('SESSION_TIMEOUT', 3600);  // 会话超时时间（秒），默认1小时

@@ -56,20 +56,13 @@ class Auth {
             return false;
         }
 
-        // A1 兼容迁移：优先使用密码哈希校验
+        // 仅允许密码哈希校验
         if (defined('LOGIN_PASSWORD_HASH') && is_string(LOGIN_PASSWORD_HASH) && LOGIN_PASSWORD_HASH !== '') {
             return password_verify($password, LOGIN_PASSWORD_HASH);
         }
 
-        // 回退到明文密码（过渡期兼容）
-        // [DEPRECATED] 明文密码验证将在未来版本移除，请尽快迁移到密码哈希
-        if (!defined('LOGIN_PASSWORD')) {
-            return false;
-        }
-
-        error_log('[NetWatch][DEPRECATED] 正在使用明文密码登录，请尽快配置 LOGIN_PASSWORD_HASH 以提升安全性');
-
-        return $password === LOGIN_PASSWORD;
+        error_log('[NetWatch][SECURITY] LOGIN_PASSWORD_HASH is required. Plaintext LOGIN_PASSWORD is no longer supported.');
+        return false;
     }
     
     /**
