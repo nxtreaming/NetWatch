@@ -423,11 +423,11 @@ class Database {
                 // 网段搜索
                 $networkPrefix = str_replace(['.x', 'x'], ['', ''], $searchTerm);
                 $networkPrefix = rtrim($networkPrefix, '.');
-                $conditions[] = "ip LIKE ? ESCAPE '\\\\'";
+                $conditions[] = "ip LIKE ? ESCAPE '\\'";
                 $params[] = $this->escapeLikePattern($networkPrefix) . '.%';
             } else {
                 // 精确IP搜索或部分匹配
-                $conditions[] = "ip LIKE ? ESCAPE '\\\\'";
+                $conditions[] = "ip LIKE ? ESCAPE '\\'";
                 $params[] = '%' . $this->escapeLikePattern($searchTerm) . '%';
             }
         }
