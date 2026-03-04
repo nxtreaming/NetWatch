@@ -3,6 +3,8 @@
  * 用户认证管理类
  */
 
+require_once __DIR__ . '/includes/security_headers.php';
+
 class Auth {
     private const MAX_USERNAME_LENGTH = 64;
     private const MAX_PASSWORD_LENGTH = 1024;

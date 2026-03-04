@@ -7,6 +7,7 @@
 require_once 'config.php';
 require_once 'database.php';
 require_once 'includes/RateLimiter.php';
+require_once __DIR__ . '/includes/security_headers.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: ' . (defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : '*'));
