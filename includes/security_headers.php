@@ -10,11 +10,11 @@ if (!function_exists('netwatch_send_security_headers')) {
         }
 
         $csp = "default-src 'self'; "
-            . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
             . "style-src 'self' 'unsafe-inline'; "
-            . "img-src 'self' data:; "
+            . "img-src 'self' data: https://cloudflareinsights.com; "
             . "font-src 'self' data:; "
-            . "connect-src 'self'; "
+            . "connect-src 'self' https://cloudflareinsights.com https://static.cloudflareinsights.com; "
             . "object-src 'none'; "
             . "base-uri 'self'; "
             . "frame-ancestors 'none'; "
