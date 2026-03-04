@@ -20,6 +20,7 @@ $errorDetail = '';
 // 初始化表单字段，默认空字符串，并进行trim处理
 $username = isset($_POST['username']) ? trim($_POST['username']) : '';
 $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+$csrfToken = Auth::getCsrfToken();
 
 // 检查存储空间状态
 $storageStatus = Auth::checkStorageSpace();
@@ -31,13 +32,18 @@ if ($storageStatus['status'] === 'critical') {
 
 // 处理登录表单提交
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $submittedCsrfToken = $_POST['csrf_token'] ?? '';
+    if (!is_string($submittedCsrfToken) || !Auth::validateCsrfToken($submittedCsrfToken)) {
+        $error = '请求已失效，请刷新页面后重试';
+    }
+
     // 对用户名和密码进行trim，避免首尾空格导致的登录失败
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
     
-    if (empty($username) || empty($password)) {
+    if (empty($error) && (empty($username) || empty($password))) {
         $error = '请输入用户名和密码';
-    } else {
+    } elseif (empty($error)) {
         // 如果存储空间严重不足，阻止登录尝试
         if ($storageStatus['status'] === 'critical') {
             $error = '服务器存储空间不足，无法完成登录。请联系系统管理员清理磁盘空间。';
@@ -247,6 +253,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         <?php endif; ?>
         
         <form method="POST" action="">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
             <div class="form-group">
                 <label for="username">用户名</label>
                 <input type="text" id="username" name="username" 
