@@ -575,7 +575,7 @@ class AjaxHandler {
     private function handleSearch() {
         $this->setJsonHeaders();
         try {
-            $searchTerm = mb_substr(trim($_GET['term'] ?? ''), 0, 255);
+            $searchTerm = mb_substr(trim($_GET['term'] ?? ''), 0, 64);
             $statusFilter = $_GET['status'] ?? '';
             $page = max(1, min(10000, intval($_GET['page'] ?? 1)));
             $perPage = defined('PROXIES_PER_PAGE') ? PROXIES_PER_PAGE : 200;

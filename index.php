@@ -144,7 +144,8 @@ if (isset($_GET['ajax'])) {
 // 获取分页参数、搜索参数和状态筛选参数
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 200;
-$searchTerm = $_GET['search'] ?? '';
+$searchTerm = trim((string)($_GET['search'] ?? ''));
+$searchTerm = mb_substr($searchTerm, 0, 64);
 $statusFilter = $_GET['status'] ?? '';
 
 // 获取数据

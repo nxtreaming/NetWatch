@@ -17,6 +17,8 @@ $error = '';
 $success = '';
 $warning = '';
 $errorDetail = '';
+$maxUsernameLength = 64;
+$maxPasswordLength = 1024;
 // 初始化表单字段，默认空字符串，并进行trim处理
 $username = isset($_POST['username']) ? trim($_POST['username']) : '';
 $password = isset($_POST['password']) ? trim($_POST['password']) : '';
@@ -43,6 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($error) && (empty($username) || empty($password))) {
         $error = '请输入用户名和密码';
+    } elseif (empty($error) && strlen($username) > $maxUsernameLength) {
+        $error = '用户名长度不能超过 ' . $maxUsernameLength . ' 个字符';
+    } elseif (empty($error) && strlen($password) > $maxPasswordLength) {
+        $error = '密码长度不能超过 ' . $maxPasswordLength . ' 个字符';
     } elseif (empty($error)) {
         // 如果存储空间严重不足，阻止登录尝试
         if ($storageStatus['status'] === 'critical') {
@@ -258,12 +264,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
                 <label for="username">用户名</label>
                 <input type="text" id="username" name="username" 
                        value="<?php echo htmlspecialchars($username); ?>" 
+                       maxlength="<?php echo $maxUsernameLength; ?>"
                        required autocomplete="username">
             </div>
             
             <div class="form-group">
                 <label for="password">密码</label>
                 <input type="password" id="password" name="password" 
+                       maxlength="<?php echo $maxPasswordLength; ?>"
                        required autocomplete="current-password">
             </div>
             

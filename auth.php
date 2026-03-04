@@ -4,6 +4,8 @@
  */
 
 class Auth {
+    private const MAX_USERNAME_LENGTH = 64;
+    private const MAX_PASSWORD_LENGTH = 1024;
     
     /**
      * 启动会话
@@ -48,6 +50,15 @@ class Auth {
      * 验证用户凭据
      */
     public static function validateCredentials(string $username, string $password): bool {
+        if (
+            strlen($username) === 0 ||
+            strlen($username) > self::MAX_USERNAME_LENGTH ||
+            strlen($password) === 0 ||
+            strlen($password) > self::MAX_PASSWORD_LENGTH
+        ) {
+            return false;
+        }
+
         if (!defined('LOGIN_USERNAME')) {
             return false;
         }
