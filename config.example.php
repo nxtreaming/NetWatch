@@ -11,7 +11,10 @@ define('DB_PATH', __DIR__ . '/data/netwatch.db');
 define('SMTP_HOST', 'smtp.gmail.com');  // 修改为您的SMTP服务器
 define('SMTP_PORT', 587);
 define('SMTP_USERNAME', 'your-email@gmail.com');  // 修改为您的邮箱
-define('SMTP_PASSWORD', 'your-password');  // 修改为您的邮箱密码
+// 推荐：通过环境变量或密码文件提供 SMTP 密码，避免明文写入 config.php
+define('SMTP_PASSWORD_ENV', 'NETWATCH_SMTP_PASSWORD');
+// define('SMTP_PASSWORD_FILE', '/run/secrets/netwatch_smtp_password');
+// 仅兼容旧配置（不推荐）：define('SMTP_PASSWORD', 'your-password');
 define('SMTP_FROM_EMAIL', 'your-email@gmail.com');  // 发件人邮箱
 define('SMTP_FROM_NAME', 'NetWatch Monitor');
 define('SMTP_TO_EMAIL', 'admin@example.com');  // 接收通知的邮箱

@@ -26,12 +26,17 @@ class Mailer implements MailerInterface {
         $mail = new PHPMailer(true);
         
         try {
+            $smtpPassword = $this->resolveSmtpPassword();
+            if ($smtpPassword === '') {
+                throw new Exception('SMTP password is not configured');
+            }
+
             // 服务器设置
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
             $mail->Username = SMTP_USERNAME;
-            $mail->Password = SMTP_PASSWORD;
+            $mail->Password = $smtpPassword;
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = SMTP_PORT;
             $mail->CharSet = 'UTF-8';
@@ -55,6 +60,43 @@ class Mailer implements MailerInterface {
             $this->logger->error("邮件发送失败: " . $mail->ErrorInfo);
             return false;
         }
+    }
+
+    /**
+     * 解析 SMTP 密码（优先级：环境变量 > 密码文件 > 配置常量）
+     */
+    private function resolveSmtpPassword() {
+        if (defined('SMTP_PASSWORD_ENV') && is_string(SMTP_PASSWORD_ENV) && SMTP_PASSWORD_ENV !== '') {
+            $envName = trim(SMTP_PASSWORD_ENV);
+            if ($envName !== '') {
+                $envValue = getenv($envName);
+                if ($envValue === false) {
+                    $envValue = $_ENV[$envName] ?? $_SERVER[$envName] ?? false;
+                }
+                if (is_string($envValue) && $envValue !== '') {
+                    return $envValue;
+                }
+            }
+        }
+
+        if (defined('SMTP_PASSWORD_FILE') && is_string(SMTP_PASSWORD_FILE) && SMTP_PASSWORD_FILE !== '') {
+            $filePath = trim(SMTP_PASSWORD_FILE);
+            if ($filePath !== '' && is_readable($filePath)) {
+                $fileValue = file_get_contents($filePath);
+                if ($fileValue !== false) {
+                    $fileValue = trim($fileValue);
+                    if ($fileValue !== '') {
+                        return $fileValue;
+                    }
+                }
+            }
+        }
+
+        if (defined('SMTP_PASSWORD') && is_string(SMTP_PASSWORD) && SMTP_PASSWORD !== '') {
+            return SMTP_PASSWORD;
+        }
+
+        return '';
     }
     
     /**
