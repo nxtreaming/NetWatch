@@ -6,15 +6,18 @@
 require_once 'config.php';
 require_once 'database.php';
 require_once 'logger.php';
+require_once 'proxy_checker.php';
 
 class NetworkMonitor {
     protected Database $db;
     protected Logger $logger;
+    protected ProxyChecker $proxyChecker;
     
     public function __construct(?Database $db = null, ?Logger $logger = null) {
         $this->db = $db ?? new Database();
         $this->db->initializeSchema();
         $this->logger = $logger ?? new Logger();
+        $this->proxyChecker = new ProxyChecker();
     }
     
     /**
@@ -61,132 +64,64 @@ class NetworkMonitor {
      * @return array 检查结果
      */
     private function executeProxyCheck(array $proxy, int $timeout, int $connectTimeout, string $logPrefix, bool $enableRetry = false, int $retryCount = 0): array {
-        $status = 'offline';
-        $errorMessage = null;
-        $responseTime = 0;
-        $ch = null;
-        
-        try {
-            $ch = curl_init();
-            
-            // 检查curl_init是否成功
-            if ($ch === false) {
-                throw new Exception('curl_init() 失败');
-            }
-            
-            // 基本curl设置
-            curl_setopt_array($ch, [
-                CURLOPT_URL => TEST_URL,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => $timeout,
-                CURLOPT_CONNECTTIMEOUT => $connectTimeout,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_USERAGENT => 'NetWatch Monitor/1.0'
-            ]);
-            
-            // 设置代理
-            if ($proxy['type'] === 'socks5') {
-                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
-            } else {
-                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-            }
-            
-            $proxyUrl = $proxy['ip'] . ':' . $proxy['port'];
-            curl_setopt($ch, CURLOPT_PROXY, $proxyUrl);
-            
-            // 如果有认证信息
-            if (!empty($proxy['username']) && !empty($proxy['password'])) {
-                curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxy['username'] . ':' . $proxy['password']);
-            }
-            
-            $response = curl_exec($ch);
-            
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($ch);
-            $curlErrno = curl_errno($ch);
-            
-            // 获取代理服务器到目标网站的纯网络响应时间
-            // CURLINFO_STARTTRANSFER_TIME: 从请求开始到接收到第一个字节的时间
-            // 这个时间反映的是通过代理到达目标服务器的网络延迟
-            $transferTime = curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME);
-            
-            // 获取连接建立时间（包括通过代理建立连接的时间）
-            $connectTime = curl_getinfo($ch, CURLINFO_CONNECT_TIME);
-            
-            // 代理响应时间 = 数据传输时间 - 连接建立时间
-            // 这样得到的是纯粹的网络响应时间，不包括连接建立的开销
-            $responseTime = max(0, ($transferTime - $connectTime)) * 1000; // 转换为毫秒
-            
-            // 如果计算结果异常，使用传输时间作为备选
-            if ($responseTime <= 0 || $transferTime <= 0) {
-                $responseTime = $transferTime * 1000;
-            }
-            
-            curl_close($ch);
-            $ch = null; // 标记已关闭
-            
-            // cURL error 18: transfer closed with outstanding read data remaining
-            $isPartialFileError = ($curlErrno === 18);
-            if ($response !== false && $httpCode === 200) {
-                $status = 'online';
-                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功，网络响应时间: {$responseTime}ms");
-            } else if ($isPartialFileError && $httpCode === 200) {
-                // 这种情况是代理本身是通的，但与目标网站数据传输不完整，也视为在线
-                $status = 'online';
-                $errorMessage = "Partial transfer: " . $curlError;
-                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功 (但传输不完整): {$curlError}，网络响应时间: {$responseTime}ms");
-            } else {
-                $errorMessage = $curlError ?: "HTTP Code: $httpCode";
-                // 对于失败的请求，如果有传输时间数据则使用，否则设为0
-                if ($transferTime > 0) {
-                    $responseTime = $transferTime * 1000;
-                } else {
-                    $responseTime = 0;
-                }
-                
-                // 如果启用了重试且这是第一次检测失败，进行第二次检测
-                if ($enableRetry && $retryCount === 0) {
-                    $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败，进行第二次检测...");
-                    // 短暂延迟后重试
-                    usleep(defined('PROXY_RETRY_DELAY_US') ? PROXY_RETRY_DELAY_US : 200000); // 0.2秒延迟
-                    return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
-                }
-                
-                $retryInfo = $retryCount > 0 ? "(第二次检测)" : "";
-                $errorMessageForLog = $errorMessage ?? '';
-                $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败{$retryInfo}: {$errorMessageForLog}，尝试时间: {$responseTime}ms");
-            }
-            
-        } catch (Exception $e) {
-            // 确保在异常情况下也关闭curl句柄
-            if ($ch !== null) {
-                curl_close($ch);
-                $ch = null;
-            }
-            $errorMessage = $e->getMessage();
-            $responseTime = 0; // 异常情况下设为0
-            
-            // 如果启用了重试且这是第一次检测异常，进行第二次检测
-            if ($enableRetry && $retryCount === 0) {
-                $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常，进行第二次检测...");
-                usleep(defined('PROXY_RETRY_DELAY_US') ? PROXY_RETRY_DELAY_US : 200000); // 0.2秒延迟
-                return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
-            }
-            
-            $retryInfo = $retryCount > 0 ? "(第二次检测)" : "";
-            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常{$retryInfo}: $errorMessage");
+        $result = $this->proxyChecker->check($proxy, $timeout, $connectTimeout);
+
+        if (($result['status'] ?? 'offline') === 'online') {
+            $this->logSuccessfulCheck($proxy, $logPrefix, $result);
+        } elseif ($enableRetry && $retryCount === 0) {
+            $this->logRetryAttempt($proxy, $logPrefix, (bool) ($result['is_exception'] ?? false));
+            usleep(defined('PROXY_RETRY_DELAY_US') ? PROXY_RETRY_DELAY_US : 200000);
+            return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
+        } else {
+            $this->logFailedCheck($proxy, $logPrefix, $result, $retryCount);
         }
-        
-        // 更新数据库
-        $this->db->updateProxyStatus($proxy['id'], $status, $responseTime, $errorMessage ?? null);
-        
+
+        $this->persistProxyCheckResult($proxy, $result);
+
         return [
-            'status' => $status,
-            'response_time' => $responseTime,
-            'error_message' => $errorMessage ?? null
+            'status' => $result['status'] ?? 'offline',
+            'response_time' => $result['response_time'] ?? 0,
+            'error_message' => $result['error_message'] ?? null
         ];
+    }
+
+    private function persistProxyCheckResult(array $proxy, array $result): void {
+        $this->db->updateProxyStatus(
+            $proxy['id'],
+            $result['status'] ?? 'offline',
+            $result['response_time'] ?? 0,
+            $result['error_message'] ?? null
+        );
+    }
+
+    private function logSuccessfulCheck(array $proxy, string $logPrefix, array $result): void {
+        $responseTime = $result['response_time'] ?? 0;
+        $errorMessage = $result['error_message'] ?? null;
+
+        if (!empty($errorMessage)) {
+            $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功 (但传输不完整): {$errorMessage}，网络响应时间: {$responseTime}ms");
+            return;
+        }
+
+        $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功，网络响应时间: {$responseTime}ms");
+    }
+
+    private function logRetryAttempt(array $proxy, string $logPrefix, bool $isException): void {
+        $reason = $isException ? '异常' : '失败';
+        $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}{$reason}，进行第二次检测...");
+    }
+
+    private function logFailedCheck(array $proxy, string $logPrefix, array $result, int $retryCount): void {
+        $retryInfo = $retryCount > 0 ? "(第二次检测)" : "";
+        $errorMessage = $result['error_message'] ?? '';
+        $responseTime = $result['response_time'] ?? 0;
+
+        if (!empty($result['is_exception'])) {
+            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常{$retryInfo}: {$errorMessage}");
+            return;
+        }
+
+        $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败{$retryInfo}: {$errorMessage}，尝试时间: {$responseTime}ms");
     }
     
     /**
