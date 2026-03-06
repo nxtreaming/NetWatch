@@ -4,6 +4,8 @@
  * 处理所有AJAX请求的逻辑
  */
 
+require_once __DIR__ . '/ParallelCheckController.php';
+
 class AjaxHandler {
     private $monitor;
     private $db;
@@ -399,115 +401,18 @@ class AjaxHandler {
     }
     
     private function handleStartParallelCheck($offlineOnly = false) {
-        $this->setJsonHeaders();
-        try {
-            require_once 'parallel_monitor.php';
-            // 创建会话独立的并行监控器：使用配置常量和会话ID
-            $sessionId = session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
-
-            if (file_exists(__DIR__ . '/AuditLogger.php')) {
-                require_once __DIR__ . '/AuditLogger.php';
-                AuditLogger::log('parallel_check_start', 'proxy', $sessionId, [
-                    'offline_only' => (bool)$offlineOnly
-                ]);
-            }
-            
-            // 如果是离线代理检测，使用更小的批次大小和更少的进程数
-            if ($offlineOnly) {
-                $maxProcesses = 8; // 离线检测使用较少的进程
-                $batchSize = 50;   // 离线检测使用较小的批次
-            } else {
-                $maxProcesses = PARALLEL_MAX_PROCESSES;
-                $batchSize = PARALLEL_BATCH_SIZE;
-            }
-            
-            $parallelMonitor = new ParallelMonitor($maxProcesses, $batchSize, $sessionId, $offlineOnly);
-            
-            // 启动并行检测（异步）
-            $result = $parallelMonitor->startParallelCheck();
-            
-            echo json_encode($result);
-        } catch (Exception $e) {
-            $checkType = $offlineOnly ? '离线代理' : '并行';
-            error_log('[NetWatch][ajax] startParallelCheck: ' . $e->getMessage());
-            echo json_encode([
-                'success' => false,
-                'error' => "启动{$checkType}检测失败，请稍后重试"
-            ]);
-        }
+        $controller = new ParallelCheckController($this->logger);
+        $controller->startParallelCheck((bool)$offlineOnly);
     }
     
     private function handleGetParallelProgress() {
-        $this->setJsonHeaders();
-        try {
-            require_once 'parallel_monitor.php';
-            // 获取会话ID，用于查询对应的检测进度
-            $sessionId = $_GET['session_id'] ?? null;
-            if (!$sessionId) {
-                echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
-                return;
-            }
-            // 严格校验 session_id 格式，防止路径遍历和 IDOR
-            if (!self::isValidParallelSessionId($sessionId)) {
-                echo json_encode(['success' => false, 'error' => '无效的会话ID']);
-                return;
-            }
-            // 校验 session_id 归属：必须以当前 PHP session_id 为前缀
-            if (!self::isOwnedParallelSessionId($sessionId)) {
-                error_log('[NetWatch][ajax] getParallelProgress: session_id ownership mismatch: ' . $sessionId);
-                echo json_encode(['success' => false, 'error' => '无权访问该检测任务']);
-                return;
-            }
-            $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
-            
-            $progress = $parallelMonitor->getParallelProgress();
-            echo json_encode($progress);
-        } catch (Exception $e) {
-            error_log('[NetWatch][ajax] getParallelProgress: ' . $e->getMessage());
-            echo json_encode([
-                'success' => false,
-                'error' => '获取进度失败，请稍后重试'
-            ]);
-        }
+        $controller = new ParallelCheckController($this->logger);
+        $controller->getParallelProgress();
     }
     
     private function handleCancelParallelCheck() {
-        $this->setJsonHeaders();
-        try {
-            require_once 'parallel_monitor.php';
-            // 获取会话ID，用于取消对应的检测任务
-            $sessionId = $_GET['session_id'] ?? null;
-            if (!$sessionId) {
-                echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
-                return;
-            }
-            // 严格校验 session_id 格式，防止路径遍历和 IDOR
-            if (!self::isValidParallelSessionId($sessionId)) {
-                echo json_encode(['success' => false, 'error' => '无效的会话ID']);
-                return;
-            }
-            // 校验 session_id 归属：必须以当前 PHP session_id 为前缀
-            if (!self::isOwnedParallelSessionId($sessionId)) {
-                error_log('[NetWatch][ajax] cancelParallelCheck: session_id ownership mismatch: ' . $sessionId);
-                echo json_encode(['success' => false, 'error' => '无权操作该检测任务']);
-                return;
-            }
-
-            if (file_exists(__DIR__ . '/AuditLogger.php')) {
-                require_once __DIR__ . '/AuditLogger.php';
-                AuditLogger::log('parallel_check_cancel', 'proxy', $sessionId);
-            }
-            $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
-            
-            $result = $parallelMonitor->cancelParallelCheck();
-            echo json_encode($result);
-        } catch (Exception $e) {
-            error_log('[NetWatch][ajax] cancelParallelCheck: ' . $e->getMessage());
-            echo json_encode([
-                'success' => false,
-                'error' => '取消检测失败，请稍后重试'
-            ]);
-        }
+        $controller = new ParallelCheckController($this->logger);
+        $controller->cancelParallelCheck();
     }
     
     private function handleSessionCheck() {
@@ -607,30 +512,6 @@ class AjaxHandler {
                 'error' => '搜索失败，请稍后重试'
             ]);
         }
-    }
-
-    /**
-     * 校验并行任务 session_id 格式（防止路径遍历 / IDOR）
-     * 允许字符：字母、数字、下划线、连字符，长度 20-120
-     */
-    private static function isValidParallelSessionId(string $sessionId): bool {
-        return (bool) preg_match('/^[A-Za-z0-9_-]{20,120}$/', $sessionId);
-    }
-
-    /**
-     * 校验并行任务 session_id 归属当前登录用户
-     * session_id 由 handleStartParallelCheck 生成，格式为：{php_session_id}_{timestamp}_{rand}
-     * 校验前缀就能确保不同用户无法互相访问任务
-     */
-    private static function isOwnedParallelSessionId(string $sessionId): bool {
-        if (session_status() === PHP_SESSION_NONE) {
-            return false;
-        }
-        $phpSessionId = session_id();
-        if (empty($phpSessionId)) {
-            return false;
-        }
-        return strncmp($sessionId, $phpSessionId . '_', strlen($phpSessionId) + 1) === 0;
     }
 
 }
