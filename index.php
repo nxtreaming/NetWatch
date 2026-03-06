@@ -8,6 +8,7 @@ require_once 'auth.php';
 require_once 'database.php';
 require_once 'monitor.php';
 require_once 'includes/JsonResponse.php';
+require_once 'includes/IndexPageController.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
 
@@ -15,6 +16,7 @@ require_once 'includes/ajax_handler.php';
 Auth::requireLogin();
 
 $monitor = new NetworkMonitor();
+$pageController = new IndexPageController($monitor);
 $action = $_GET['action'] ?? 'dashboard';
 
 // 处理登出请求（仅接受 POST + CSRF，防止 CSRF 强制登出）
@@ -33,103 +35,9 @@ if ($action === 'logout') {
     exit;
 }
 
-// 添加更严格的AJAX请求检查，防止移动端浏览器错误处理URL参数
 if (isset($_GET['ajax'])) {
-    $isValidAjax = isValidAjaxRequest();
-    
-    // 如果有ajax参数但不是真正的AJAX请求，记录日志并重定向
-    if (!$isValidAjax) {
-        // 检查是否为移动端
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-        $isMobile = strpos($userAgent, 'Mobile') !== false || 
-                    strpos($userAgent, 'Android') !== false || 
-                    strpos($userAgent, 'iPhone') !== false || 
-                    strpos($userAgent, 'iPad') !== false;
-        
-        // 记录调试信息
-        $debugInfo = [
-            'timestamp' => date('Y-m-d H:i:s'),
-            'user_agent' => $userAgent,
-            'referer' => $_SERVER['HTTP_REFERER'] ?? 'none',
-            'accept' => $_SERVER['HTTP_ACCEPT'] ?? 'none',
-            'x_requested_with' => $_SERVER['HTTP_X_REQUESTED_WITH'] ?? 'none',
-            'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
-            'action' => $action,
-            'is_mobile' => $isMobile
-        ];
-        
-        // 将调试信息写入日志文件（存放在Debug目录）
-        file_put_contents(__DIR__ . '/Debug/debug_ajax_mobile.log', json_encode($debugInfo) . "\n", FILE_APPEND | LOCK_EX);
-        
-        // 重定向到主页，清除ajax参数
-        $redirectUrl = strtok($_SERVER['REQUEST_URI'], '?');
-        $params = $_GET;
-        unset($params['ajax']);
-        if (!empty($params)) {
-            $redirectUrl .= '?' . http_build_query($params);
-        }
-        
-        // 对于移动端，使用更强的重定向方式
-        if ($isMobile) {
-            // 先尝试header重定向
-            header('Location: ' . $redirectUrl, true, 302);
-            header('Cache-Control: no-cache, no-store, must-revalidate');
-            header('Pragma: no-cache');
-            header('Expires: 0');
-        }
-        
-        // 使用JavaScript重定向作为备用方案（防止header重定向失败）
-        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>重定向中...</title>';
-        echo '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
-        echo '<meta http-equiv="refresh" content="0;url=' . htmlspecialchars($redirectUrl) . '">';
-        echo '</head><body>';
-        echo '<script>window.location.replace("' . htmlspecialchars($redirectUrl) . '");</script>';
-        echo '<p>正在重定向到正确页面...</p>';
-        echo '<p><a href="' . htmlspecialchars($redirectUrl) . '">如果没有自动跳转，请点击这里</a></p>';
-        echo '</body></html>';
-        exit;
-    }
-    
-    // 只有真正的AJAX请求才返回JSON
-    if ($isValidAjax) {
-        // 统一检查登录状态（除了sessionCheck操作）
-        if ($action !== 'sessionCheck' && !Auth::isLoggedIn()) {
-            JsonResponse::error('unauthorized', '登录已过期，请重新登录', 401);
-            exit;
-        }
-        
-        // CSRF Token验证（默认校验，仅放行 GET 只读白名单）
-        $requestMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
-        $csrfExemptReadActions = [
-            'sessionCheck',
-            'stats',
-            'logs',
-            'getProxyCount',
-            'getParallelProgress',
-            'getOfflineParallelProgress',
-            'search',
-            'debugStatuses'
-        ];
-
-        $isCsrfExempt = $requestMethod === 'GET' && in_array($action, $csrfExemptReadActions, true);
-
-        if (!$isCsrfExempt) {
-            $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-
-            if (!Auth::validateCsrfToken($csrfToken)) {
-                JsonResponse::error('csrf_validation_failed', 'CSRF验证失败，请刷新页面后重试', 403);
-                exit;
-            }
-        }
-        
-        // 注意：不在这里设置Content-Type header
-        // 让各个handler根据需要自己设置（特别是checkBatch需要特殊的header配置）
-        
-        // 使用AJAX处理器处理请求
-        $ajaxHandler = new AjaxHandler($monitor, $monitor->getDatabase());
-        $ajaxHandler->handleRequest($action);
-        exit;
-    }
+    $pageController->handleAjaxRequest($action);
+    exit;
 }
 
 // 获取分页参数、搜索参数和状态筛选参数
@@ -139,30 +47,12 @@ $searchTerm = trim((string)($_GET['search'] ?? ''));
 $searchTerm = mb_substr($searchTerm, 0, 64);
 $statusFilter = $_GET['status'] ?? '';
 
-// 获取数据
-$stats = $monitor->getStats();
-
-if (!empty($searchTerm) || !empty($statusFilter)) {
-    // 搜索或筛选模式 - 直接使用数据库对象实现筛选
-    $db = new Database();
-    $db->initializeSchema();
-    $proxies = $db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
-    // 过滤敏感信息
-    $proxies = array_map(function($proxy) {
-        unset($proxy['username']);
-        unset($proxy['password']);
-        return $proxy;
-    }, $proxies);
-    $totalProxies = $db->getSearchCount($searchTerm, $statusFilter);
-    $totalPages = ceil($totalProxies / $perPage);
-} else {
-    // 正常分页模式
-    $totalProxies = $monitor->getProxyCount();
-    $totalPages = ceil($totalProxies / $perPage);
-    $proxies = $monitor->getProxiesPaginatedSafe($page, $perPage);
-}
-
-$recentLogs = $monitor->getRecentLogs(20);
+$dashboardData = $pageController->prepareDashboardData($page, $perPage, $searchTerm, $statusFilter);
+$stats = $dashboardData['stats'];
+$proxies = $dashboardData['proxies'];
+$totalProxies = $dashboardData['totalProxies'];
+$totalPages = $dashboardData['totalPages'];
+$recentLogs = $dashboardData['recentLogs'];
 
 ?>
 <!DOCTYPE html>
