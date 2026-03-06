@@ -7,6 +7,7 @@
 require_once 'config.php';
 require_once 'database.php';
 require_once 'includes/RateLimiter.php';
+require_once 'includes/JsonResponse.php';
 require_once __DIR__ . '/includes/security_headers.php';
 
 header('Content-Type: application/json');
@@ -40,8 +41,7 @@ if (defined('API_IP_WHITELIST') && !empty(API_IP_WHITELIST)) {
     $whitelist = array_map('trim', $whitelist);
     if (!in_array($clientIp, $whitelist, true)) {
         error_log('[NetWatch][API] IP not in whitelist: ' . $clientIp);
-        echo json_encode(['success' => false, 'error' => 'Access denied', 'timestamp' => time()]);
-        http_response_code(403);
+        JsonResponse::error('access_denied', 'Access denied', 403);
         exit;
     }
 }
@@ -72,7 +72,7 @@ class ApiResponse {
             'data' => $data,
             'message' => $message,
             'timestamp' => time()
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
     
     public static function error($message, $code = 400) {
@@ -81,7 +81,7 @@ class ApiResponse {
             'success' => false,
             'error' => $message,
             'timestamp' => time()
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 }
 

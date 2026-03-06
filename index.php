@@ -7,6 +7,7 @@ require_once 'config.php';
 require_once 'auth.php';
 require_once 'database.php';
 require_once 'monitor.php';
+require_once 'includes/JsonResponse.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
 
@@ -93,12 +94,7 @@ if (isset($_GET['ajax'])) {
     if ($isValidAjax) {
         // 统一检查登录状态（除了sessionCheck操作）
         if ($action !== 'sessionCheck' && !Auth::isLoggedIn()) {
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'error' => 'unauthorized',
-                'message' => '登录已过期，请重新登录'
-            ]);
+            JsonResponse::error('unauthorized', '登录已过期，请重新登录', 401);
             exit;
         }
         
@@ -121,12 +117,7 @@ if (isset($_GET['ajax'])) {
             $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 
             if (!Auth::validateCsrfToken($csrfToken)) {
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'csrf_validation_failed',
-                    'message' => 'CSRF验证失败，请刷新页面后重试'
-                ]);
+                JsonResponse::error('csrf_validation_failed', 'CSRF验证失败，请刷新页面后重试', 403);
                 exit;
             }
         }

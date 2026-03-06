@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/ParallelCheckController.php';
+require_once __DIR__ . '/JsonResponse.php';
 
 class AjaxHandler {
     private $monitor;
@@ -113,7 +114,7 @@ class AjaxHandler {
                 break;
                 
             default:
-                echo json_encode(['error' => '未知操作']);
+                JsonResponse::error('unknown_action', '未知操作', 400);
         }
     }
     
@@ -131,10 +132,10 @@ class AjaxHandler {
                 $result = $this->monitor->checkProxy($proxy);
                 echo json_encode($result);
             } else {
-                echo json_encode(['error' => '代理不存在']);
+                JsonResponse::error('proxy_not_found', '代理不存在', 404);
             }
         } else {
-            echo json_encode(['error' => '缺少代理ID']);
+            JsonResponse::error('missing_proxy_id', '缺少代理ID', 400);
         }
     }
     
@@ -419,12 +420,22 @@ class AjaxHandler {
         $this->setJsonHeaders();
         try {
             if (!Auth::isLoggedIn()) {
-                echo json_encode(['valid' => false]);
+                JsonResponse::send([
+                    'valid' => false,
+                    'timestamp' => time()
+                ]);
             } else {
-                echo json_encode(['valid' => true]);
+                JsonResponse::send([
+                    'valid' => true,
+                    'timestamp' => time()
+                ]);
             }
         } catch (Exception $e) {
-            echo json_encode(['valid' => false, 'error' => $e->getMessage()]);
+            JsonResponse::send([
+                'valid' => false,
+                'error' => $e->getMessage(),
+                'timestamp' => time()
+            ], 500);
         }
     }
     
