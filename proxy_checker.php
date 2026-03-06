@@ -1,5 +1,7 @@
 <?php
 
+require_once 'config.php';
+
 class ProxyChecker {
     public function check(array $proxy, int $timeout, int $connectTimeout): array {
         $status = 'offline';

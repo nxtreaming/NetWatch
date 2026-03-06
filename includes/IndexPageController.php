@@ -58,15 +58,8 @@ class IndexPageController {
         $stats = $this->monitor->getStats();
 
         if ($searchTerm !== '' || $statusFilter !== '') {
-            $db = new Database();
-            $db->initializeSchema();
-            $proxies = $db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
-            $proxies = array_map(function($proxy) {
-                unset($proxy['username']);
-                unset($proxy['password']);
-                return $proxy;
-            }, $proxies);
-            $totalProxies = $db->getSearchCount($searchTerm, $statusFilter);
+            $proxies = $this->monitor->searchProxiesSafe($searchTerm, $page, $perPage, $statusFilter);
+            $totalProxies = $this->monitor->getSearchCount($searchTerm, $statusFilter);
         } else {
             $totalProxies = $this->monitor->getProxyCount();
             $proxies = $this->monitor->getProxiesPaginatedSafe($page, $perPage);
