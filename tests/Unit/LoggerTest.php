@@ -10,7 +10,7 @@ class LoggerTest {
     private int $failed = 0;
     private array $errors = [];
     
-    public function run(): void {
+    public function run(): bool {
         echo "=== Logger 单元测试 ===\n\n";
         
         $this->testLoggerCreation();
@@ -19,6 +19,8 @@ class LoggerTest {
         $this->testJsonFormat();
         
         $this->printResults();
+
+        return $this->failed === 0;
     }
     
     private function testLoggerCreation(): void {
@@ -112,5 +114,5 @@ class LoggerTest {
 // 运行测试
 if (php_sapi_name() === 'cli') {
     $test = new LoggerTest();
-    $test->run();
+    exit($test->run() ? 0 : 1);
 }

@@ -11,7 +11,7 @@ class ValidatorTest {
     private int $failed = 0;
     private array $errors = [];
     
-    public function run(): void {
+    public function run(): bool {
         echo "=== Validator 单元测试 ===\n\n";
         
         $this->testValidateIp();
@@ -24,6 +24,8 @@ class ValidatorTest {
         $this->testSanitizeString();
         
         $this->printResults();
+
+        return $this->failed === 0;
     }
     
     private function testValidateIp(): void {
@@ -168,5 +170,5 @@ class ValidatorTest {
 // 运行测试
 if (php_sapi_name() === 'cli') {
     $test = new ValidatorTest();
-    $test->run();
+    exit($test->run() ? 0 : 1);
 }
