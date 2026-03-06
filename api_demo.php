@@ -8,6 +8,7 @@ require_once 'includes/functions.php';
 Auth::requireLogin();
 
 $db = new Database();
+$db->initializeSchema();
 $tokens = $db->getAllTokens();
 
 $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');

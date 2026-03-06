@@ -11,6 +11,7 @@ if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
 Auth::requireLogin();
 
 $db = new Database();
+$db->initializeSchema();
 
 // 处理AJAX请求
 if (isset($_GET['ajax'])) {

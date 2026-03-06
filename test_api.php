@@ -13,6 +13,7 @@ Auth::requireLogin();
 echo "=== NetWatch API 功能测试 ===\n\n";
 
 $db = new Database();
+$db->initializeSchema();
 
 // 1. 测试数据库表是否创建成功
 echo "1. 检查数据库表结构...\n";

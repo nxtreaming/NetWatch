@@ -65,6 +65,7 @@ require_once PROJECT_ROOT . '/monitor.php';
 function createTestDatabase(): Database {
     // 使用反射创建带内存数据库的实例
     $db = new Database();
+    $db->initializeSchema();
     return $db;
 }
 

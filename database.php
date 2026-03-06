@@ -11,11 +11,15 @@ class Database {
     
     public function __construct() {
         $this->connect();
-        // 只在首次实例化时创建表，避免重复检查
-        if (!self::$tablesCreated) {
-            $this->createTables();
-            self::$tablesCreated = true;
+    }
+
+    public function initializeSchema(): void {
+        if (self::$tablesCreated) {
+            return;
         }
+
+        $this->createTables();
+        self::$tablesCreated = true;
     }
     
     private function connect() {

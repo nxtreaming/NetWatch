@@ -154,6 +154,7 @@ $stats = $monitor->getStats();
 if (!empty($searchTerm) || !empty($statusFilter)) {
     // 搜索或筛选模式 - 直接使用数据库对象实现筛选
     $db = new Database();
+    $db->initializeSchema();
     $proxies = $db->searchProxies($searchTerm, $page, $perPage, $statusFilter);
     // 过滤敏感信息
     $proxies = array_map(function($proxy) {

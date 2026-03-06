@@ -18,6 +18,7 @@ class AjaxHandler {
             $this->db = $monitor->getDatabase();
         } else {
             $this->db = new Database();
+            $this->db->initializeSchema();
         }
 
         if (is_object($monitor) && method_exists($monitor, 'getLogger')) {

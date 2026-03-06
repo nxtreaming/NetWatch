@@ -13,6 +13,7 @@ class NetworkMonitor {
     
     public function __construct(?Database $db = null, ?Logger $logger = null) {
         $this->db = $db ?? new Database();
+        $this->db->initializeSchema();
         $this->logger = $logger ?? new Logger();
     }
     

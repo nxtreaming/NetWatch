@@ -48,6 +48,7 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
     } else {
         try {
             $db = new Database();
+            $db->initializeSchema();
             $db->clearAllData();
             $clearExecuted = true;
             $success = "已成功删除 $totalProxies 个代理及相关数据";

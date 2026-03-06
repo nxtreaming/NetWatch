@@ -37,9 +37,11 @@ try {
     // 更新主状态为运行中
     $mainStatusFile = $tempDir . '/main_status.json';
     if (file_exists($mainStatusFile)) {
-        $mainStatus = json_decode(file_get_contents($mainStatusFile), true);
-        $mainStatus['status'] = 'running';
-        file_put_contents($mainStatusFile, json_encode($mainStatus));
+        $mainStatus = readJsonFile($mainStatusFile);
+        if (is_array($mainStatus)) {
+            $mainStatus['status'] = 'running';
+            writeJsonFile($mainStatusFile, $mainStatus);
+        }
     }
     
     // 计算批次数
@@ -75,7 +77,7 @@ try {
             'end_time' => null,
             'error' => null
         ];
-        file_put_contents($statusFile, json_encode($batchStatus));
+        writeJsonFile($statusFile, $batchStatus);
         
         // 如果达到最大进程数，等待一些进程完成
         if (count($processes) >= $maxProcesses) {
@@ -99,10 +101,12 @@ try {
     
     // 更新主状态为完成
     if (file_exists($mainStatusFile)) {
-        $mainStatus = json_decode(file_get_contents($mainStatusFile), true);
-        $mainStatus['status'] = 'completed';
-        $mainStatus['end_time'] = time();
-        file_put_contents($mainStatusFile, json_encode($mainStatus));
+        $mainStatus = readJsonFile($mainStatusFile);
+        if (is_array($mainStatus)) {
+            $mainStatus['status'] = isCancelled($tempDir) ? 'cancelled' : 'completed';
+            $mainStatus['end_time'] = time();
+            writeJsonFile($mainStatusFile, $mainStatus);
+        }
     }
     
     $logger->info("批次管理器完成");
@@ -112,14 +116,70 @@ try {
     
     // 更新主状态为错误
     if (file_exists($mainStatusFile)) {
-        $mainStatus = json_decode(file_get_contents($mainStatusFile), true);
-        $mainStatus['status'] = 'error';
-        $mainStatus['error'] = $e->getMessage();
-        $mainStatus['end_time'] = time();
-        file_put_contents($mainStatusFile, json_encode($mainStatus));
+        $mainStatus = readJsonFile($mainStatusFile);
+        if (is_array($mainStatus)) {
+            $mainStatus['status'] = 'error';
+            $mainStatus['error'] = $e->getMessage();
+            $mainStatus['end_time'] = time();
+            writeJsonFile($mainStatusFile, $mainStatus);
+        }
     }
     
     exit(1);
+}
+
+/**
+ * 读取 JSON 文件
+ * @param string $filePath 文件路径
+ * @return array|null 解析后的数组
+ */
+function readJsonFile(string $filePath): ?array {
+    if (!file_exists($filePath)) {
+        return null;
+    }
+
+    $content = file_get_contents($filePath);
+    if ($content === false) {
+        return null;
+    }
+
+    $decoded = json_decode($content, true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+/**
+ * 原子写入 JSON 文件
+ * @param string $filePath 文件路径
+ * @param array $payload 写入内容
+ * @return bool 是否成功
+ */
+function writeJsonFile(string $filePath, array $payload): bool {
+    $tempFile = $filePath . '.tmp';
+    $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
+    if ($encoded === false) {
+        return false;
+    }
+
+    $written = file_put_contents($tempFile, $encoded, LOCK_EX);
+    if ($written === false) {
+        return false;
+    }
+
+    return rename($tempFile, $filePath);
+}
+
+/**
+ * 判断批次是否已结束
+ * @param string $statusFile 状态文件路径
+ * @return bool 是否已结束
+ */
+function isBatchFinished(string $statusFile): bool {
+    $status = readJsonFile($statusFile);
+    if (!is_array($status)) {
+        return false;
+    }
+
+    return in_array($status['status'] ?? '', ['completed', 'cancelled', 'error'], true);
 }
 
 /**
@@ -129,7 +189,7 @@ try {
  * @param int $limit 数量限制
  * @param string $statusFile 状态文件路径
  * @param bool $offlineOnly 是否只检测离线代理
- * @return resource|false 进程句柄
+ * @return string|false 状态文件路径
  */
 function startBatchProcess(string $batchId, int $offset, int $limit, string $statusFile, bool $offlineOnly = false) {
     $scriptPath = __DIR__ . '/parallel_worker.php';
@@ -152,7 +212,12 @@ function startBatchProcess(string $batchId, int $offset, int $limit, string $sta
     }
 
     $process = popen($command, 'r');
-    return $process;
+    if (is_resource($process)) {
+        pclose($process);
+        return $statusFile;
+    }
+
+    return false;
 }
 
 /**
@@ -163,13 +228,20 @@ function startBatchProcess(string $batchId, int $offset, int $limit, string $sta
  */
 function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger): void {
     while (count($processes) > $maxRemaining) {
-        foreach ($processes as $batchId => $process) {
-            // 检查进程是否完成
-            $status = pclose($process);
-            unset($processes[$batchId]);
-            $logger->info("批次 {$batchId} 完成");
-            break; // 只等待一个进程完成
+        $completedBatchId = null;
+
+        foreach ($processes as $batchId => $statusFile) {
+            if (isBatchFinished($statusFile)) {
+                $completedBatchId = $batchId;
+                break;
+            }
         }
+
+        if ($completedBatchId !== null) {
+            unset($processes[$completedBatchId]);
+            $logger->info("批次 {$completedBatchId} 完成");
+        }
+
         usleep(defined('PARALLEL_BATCH_POLL_US') ? PARALLEL_BATCH_POLL_US : 500000); // 0.5秒检查间隔
     }
 }
@@ -180,9 +252,17 @@ function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger):
  * @param Logger $logger 日志对象
  */
 function waitForAllProcesses(array $processes, Logger $logger): void {
-    foreach ($processes as $batchId => $process) {
-        pclose($process);
-        $logger->info("批次 {$batchId} 完成");
+    while (!empty($processes)) {
+        foreach ($processes as $batchId => $statusFile) {
+            if (isBatchFinished($statusFile)) {
+                unset($processes[$batchId]);
+                $logger->info("批次 {$batchId} 完成");
+            }
+        }
+
+        if (!empty($processes)) {
+            usleep(defined('PARALLEL_BATCH_POLL_US') ? PARALLEL_BATCH_POLL_US : 500000);
+        }
     }
 }
 

@@ -13,15 +13,10 @@
         "php": ">=8.0",
         "phpmailer/phpmailer": "^6.8"
     },
-    "autoload": {
-        "psr-4": {
-            "NetWatch\\": "src/"
-        }
-    },
     "scripts": {
         "start": "php scheduler.php",
         "import": "php -f import.php",
-        "test": "php -f test.php"
+        "test": "php -f tests/run_tests.php"
     },
     "config": {
         "optimize-autoloader": true,

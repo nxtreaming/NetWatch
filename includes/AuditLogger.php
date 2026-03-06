@@ -57,6 +57,7 @@ class AuditLogger {
             }
 
             $db = new Database();
+            $db->initializeSchema();
             $db->addAuditLog($username, $action, $targetType, $targetId, $details, $ip, $ua);
         } catch (Throwable $e) {
         }

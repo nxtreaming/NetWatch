@@ -110,7 +110,7 @@ class ParallelMonitor {
             'status' => 'starting',
             'session_id' => $this->sessionId
         ];
-        file_put_contents($tempDir . '/main_status.json', json_encode($mainStatus), LOCK_EX);
+        $this->writeJsonFile($tempDir . '/main_status.json', $mainStatus);
         
         // 异步启动批次处理
         $launched = $this->startBatchesAsync($totalProxies, $tempDir);
@@ -167,6 +167,11 @@ class ParallelMonitor {
             $this->logger->error("无法启动批次管理器进程");
             return false;
         }
+
+        if (is_resource($process)) {
+            pclose($process);
+        }
+
         // 不等待进程完成，异步运行
         return true;
     }
@@ -265,8 +270,9 @@ class ParallelMonitor {
         
         $process = popen($command, 'r');
         if ($process) {
+            pclose($process);
             $this->logger->info("启动批次 {$batchId}，偏移: {$offset}，数量: {$limit} (会话: {$this->sessionId})");
-            return $process;
+            return $statusFile;
         } else {
             $this->logger->error("启动批次 {$batchId} 失败 (会话: {$this->sessionId})");
             return false;
@@ -278,10 +284,17 @@ class ParallelMonitor {
      */
     private function waitForProcesses(&$processes, $maxRemaining) {
         while (count($processes) > $maxRemaining) {
-            foreach ($processes as $key => $process) {
-                $status = pclose($process);
-                unset($processes[$key]);
-                break;
+            $completedKey = null;
+
+            foreach ($processes as $key => $statusFile) {
+                if ($this->isBatchFinished($statusFile)) {
+                    $completedKey = $key;
+                    break;
+                }
+            }
+
+            if ($completedKey !== null) {
+                unset($processes[$completedKey]);
             }
             usleep(defined('PARALLEL_CANCEL_POLL_US') ? PARALLEL_CANCEL_POLL_US : 100000); // 100ms
         }
@@ -291,9 +304,29 @@ class ParallelMonitor {
      * 等待所有进程完成
      */
     private function waitForAllProcesses($processes) {
-        foreach ($processes as $process) {
-            pclose($process);
+        while (!empty($processes)) {
+            foreach ($processes as $key => $statusFile) {
+                if ($this->isBatchFinished($statusFile)) {
+                    unset($processes[$key]);
+                }
+            }
+
+            if (!empty($processes)) {
+                usleep(defined('PARALLEL_BATCH_POLL_US') ? PARALLEL_BATCH_POLL_US : 500000);
+            }
         }
+    }
+
+    /**
+     * 判断批次是否已结束
+     */
+    private function isBatchFinished(string $statusFile): bool {
+        $status = $this->readJsonFile($statusFile);
+        if (!is_array($status)) {
+            return false;
+        }
+
+        return in_array($status['status'] ?? '', ['completed', 'cancelled', 'error'], true);
     }
     
     /**
@@ -310,7 +343,7 @@ class ParallelMonitor {
             $statusFile = $tempDir . '/' . $batchId . '.json';
             
             if (file_exists($statusFile)) {
-                $batchStatus = json_decode(file_get_contents($statusFile), true);
+                $batchStatus = $this->readJsonFile($statusFile);
                 if ($batchStatus) {
                     $totalChecked += $batchStatus['checked'];
                     $totalOnline += $batchStatus['online'];
@@ -352,7 +385,7 @@ class ParallelMonitor {
         $totalProxies = 0; // 总代理数量
         
         foreach ($statusFiles as $statusFile) {
-            $batchStatus = json_decode(file_get_contents($statusFile), true);
+            $batchStatus = $this->readJsonFile($statusFile);
             
             if ($batchStatus) {
                 $totalChecked += $batchStatus['checked'] ?? 0;
@@ -412,7 +445,7 @@ class ParallelMonitor {
         
         // 创建取消标志文件
         $cancelFile = $tempDir . '/cancel.flag';
-        file_put_contents($cancelFile, time());
+        file_put_contents($cancelFile, time(), LOCK_EX);
         
         $this->logger->info("并行检测已被取消 (会话: {$this->sessionId})");
         
@@ -445,10 +478,45 @@ class ParallelMonitor {
     private function scheduleCleanup(string $tempDir): void {
         // 写入清理标记文件，包含预定清理时间（当前时间 + 30秒）
         $cleanupFile = $tempDir . '/cleanup_scheduled.json';
-        file_put_contents($cleanupFile, json_encode([
+        $this->writeJsonFile($cleanupFile, [
             'scheduled_at' => time(),
             'cleanup_after' => time() + 30
-        ]), LOCK_EX);
+        ]);
+    }
+
+    /**
+     * 读取 JSON 文件
+     */
+    private function readJsonFile(string $filePath): ?array {
+        if (!file_exists($filePath)) {
+            return null;
+        }
+
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            return null;
+        }
+
+        $decoded = json_decode($content, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * 原子写入 JSON 文件
+     */
+    private function writeJsonFile(string $filePath, array $payload): bool {
+        $tempFile = $filePath . '.tmp';
+        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        if ($encoded === false) {
+            return false;
+        }
+
+        $written = file_put_contents($tempFile, $encoded, LOCK_EX);
+        if ($written === false) {
+            return false;
+        }
+
+        return rename($tempFile, $filePath);
     }
     
     /**
