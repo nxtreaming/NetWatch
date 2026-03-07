@@ -21,6 +21,22 @@ function netwatch_request_expects_json_response(): bool {
     return $isXmlHttpRequest || netwatch_is_ajax_mode_request() || ($acceptsJson && !$acceptsHtml);
 }
 
+function netwatch_is_csrf_exempt_ajax_action(string $action, ?string $requestMethod = null): bool {
+    $method = strtoupper($requestMethod ?? ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    $csrfExemptReadActions = [
+        'sessionCheck',
+        'stats',
+        'logs',
+        'getProxyCount',
+        'getParallelProgress',
+        'getOfflineParallelProgress',
+        'search',
+        'debugStatuses'
+    ];
+
+    return $method === 'GET' && in_array($action, $csrfExemptReadActions, true);
+}
+
 /**
  * 验证是否为真正的AJAX请求
  * 防止移动端浏览器错误地将页面请求误认为AJAX请求

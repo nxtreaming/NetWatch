@@ -28,21 +28,7 @@ class IndexPageController {
             return;
         }
 
-        $requestMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
-        $csrfExemptReadActions = [
-            'sessionCheck',
-            'stats',
-            'logs',
-            'getProxyCount',
-            'getParallelProgress',
-            'getOfflineParallelProgress',
-            'search',
-            'debugStatuses'
-        ];
-
-        $isCsrfExempt = $requestMethod === 'GET' && in_array($action, $csrfExemptReadActions, true);
-
-        if (!$isCsrfExempt) {
+        if (!netwatch_is_csrf_exempt_ajax_action($action)) {
             $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
             if (!Auth::validateCsrfToken($csrfToken)) {
                 JsonResponse::error('csrf_validation_failed', 'CSRF验证失败，请刷新页面后重试', 403);
@@ -81,15 +67,23 @@ class IndexPageController {
             strpos($userAgent, 'iPhone') !== false ||
             strpos($userAgent, 'iPad') !== false;
 
-        $this->logger->warning('检测到无效 AJAX 请求，已降级为重定向', [
+        $expectsJson = netwatch_request_expects_json_response();
+
+        $this->logger->warning('invalid_ajax_request_detected', [
             'user_agent' => $userAgent,
             'referer' => $_SERVER['HTTP_REFERER'] ?? 'none',
             'accept' => $_SERVER['HTTP_ACCEPT'] ?? 'none',
             'x_requested_with' => $_SERVER['HTTP_X_REQUESTED_WITH'] ?? 'none',
             'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
             'action' => $action,
-            'is_mobile' => $isMobile
+            'is_mobile' => $isMobile,
+            'expects_json' => $expectsJson,
         ]);
+
+        if ($expectsJson) {
+            JsonResponse::error('invalid_ajax_request', '无效的 AJAX 请求', 400);
+            return;
+        }
 
         $redirectUrl = strtok($_SERVER['REQUEST_URI'], '?');
         $params = $_GET;
