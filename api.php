@@ -6,12 +6,13 @@
 
 require_once 'config.php';
 require_once 'database.php';
+require_once 'includes/Config.php';
 require_once 'includes/RateLimiter.php';
 require_once 'includes/JsonResponse.php';
 require_once __DIR__ . '/includes/security_headers.php';
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: ' . (defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : '*'));
+header('Access-Control-Allow-Origin: ' . (string) config('api.allow_origin', '*'));
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
@@ -22,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // S-8: HTTPS强制检查（生产环境建议启用）
-if (defined('API_REQUIRE_HTTPS') && API_REQUIRE_HTTPS === true) {
+if ((bool) config('api.require_https', false) === true) {
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
               (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) ||
               (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
@@ -36,8 +37,9 @@ if (defined('API_REQUIRE_HTTPS') && API_REQUIRE_HTTPS === true) {
 $clientIp = RateLimiter::getClientIp();
 
 // S-8: IP白名单检查（可选）
-if (defined('API_IP_WHITELIST') && !empty(API_IP_WHITELIST)) {
-    $whitelist = is_array(API_IP_WHITELIST) ? API_IP_WHITELIST : explode(',', API_IP_WHITELIST);
+if (!empty(config('api.ip_whitelist', ''))) {
+    $whitelistConfig = config('api.ip_whitelist', '');
+    $whitelist = is_array($whitelistConfig) ? $whitelistConfig : explode(',', (string) $whitelistConfig);
     $whitelist = array_map('trim', $whitelist);
     if (!in_array($clientIp, $whitelist, true)) {
         error_log('[NetWatch][API] IP not in whitelist: ' . $clientIp);

@@ -5,6 +5,7 @@
 
 require_once 'config.php';
 require_once 'database.php';
+require_once 'includes/Config.php';
 require_once 'logger.php';
 require_once 'proxy_checker.php';
 
@@ -70,7 +71,7 @@ class NetworkMonitor {
             $this->logSuccessfulCheck($proxy, $logPrefix, $result);
         } elseif ($enableRetry && $retryCount === 0) {
             $this->logRetryAttempt($proxy, $logPrefix, (bool) ($result['is_exception'] ?? false));
-            usleep(defined('PROXY_RETRY_DELAY_US') ? PROXY_RETRY_DELAY_US : 200000);
+            usleep((int) config('monitoring.retry_delay_us', 200000));
             return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
         } else {
             $this->logFailedCheck($proxy, $logPrefix, $result, $retryCount);
@@ -140,7 +141,7 @@ class NetworkMonitor {
             $results[] = array_merge($filteredProxy, $result);
             
             // 避免过于频繁的请求
-            usleep(defined('PROXY_REQUEST_THROTTLE_US') ? PROXY_REQUEST_THROTTLE_US : 10000); // 0.01秒延迟
+            usleep((int) config('monitoring.request_throttle_us', 10000)); // 0.01秒延迟
         }
         
         $this->logger->info("代理检查完成");
@@ -355,7 +356,7 @@ class NetworkMonitor {
             $results[] = array_merge($filteredProxy, $result);
             
             // 减少延迟时间，提高批量检查速度
-            usleep(defined('PROXY_REQUEST_THROTTLE_US') ? PROXY_REQUEST_THROTTLE_US : 10000); // 0.01秒延迟，更快的批量检查
+            usleep((int) config('monitoring.request_throttle_us', 10000)); // 0.01秒延迟，更快的批量检查
         }
         
         $this->logger->info("分批检查完成: 检查了 " . count($results) . " 个代理");

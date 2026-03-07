@@ -7,6 +7,7 @@
 
 require_once 'config.php';
 require_once 'database.php';
+require_once 'includes/Config.php';
 require_once 'monitor.php';
 require_once 'logger.php';
 
@@ -296,7 +297,7 @@ class ParallelMonitor {
             if ($completedKey !== null) {
                 unset($processes[$completedKey]);
             }
-            usleep(defined('PARALLEL_CANCEL_POLL_US') ? PARALLEL_CANCEL_POLL_US : 100000); // 100ms
+            usleep((int) config('monitoring.parallel_cancel_poll_us', 100000)); // 100ms
         }
     }
     
@@ -312,7 +313,7 @@ class ParallelMonitor {
             }
 
             if (!empty($processes)) {
-                usleep(defined('PARALLEL_BATCH_POLL_US') ? PARALLEL_BATCH_POLL_US : 500000);
+                usleep((int) config('monitoring.parallel_batch_poll_us', 500000));
             }
         }
     }

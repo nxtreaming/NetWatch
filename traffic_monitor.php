@@ -7,6 +7,7 @@
 require_once 'config.php';
 require_once 'database.php';
 require_once 'logger.php';
+require_once 'includes/Config.php';
 
 class TrafficMonitor {
     private Database $db;
@@ -22,12 +23,11 @@ class TrafficMonitor {
         $this->db->initializeSchema();
         $this->logger = $logger ?? new Logger();
         
-        // 从配置文件获取API配置
-        $this->apiUrl = defined('TRAFFIC_API_URL') ? TRAFFIC_API_URL : '';
-        $this->proxyHost = defined('TRAFFIC_API_PROXY_HOST') ? TRAFFIC_API_PROXY_HOST : '';
-        $this->proxyUsername = defined('TRAFFIC_API_PROXY_USERNAME') ? TRAFFIC_API_PROXY_USERNAME : '';
-        $this->proxyPassword = defined('TRAFFIC_API_PROXY_PASSWORD') ? TRAFFIC_API_PROXY_PASSWORD : '';
-        $this->proxyPort = defined('TRAFFIC_API_PROXY_PORT') ? TRAFFIC_API_PROXY_PORT : 8080;
+        $this->apiUrl = (string) config('traffic.api_url', '');
+        $this->proxyHost = (string) config('traffic.proxy_host', '');
+        $this->proxyUsername = (string) config('traffic.proxy_username', '');
+        $this->proxyPassword = (string) config('traffic.proxy_password', '');
+        $this->proxyPort = (int) config('traffic.proxy_port', 8080);
     }
     
     /**
@@ -40,8 +40,8 @@ class TrafficMonitor {
             return false;
         }
         
-        $maxRetries = defined('MAX_RETRIES') ? (int)MAX_RETRIES : 3;
-        $retryDelayUs = defined('PROXY_RETRY_DELAY_US') ? (int)PROXY_RETRY_DELAY_US : 200000;
+        $maxRetries = (int) config('monitoring.max_retries', 3);
+        $retryDelayUs = (int) config('monitoring.retry_delay_us', 200000);
         $lastError = '';
         
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {

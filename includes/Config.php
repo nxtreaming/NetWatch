@@ -41,6 +41,11 @@ class Config {
                 'timeout' => defined('TIMEOUT') ? TIMEOUT : 10,
                 'batch_size' => defined('BATCH_SIZE') ? BATCH_SIZE : 200,
                 'test_url' => defined('TEST_URL') ? TEST_URL : 'http://httpbin.org/ip',
+                'max_retries' => defined('MAX_RETRIES') ? (int) MAX_RETRIES : 3,
+                'retry_delay_us' => defined('PROXY_RETRY_DELAY_US') ? (int) PROXY_RETRY_DELAY_US : 200000,
+                'request_throttle_us' => defined('PROXY_REQUEST_THROTTLE_US') ? (int) PROXY_REQUEST_THROTTLE_US : 10000,
+                'parallel_batch_poll_us' => defined('PARALLEL_BATCH_POLL_US') ? (int) PARALLEL_BATCH_POLL_US : 500000,
+                'parallel_cancel_poll_us' => defined('PARALLEL_CANCEL_POLL_US') ? (int) PARALLEL_CANCEL_POLL_US : 100000,
                 'parallel_batch_size' => 50,
                 'max_workers' => 8,
             ],
@@ -70,11 +75,19 @@ class Config {
             'traffic' => [
                 'api_url' => defined('TRAFFIC_API_URL') ? TRAFFIC_API_URL : '',
                 'proxy_host' => defined('TRAFFIC_API_PROXY_HOST') ? TRAFFIC_API_PROXY_HOST : '',
-                'proxy_port' => defined('TRAFFIC_API_PROXY_PORT') ? TRAFFIC_API_PROXY_PORT : 0,
+                'proxy_port' => defined('TRAFFIC_API_PROXY_PORT') ? TRAFFIC_API_PROXY_PORT : 8080,
                 'proxy_username' => defined('TRAFFIC_API_PROXY_USERNAME') ? TRAFFIC_API_PROXY_USERNAME : '',
                 'proxy_password' => defined('TRAFFIC_API_PROXY_PASSWORD') ? TRAFFIC_API_PROXY_PASSWORD : '',
                 'update_interval' => defined('TRAFFIC_UPDATE_INTERVAL') ? TRAFFIC_UPDATE_INTERVAL : 300,
                 'total_limit_gb' => defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0,
+            ],
+            'scheduler' => [
+                'loop_sleep_sec' => defined('SCHEDULER_LOOP_SLEEP_SEC') ? (int) SCHEDULER_LOOP_SLEEP_SEC : 60,
+            ],
+            'api' => [
+                'allow_origin' => defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : '*',
+                'require_https' => defined('API_REQUIRE_HTTPS') ? API_REQUIRE_HTTPS : false,
+                'ip_whitelist' => defined('API_IP_WHITELIST') ? API_IP_WHITELIST : '',
             ],
         ];
     }

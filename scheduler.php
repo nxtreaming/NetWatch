@@ -4,6 +4,7 @@
  */
 
 require_once 'config.php';
+require_once 'includes/Config.php';
 require_once 'monitor.php';
 
 // 选择邮件发送方式
@@ -127,7 +128,7 @@ class Scheduler {
             }
             
             // 休眠60秒
-            sleep(defined('SCHEDULER_LOOP_SLEEP_SEC') ? SCHEDULER_LOOP_SLEEP_SEC : 60);
+            sleep((int) config('scheduler.loop_sleep_sec', 60));
         }
     }
 }

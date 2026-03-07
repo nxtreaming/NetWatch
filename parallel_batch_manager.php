@@ -14,6 +14,7 @@ set_time_limit(0); // 无限制
 
 require_once 'config.php';
 require_once 'database.php';
+require_once 'includes/Config.php';
 require_once 'logger.php';
 
 // 检查命令行参数
@@ -242,7 +243,7 @@ function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger):
             $logger->info("批次 {$completedBatchId} 完成");
         }
 
-        usleep(defined('PARALLEL_BATCH_POLL_US') ? PARALLEL_BATCH_POLL_US : 500000); // 0.5秒检查间隔
+        usleep((int) config('monitoring.parallel_batch_poll_us', 500000)); // 0.5秒检查间隔
     }
 }
 
@@ -261,7 +262,7 @@ function waitForAllProcesses(array $processes, Logger $logger): void {
         }
 
         if (!empty($processes)) {
-            usleep(defined('PARALLEL_BATCH_POLL_US') ? PARALLEL_BATCH_POLL_US : 500000);
+            usleep((int) config('monitoring.parallel_batch_poll_us', 500000));
         }
     }
 }
