@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/includes/security_headers.php';
+require_once __DIR__ . '/includes/Config.php';
 
 class Auth {
     private const MAX_USERNAME_LENGTH = 64;
@@ -197,7 +198,7 @@ class Auth {
             return true;
         }
         
-        $timeout = defined('SESSION_TIMEOUT') ? SESSION_TIMEOUT : 3600;
+        $timeout = (int) config('security.session_timeout', 3600);
         return (time() - $_SESSION['last_activity']) > $timeout;
     }
     
@@ -225,7 +226,7 @@ class Auth {
             return 0;
         }
         
-        $timeout = defined('SESSION_TIMEOUT') ? SESSION_TIMEOUT : 3600;
+        $timeout = (int) config('security.session_timeout', 3600);
         $elapsed = time() - $_SESSION['last_activity'];
         
         return max(0, $timeout - $elapsed);

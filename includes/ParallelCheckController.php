@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/Config.php';
+
 class ParallelCheckController {
     private Logger $logger;
 
@@ -24,8 +26,8 @@ class ParallelCheckController {
                 $maxProcesses = 8;
                 $batchSize = 50;
             } else {
-                $maxProcesses = PARALLEL_MAX_PROCESSES;
-                $batchSize = PARALLEL_BATCH_SIZE;
+                $maxProcesses = (int) config('monitoring.parallel_max_processes', 24);
+                $batchSize = (int) config('monitoring.parallel_batch_size', 200);
             }
 
             $parallelMonitor = new ParallelMonitor($maxProcesses, $batchSize, $sessionId, $offlineOnly);
@@ -60,7 +62,11 @@ class ParallelCheckController {
                 echo json_encode(['success' => false, 'error' => '无权访问该检测任务']);
                 return;
             }
-            $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
+            $parallelMonitor = new ParallelMonitor(
+                (int) config('monitoring.parallel_max_processes', 24),
+                (int) config('monitoring.parallel_batch_size', 200),
+                $sessionId
+            );
 
             $progress = $parallelMonitor->getParallelProgress();
             echo json_encode($progress);
@@ -96,7 +102,11 @@ class ParallelCheckController {
                 require_once __DIR__ . '/AuditLogger.php';
                 AuditLogger::log('parallel_check_cancel', 'proxy', $sessionId);
             }
-            $parallelMonitor = new ParallelMonitor(PARALLEL_MAX_PROCESSES, PARALLEL_BATCH_SIZE, $sessionId);
+            $parallelMonitor = new ParallelMonitor(
+                (int) config('monitoring.parallel_max_processes', 24),
+                (int) config('monitoring.parallel_batch_size', 200),
+                $sessionId
+            );
 
             $result = $parallelMonitor->cancelParallelCheck();
             echo json_encode($result);

@@ -30,7 +30,7 @@ $offlineOnly = isset($argv[4]) && $argv[4] === '1';
 
 // 初始化组件
 $logger = new Logger();
-$maxProcesses = 24; // 最大并行进程数
+$maxProcesses = (int) config('monitoring.parallel_max_processes', 24);
 
 $logger->info("批次管理器启动: 总代理={$totalProxies}, 批次大小={$batchSize}, 最大进程={$maxProcesses}");
 

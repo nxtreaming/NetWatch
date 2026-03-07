@@ -6,6 +6,7 @@
 
 require_once '../auth.php';
 require_once '../config.php';
+require_once '../includes/Config.php';
 require_once '../parallel_monitor.php';
 
 // 检查登录状态
@@ -15,8 +16,8 @@ echo "=== 批次完成状态验证测试 ===\n\n";
 
 // 初始化并行监控器
 $parallelMonitor = new ParallelMonitor(
-    defined('PARALLEL_MAX_PROCESSES') ? PARALLEL_MAX_PROCESSES : 6,
-    defined('PARALLEL_BATCH_SIZE') ? PARALLEL_BATCH_SIZE : 400
+    (int) config('monitoring.parallel_max_processes', 24),
+    (int) config('monitoring.parallel_batch_size', 200)
 );
 
 // 获取当前进度

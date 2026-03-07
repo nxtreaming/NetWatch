@@ -11,6 +11,7 @@ class Config {
     private array $config = [];
     private array $envCache = [];
     private bool $validated = false;
+    private array $deprecatedWarnings = [];
     
     private function __construct() {
         $this->loadDefaults();
@@ -50,7 +51,8 @@ class Config {
                 'request_throttle_us' => defined('PROXY_REQUEST_THROTTLE_US') ? (int) PROXY_REQUEST_THROTTLE_US : 10000,
                 'parallel_batch_poll_us' => defined('PARALLEL_BATCH_POLL_US') ? (int) PARALLEL_BATCH_POLL_US : 500000,
                 'parallel_cancel_poll_us' => defined('PARALLEL_CANCEL_POLL_US') ? (int) PARALLEL_CANCEL_POLL_US : 100000,
-                'parallel_batch_size' => 50,
+                'parallel_batch_size' => defined('PARALLEL_BATCH_SIZE') ? (int) PARALLEL_BATCH_SIZE : 200,
+                'parallel_max_processes' => defined('PARALLEL_MAX_PROCESSES') ? (int) PARALLEL_MAX_PROCESSES : 24,
                 'max_workers' => 8,
             ],
             'logging' => [
@@ -59,7 +61,7 @@ class Config {
                 'json_format' => false,
             ],
             'security' => [
-                'session_timeout' => 3600,
+                'session_timeout' => defined('SESSION_TIMEOUT') ? (int) SESSION_TIMEOUT : 3600,
                 'csrf_enabled' => true,
                 'rate_limit' => [
                     'enabled' => true,
@@ -87,6 +89,9 @@ class Config {
                 'proxy_password' => defined('TRAFFIC_API_PROXY_PASSWORD') ? TRAFFIC_API_PROXY_PASSWORD : '',
                 'update_interval' => defined('TRAFFIC_UPDATE_INTERVAL') ? TRAFFIC_UPDATE_INTERVAL : 300,
                 'total_limit_gb' => defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0,
+                'reset_threshold_gb' => defined('TRAFFIC_RESET_THRESHOLD_GB') ? TRAFFIC_RESET_THRESHOLD_GB : 100,
+                'crossday_max_gb' => defined('TRAFFIC_CROSSDAY_MAX_GB') ? TRAFFIC_CROSSDAY_MAX_GB : 50,
+                'crossday_validation_log' => defined('TRAFFIC_CROSSDAY_VALIDATION_LOG') ? TRAFFIC_CROSSDAY_VALIDATION_LOG : false,
             ],
             'scheduler' => [
                 'loop_sleep_sec' => defined('SCHEDULER_LOOP_SLEEP_SEC') ? (int) SCHEDULER_LOOP_SLEEP_SEC : 60,
@@ -97,6 +102,30 @@ class Config {
                 'ip_whitelist' => defined('API_IP_WHITELIST') ? API_IP_WHITELIST : '',
             ],
         ];
+
+        $this->warnOnDeprecatedMailConstants();
+    }
+
+    private function warnOnDeprecatedMailConstants(): void {
+        $this->warnIfDeprecatedMailConstantUsed('MAIL_HOST', 'SMTP_HOST');
+        $this->warnIfDeprecatedMailConstantUsed('MAIL_PORT', 'SMTP_PORT');
+        $this->warnIfDeprecatedMailConstantUsed('MAIL_USERNAME', 'SMTP_USERNAME');
+        $this->warnIfDeprecatedMailConstantUsed('MAIL_PASSWORD', 'SMTP_PASSWORD');
+        $this->warnIfDeprecatedMailConstantUsed('MAIL_FROM', 'SMTP_FROM_EMAIL');
+        $this->warnIfDeprecatedMailConstantUsed('MAIL_TO', 'SMTP_TO_EMAIL');
+    }
+
+    private function warnIfDeprecatedMailConstantUsed(string $deprecatedConstant, string $replacementConstant): void {
+        if (!defined($deprecatedConstant) || defined($replacementConstant)) {
+            return;
+        }
+
+        if (isset($this->deprecatedWarnings[$deprecatedConstant])) {
+            return;
+        }
+
+        $this->deprecatedWarnings[$deprecatedConstant] = true;
+        error_log('[NetWatch][Config] Deprecated config constant ' . $deprecatedConstant . ' is in use. Please migrate to ' . $replacementConstant . '.');
     }
     
     /**

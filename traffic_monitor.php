@@ -160,7 +160,7 @@ class TrafficMonitor {
         $totalUsedGB = $txGB + $rxGB;
         
         // 从配置获取总流量限制（如果有的话）
-        $totalBandwidthGB = defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0;
+        $totalBandwidthGB = (float) config('traffic.total_limit_gb', 0);
         $remainingBandwidthGB = $totalBandwidthGB > 0 ? max(0, $totalBandwidthGB - $totalUsedGB) : 0;
         
         // 计算使用百分比
@@ -226,7 +226,7 @@ class TrafficMonitor {
         $totalUsedGB = $txGB + $rxGB;
         
         // 从配置获取总流量限制
-        $totalBandwidthGB = defined('TRAFFIC_TOTAL_LIMIT_GB') ? TRAFFIC_TOTAL_LIMIT_GB : 0;
+        $totalBandwidthGB = (float) config('traffic.total_limit_gb', 0);
         $remainingBandwidthGB = $totalBandwidthGB > 0 ? max(0, $totalBandwidthGB - $totalUsedGB) : 0;
         
         // 计算今日使用量：使用快照增量累加，避免流量重置导致的数据丢失
@@ -247,7 +247,7 @@ class TrafficMonitor {
                     $difference = abs($dailyUsage);
                     
                     // 只有差值超过阈值才认为是真正的流量重置
-                    $resetThreshold = defined('TRAFFIC_RESET_THRESHOLD_GB') ? TRAFFIC_RESET_THRESHOLD_GB : 100;
+                    $resetThreshold = (float) config('traffic.reset_threshold_gb', 100);
                     if ($difference >= $resetThreshold) {
                         $dailyUsage = $totalUsedGB;
                         $this->logger->warning("检测到流量重置（差值{$difference}GB >= {$resetThreshold}GB），当日使用量可能不准确（丢失跨日流量）");
@@ -303,7 +303,7 @@ class TrafficMonitor {
                 $yesterdayData = $this->db->getDailyTrafficStats($yesterday);
                 
                 // 关键判断：只有当今天首个快照值比昨天累计值少超过阈值时，才认为是真正的流量重置
-                $resetThreshold = defined('TRAFFIC_RESET_THRESHOLD_GB') ? TRAFFIC_RESET_THRESHOLD_GB : 100;
+                $resetThreshold = (float) config('traffic.reset_threshold_gb', 100);
                 $difference = $yesterdayData['used_bandwidth'] - $todayFirstValue;
                 if ($yesterdayData && $difference >= $resetThreshold) {
                     // 真正的流量重置：今天的值比昨天少100GB以上，说明流量被重置了
@@ -413,7 +413,7 @@ class TrafficMonitor {
                 $yesterdayLastTotalGB = $yesterdayLastSnapshot['total_bytes'] / (1024 * 1024 * 1024);
                 $todayMidnightTotalGB = $snapshots[0]['total_bytes'] / (1024 * 1024 * 1024);
                 $crossDayIncrement = $todayMidnightTotalGB - $yesterdayLastTotalGB;
-                $crossDayMaxGB = defined('TRAFFIC_CROSSDAY_MAX_GB') ? TRAFFIC_CROSSDAY_MAX_GB : 50;
+                $crossDayMaxGB = (float) config('traffic.crossday_max_gb', 50);
                 $crossDayHandling = 'zero_increment_skip';
                 if ($crossDayIncrement > 0) {
                     $totalDailyUsage += $crossDayIncrement;
@@ -428,9 +428,7 @@ class TrafficMonitor {
                     $totalDailyUsage += $todayMidnightTotalGB;
                     $crossDayHandling = 'negative_increment_reset_use_midnight_absolute';
                 }
-                $enableCrossDayValidationLog = defined('TRAFFIC_CROSSDAY_VALIDATION_LOG')
-                    ? (bool) TRAFFIC_CROSSDAY_VALIDATION_LOG
-                    : false;
+                $enableCrossDayValidationLog = (bool) config('traffic.crossday_validation_log', false);
                 if ($enableCrossDayValidationLog) {
                     $this->logger->info("跨日校验: date={$date}, yesterday={$yesterday}, yesterday_last={$yesterdayLastTotalGB}GB, today_00_00={$todayMidnightTotalGB}GB, cross_day_increment={$crossDayIncrement}GB, handling={$crossDayHandling}");
                 }

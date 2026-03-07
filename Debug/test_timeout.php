@@ -6,6 +6,7 @@
 
 require_once '../auth.php';
 require_once '../config.php';
+require_once '../includes/Config.php';
 require_once '../database.php';
 require_once '../monitor.php';
 require_once '../logger.php';
@@ -17,7 +18,7 @@ echo "=== NetWatch 代理超时测试 ===\n\n";
 
 // 显示当前配置
 echo "当前配置:\n";
-echo "   常规检测超时: " . (defined('TIMEOUT') ? TIMEOUT : '未定义') . "秒\n";
+echo "   常规检测超时: " . config('monitoring.timeout', '未定义') . "秒\n";
 echo "   快速检测超时: 2秒 (固定)\n";
 echo "   连接超时: 2秒 (固定)\n\n";
 
@@ -92,8 +93,8 @@ echo "   超时测试: " . round($duration3, 2) . "ms\n\n";
 
 // 计算预期的并行检测时间
 $totalProxies = $db->getProxyCount();
-$batchSize = defined('PARALLEL_BATCH_SIZE') ? PARALLEL_BATCH_SIZE : 400;
-$maxProcesses = defined('PARALLEL_MAX_PROCESSES') ? PARALLEL_MAX_PROCESSES : 6;
+$batchSize = (int) config('monitoring.parallel_batch_size', 200);
+$maxProcesses = (int) config('monitoring.parallel_max_processes', 24);
 
 echo "📈 并行检测预估:\n";
 echo "   总代理数: {$totalProxies}\n";

@@ -37,8 +37,12 @@ class ParallelMonitor {
         $this->db = $db ?? new Database();
         $this->logger = $logger ?? new Logger();
         $this->monitor = $monitor ?? new NetworkMonitor();
-        $this->maxProcesses = $maxProcesses;
-        $this->batchSize = $batchSize;
+        $this->maxProcesses = $maxProcesses === self::DEFAULT_MAX_PROCESSES
+            ? (int) config('monitoring.parallel_max_processes', self::DEFAULT_MAX_PROCESSES)
+            : $maxProcesses;
+        $this->batchSize = $batchSize === self::DEFAULT_BATCH_SIZE
+            ? (int) config('monitoring.parallel_batch_size', self::DEFAULT_BATCH_SIZE)
+            : $batchSize;
         $this->offlineOnly = $offlineOnly;
         
         // 生成或使用提供的会话ID，确保每个检测任务独立
