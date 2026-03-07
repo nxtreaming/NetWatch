@@ -11,6 +11,8 @@ require_once 'includes/RateLimiter.php';
 require_once 'includes/JsonResponse.php';
 require_once __DIR__ . '/includes/security_headers.php';
 
+validate_config();
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: ' . (string) config('api.allow_origin', '*'));
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');

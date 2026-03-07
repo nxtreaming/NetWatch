@@ -7,6 +7,8 @@ require_once 'config.php';
 require_once 'includes/Config.php';
 require_once 'monitor.php';
 
+validate_config();
+
 // 选择邮件发送方式
 if (file_exists('vendor/autoload.php')) {
     require_once 'mailer.php';

@@ -4,10 +4,13 @@
  * 支持数组配置、环境变量、默认值
  */
 
+require_once __DIR__ . '/Exceptions.php';
+
 class Config {
     private static ?Config $instance = null;
     private array $config = [];
     private array $envCache = [];
+    private bool $validated = false;
     
     private function __construct() {
         $this->loadDefaults();
@@ -32,6 +35,7 @@ class Config {
                 'name' => 'NetWatch',
                 'version' => defined('APP_VERSION') ? APP_VERSION : '1.0.0',
                 'debug' => defined('DEBUG') ? DEBUG : false,
+                'env' => defined('APP_ENV') ? APP_ENV : 'production',
                 'timezone' => 'Asia/Shanghai',
             ],
             'database' => [
@@ -165,6 +169,67 @@ class Config {
             }
         }
     }
+
+    public function validate(bool $force = false): void {
+        if ($this->validated && !$force) {
+            return;
+        }
+
+        $env = (string) $this->get('app.env', 'production');
+        $allowedEnvironments = ['production', 'local', 'dev', 'development', 'test'];
+        if (!in_array($env, $allowedEnvironments, true)) {
+            throw new ConfigurationException('APP_ENV 配置无效: ' . $env);
+        }
+
+        $databasePath = (string) $this->get('database.path', '');
+        if ($databasePath === '') {
+            throw new ConfigurationException('数据库路径未配置');
+        }
+        $this->assertParentDirectoryIsWritable($databasePath, '数据库路径');
+
+        $logPath = (string) $this->get('logging.path', '');
+        if ($logPath === '') {
+            throw new ConfigurationException('日志路径未配置');
+        }
+        $this->assertDirectoryIsWritable($logPath, '日志目录');
+
+        $trafficApiUrl = (string) $this->get('traffic.api_url', '');
+        if ($trafficApiUrl !== '' && filter_var($trafficApiUrl, FILTER_VALIDATE_URL) === false) {
+            throw new ConfigurationException('TRAFFIC_API_URL 配置无效');
+        }
+
+        $this->validated = true;
+    }
+
+    private function assertParentDirectoryIsWritable(string $path, string $label): void {
+        $directory = dirname($path);
+
+        if (is_dir($directory)) {
+            if (!is_writable($directory)) {
+                throw new ConfigurationException($label . ' 所在目录不可写: ' . $directory);
+            }
+            return;
+        }
+
+        $parentDirectory = dirname($directory);
+        if (!is_dir($parentDirectory) || !is_writable($parentDirectory)) {
+            throw new ConfigurationException($label . ' 所在目录无法创建: ' . $directory);
+        }
+    }
+
+    private function assertDirectoryIsWritable(string $path, string $label): void {
+        if (is_dir($path)) {
+            if (!is_writable($path)) {
+                throw new ConfigurationException($label . ' 不可写: ' . $path);
+            }
+            return;
+        }
+
+        $parentDirectory = dirname(rtrim($path, '/\\'));
+        if (!is_dir($parentDirectory) || !is_writable($parentDirectory)) {
+            throw new ConfigurationException($label . ' 无法创建: ' . $path);
+        }
+    }
 }
 
 /**
@@ -217,4 +282,8 @@ function env(string $key, $default = null) {
  */
 function config(string $key, $default = null) {
     return Config::getInstance()->get($key, $default);
+}
+
+function validate_config(bool $force = false): void {
+    Config::getInstance()->validate($force);
 }

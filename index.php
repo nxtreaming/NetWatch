@@ -4,6 +4,7 @@
  */
 
 require_once 'config.php';
+require_once 'includes/Config.php';
 require_once 'auth.php';
 require_once 'database.php';
 require_once 'monitor.php';
@@ -11,6 +12,8 @@ require_once 'includes/JsonResponse.php';
 require_once 'includes/IndexPageController.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
+
+validate_config();
 
 // 检查登录状态
 Auth::requireLogin();

@@ -15,6 +15,7 @@ class NetworkMonitor {
     protected ProxyChecker $proxyChecker;
     
     public function __construct(?Database $db = null, ?Logger $logger = null) {
+        validate_config();
         $this->db = $db ?? new Database();
         $this->db->initializeSchema();
         $this->logger = $logger ?? new Logger();
