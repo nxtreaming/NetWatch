@@ -21,10 +21,7 @@ class Auth {
                 ini_set('session.cookie_httponly', '1');
                 ini_set('session.cookie_samesite', 'Lax');
 
-                $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-                          (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) ||
-                          (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
-                          (!empty($_SERVER['HTTP_CF_VISITOR']) && strpos($_SERVER['HTTP_CF_VISITOR'], 'https') !== false);
+                $isHttps = netwatch_is_https_request();
                 ini_set('session.cookie_secure', $isHttps ? '1' : '0');
 
                 $cookieParams = session_get_cookie_params();
