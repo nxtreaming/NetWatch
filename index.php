@@ -13,7 +13,7 @@ require_once 'includes/IndexPageController.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
 
-validate_config();
+ensure_valid_config('web');
 
 // 检查登录状态
 Auth::requireLogin();

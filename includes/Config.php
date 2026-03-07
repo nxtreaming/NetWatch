@@ -287,3 +287,68 @@ function config(string $key, $default = null) {
 function validate_config(bool $force = false): void {
     Config::getInstance()->validate($force);
 }
+
+function ensure_valid_config(?string $context = null, bool $force = false): void {
+    try {
+        validate_config($force);
+    } catch (ConfigurationException $exception) {
+        handle_config_validation_failure($exception, $context);
+    }
+}
+
+function handle_config_validation_failure(ConfigurationException $exception, ?string $context = null): void {
+    $resolvedContext = resolve_config_error_context($context);
+    $statusCode = $exception->getCode();
+
+    if ($statusCode < 400 || $statusCode > 599) {
+        $statusCode = 500;
+    }
+
+    error_log('[NetWatch][Config] ' . $exception->getMessage());
+
+    if ($resolvedContext === 'api') {
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        http_response_code($statusCode);
+        echo json_encode([
+            'success' => false,
+            'error' => 'configuration_error',
+            'message' => $exception->getMessage(),
+            'timestamp' => time(),
+        ], JSON_UNESCAPED_UNICODE);
+        exit(1);
+    }
+
+    if ($resolvedContext === 'cli') {
+        fwrite(STDERR, '[NetWatch][Config] ' . $exception->getMessage() . PHP_EOL);
+        exit(1);
+    }
+
+    if (!headers_sent()) {
+        header('Content-Type: text/html; charset=utf-8');
+    }
+    http_response_code($statusCode);
+    echo '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>配置错误</title></head><body><h1>配置错误</h1><p>' . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8') . '</p></body></html>';
+    exit(1);
+}
+
+function resolve_config_error_context(?string $context = null): string {
+    if (is_string($context) && $context !== '') {
+        return $context;
+    }
+
+    if (php_sapi_name() === 'cli') {
+        return 'cli';
+    }
+
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+    $requestPath = (string) parse_url($requestUri, PHP_URL_PATH);
+
+    if (strpos($scriptName, 'api.php') !== false || strpos($requestPath, 'api.php') !== false) {
+        return 'api';
+    }
+
+    return 'web';
+}

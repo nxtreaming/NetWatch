@@ -7,7 +7,7 @@ require_once 'config.php';
 require_once 'includes/Config.php';
 require_once 'monitor.php';
 
-validate_config();
+ensure_valid_config('cli');
 
 // 选择邮件发送方式
 if (file_exists('vendor/autoload.php')) {
