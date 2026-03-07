@@ -37,7 +37,9 @@ class TrafficMonitor {
      */
     public function fetchTrafficData(): array|false {
         if (empty($this->apiUrl)) {
-            $this->logger->error('流量监控API URL未配置');
+            $this->logger->error('traffic_api_url_missing', [
+                'api_url' => $this->apiUrl,
+            ]);
             return false;
         }
         
@@ -68,7 +70,10 @@ class TrafficMonitor {
                     curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
                     
                     if ($attempt === 1) {
-                        $this->logger->info("使用HTTP代理: {$this->proxyHost}:{$this->proxyPort}");
+                        $this->logger->info('traffic_api_proxy_enabled', [
+                            'proxy_host' => $this->proxyHost,
+                            'proxy_port' => $this->proxyPort,
+                        ]);
                     }
                 }
                 
@@ -94,11 +99,11 @@ class TrafficMonitor {
                     throw new Exception('JSON解析失败: ' . json_last_error_msg());
                 }
                 
-                if ($attempt > 1) {
-                    $this->logger->info("第{$attempt}次重试成功获取流量数据");
-                } else {
-                    $this->logger->info('成功获取流量数据');
-                }
+                $this->logger->info('traffic_data_fetch_succeeded', [
+                    'attempt' => $attempt,
+                    'max_retries' => $maxRetries,
+                    'used_retry' => $attempt > 1,
+                ]);
                 return $data;
                 
             } catch (Exception $e) {
@@ -109,13 +114,20 @@ class TrafficMonitor {
                 $lastError = $e->getMessage();
                 
                 if ($attempt < $maxRetries) {
-                    $this->logger->warning("获取流量数据失败 (第{$attempt}/{$maxRetries}次): {$lastError}，将重试...");
+                    $this->logger->warning('traffic_data_fetch_retrying', [
+                        'attempt' => $attempt,
+                        'max_retries' => $maxRetries,
+                        'exception' => $lastError,
+                    ]);
                     usleep($retryDelayUs * $attempt); // 递增延迟
                 }
             }
         }
         
-        $this->logger->error("获取流量数据失败 (已重试{$maxRetries}次): {$lastError}");
+        $this->logger->error('traffic_data_fetch_failed', [
+            'max_retries' => $maxRetries,
+            'exception' => $lastError,
+        ]);
         return false;
     }
     
@@ -181,9 +193,20 @@ class TrafficMonitor {
         $snapshotResult = $this->db->saveTrafficSnapshot($rxBytes, $txBytes);
         
         if ($result) {
-            $this->logger->info("实时流量数据已更新: 端口={$port}, RX={$rxGB}GB, TX={$txGB}GB, 已用(RX+TX)={$totalUsedGB}GB, 使用率={$usagePercentage}%");
+            $this->logger->info('traffic_realtime_stats_updated', [
+                'port' => $port,
+                'rx_gb' => $rxGB,
+                'tx_gb' => $txGB,
+                'total_used_gb' => $totalUsedGB,
+                'usage_percentage' => $usagePercentage,
+                'total_bandwidth_gb' => $totalBandwidthGB,
+            ]);
             if ($snapshotResult) {
-                $this->logger->info("流量快照已保存");
+                $this->logger->info('traffic_snapshot_saved', [
+                    'rx_bytes' => $rxBytes,
+                    'tx_bytes' => $txBytes,
+                    'port' => $port,
+                ]);
             }
         }
         
@@ -250,10 +273,19 @@ class TrafficMonitor {
                     $resetThreshold = (float) config('traffic.reset_threshold_gb', 100);
                     if ($difference >= $resetThreshold) {
                         $dailyUsage = $totalUsedGB;
-                        $this->logger->warning("检测到流量重置（差值{$difference}GB >= {$resetThreshold}GB），当日使用量可能不准确（丢失跨日流量）");
+                        $this->logger->warning('traffic_reset_detected_from_negative_daily_usage', [
+                            'difference_gb' => $difference,
+                            'reset_threshold_gb' => $resetThreshold,
+                            'total_used_gb' => $totalUsedGB,
+                        ]);
                     } else {
                         // 差值 < 100GB，可能是API数据异常，跳过本次更新
-                        $this->logger->warning("API数据异常：今天累计值({$totalUsedGB}GB)比昨天快照({$yesterdayTotal}GB)少{$difference}GB，但不足{$resetThreshold}GB阈值，跳过本次更新");
+                        $this->logger->warning('traffic_api_anomaly_below_reset_threshold', [
+                            'today_total_used_gb' => $totalUsedGB,
+                            'yesterday_snapshot_total_gb' => $yesterdayTotal,
+                            'difference_gb' => $difference,
+                            'reset_threshold_gb' => $resetThreshold,
+                        ]);
                         return false;
                     }
                 }
@@ -276,17 +308,31 @@ class TrafficMonitor {
         
         if (!$isFirstDayOfMonth && $yesterdayData && isset($yesterdayData['used_bandwidth'])) {
             $displayUsedGB = $yesterdayData['used_bandwidth'] + $dailyUsage;
-            $this->logger->info("当月累计：{$displayUsedGB}GB = {$yesterdayData['used_bandwidth']}GB（昨日累计） + {$dailyUsage}GB（今日使用）");
+            $this->logger->info('traffic_monthly_usage_accumulated_from_yesterday', [
+                'display_used_gb' => $displayUsedGB,
+                'yesterday_used_bandwidth_gb' => $yesterdayData['used_bandwidth'],
+                'daily_usage_gb' => $dailyUsage,
+                'today' => $today,
+            ]);
         } else {
             // 每月1日或无昨日数据：当月累计 = 当日使用量
             $displayUsedGB = $dailyUsage;
-            $this->logger->info("当月累计：{$displayUsedGB}GB（无昨日当月数据，使用当日使用量）");
+            $this->logger->info('traffic_monthly_usage_initialized_from_daily', [
+                'display_used_gb' => $displayUsedGB,
+                'today' => $today,
+                'is_first_day_of_month' => $isFirstDayOfMonth,
+                'has_yesterday_data' => (bool) $yesterdayData,
+            ]);
         }
         
         if ($dailyUsage > $totalUsedGB) {
             // 流量重置（月初自动或手动重置）：新计费周期从0开始
             // used_bandwidth 和 daily_usage 都只算重置后的流量
-            $this->logger->info("检测到流量重置（新计费周期），重置前+后当日总量: {$dailyUsage}GB, 重置后API累计: {$totalUsedGB}GB");
+            $this->logger->info('traffic_billing_cycle_reset_detected', [
+                'daily_usage_gb' => $dailyUsage,
+                'total_used_gb' => $totalUsedGB,
+                'today' => $today,
+            ]);
             $dailyUsage = $totalUsedGB;
             $displayUsedGB = $totalUsedGB;
             $remainingBandwidthGB = $totalBandwidthGB > 0 ? max(0, $totalBandwidthGB - $displayUsedGB) : 0;
@@ -308,7 +354,14 @@ class TrafficMonitor {
                 if ($yesterdayData && $difference >= $resetThreshold) {
                     // 真正的流量重置：今天的值比昨天少100GB以上，说明流量被重置了
                     // 这种情况下，需要将 23:55 ~ 00:00 这段跨日流量累加到昨天的数据中
-                    $this->logger->info("检测到真正的流量重置：昨天{$yesterdayData['used_bandwidth']}GB，今天首个快照{$todayFirstValue}GB，差值{$difference}GB >= {$resetThreshold}GB");
+                    $this->logger->info('traffic_true_reset_confirmed', [
+                        'yesterday_used_bandwidth_gb' => $yesterdayData['used_bandwidth'],
+                        'today_first_value_gb' => $todayFirstValue,
+                        'difference_gb' => $difference,
+                        'reset_threshold_gb' => $resetThreshold,
+                        'yesterday' => $yesterday,
+                        'today' => $today,
+                    ]);
                     
                     $yesterdayLastSnapshot = $this->db->getLastSnapshotOfDay($yesterday);
                     if ($yesterdayLastSnapshot) {
@@ -322,7 +375,12 @@ class TrafficMonitor {
                         // 昨天的最终累计值 = 昨天23:55的值 + 跨日流量
                         $resetBeforeValue = $yesterday23_55Value + $crossDayTraffic;
                         
-                        $this->logger->info("流量重置回溯计算：昨天23:55={$yesterday23_55Value}GB + 跨日流量(23:55~00:00)={$crossDayTraffic}GB = {$resetBeforeValue}GB");
+                        $this->logger->info('traffic_reset_backfill_calculated', [
+                            'yesterday_23_55_gb' => $yesterday23_55Value,
+                            'cross_day_traffic_gb' => $crossDayTraffic,
+                            'reset_before_value_gb' => $resetBeforeValue,
+                            'yesterday' => $yesterday,
+                        ]);
                         
                         // 重新计算昨天的当日使用量
                         // 注意：calculateDailyUsageFromSnapshots 已包含跨日增量，无需再额外加
@@ -344,20 +402,40 @@ class TrafficMonitor {
                             $yesterdayRemaining,
                             $yesterdayDailyUsage
                         );
-                        $this->logger->info("流量重置：回溯更新 {$yesterday} 的数据 - 已用流量: {$yesterdayData['used_bandwidth']}GB → {$resetBeforeValue}GB, 当日使用: {$yesterdayData['daily_usage']}GB → {$yesterdayDailyUsage}GB");
+                        $this->logger->info('traffic_reset_backfill_saved', [
+                            'yesterday' => $yesterday,
+                            'previous_used_bandwidth_gb' => $yesterdayData['used_bandwidth'],
+                            'updated_used_bandwidth_gb' => $resetBeforeValue,
+                            'previous_daily_usage_gb' => $yesterdayData['daily_usage'],
+                            'updated_daily_usage_gb' => $yesterdayDailyUsage,
+                        ]);
                     }
                 } else {
                     if ($yesterdayData) {
-                        $this->logger->warning("检测到 dailyUsage > totalUsedGB，但差值({$difference}GB)小于{$resetThreshold}GB阈值，判断为API数据异常而非真正的流量重置，跳过回溯更新");
+                        $this->logger->warning('traffic_reset_backfill_skipped_due_to_small_difference', [
+                            'difference_gb' => $difference,
+                            'reset_threshold_gb' => $resetThreshold,
+                            'today' => $today,
+                            'yesterday' => $yesterday,
+                        ]);
                         
                         // API数据异常：今天的值比昨天小，但差值不足100GB
                         // 这种情况下不应该保存异常数据，跳过本次更新
                         if ($todayFirstValue < $yesterdayData['used_bandwidth']) {
                             $skipUpdate = true;
-                            $this->logger->warning("API数据异常：今天累计值({$todayFirstValue}GB)小于昨天({$yesterdayData['used_bandwidth']}GB)，跳过本次数据更新");
+                            $this->logger->warning('traffic_update_skipped_due_to_today_less_than_yesterday', [
+                                'today_first_value_gb' => $todayFirstValue,
+                                'yesterday_used_bandwidth_gb' => $yesterdayData['used_bandwidth'],
+                                'today' => $today,
+                                'yesterday' => $yesterday,
+                            ]);
                         }
                     } else {
-                        $this->logger->warning("检测到 dailyUsage > totalUsedGB，但没有昨天的数据，跳过回溯更新");
+                        $this->logger->warning('traffic_reset_backfill_skipped_missing_yesterday_data', [
+                            'today' => $today,
+                            'daily_usage_gb' => $dailyUsage,
+                            'total_used_gb' => $totalUsedGB,
+                        ]);
                     }
                 }
             }
@@ -365,7 +443,10 @@ class TrafficMonitor {
         
         // 保存每日统计（如果检测到API数据异常则跳过）
         if ($skipUpdate) {
-            $this->logger->info("由于API数据异常，跳过本次流量统计更新");
+            $this->logger->info('traffic_daily_stats_update_skipped', [
+                'today' => $today,
+                'reason' => 'api_data_anomaly',
+            ]);
             return false;
         }
         
@@ -378,7 +459,14 @@ class TrafficMonitor {
         );
         
         if ($result) {
-            $this->logger->info("每日流量统计已更新: 日期={$today}, 累计使用(RX+TX)={$totalUsedGB}GB, 今日使用={$dailyUsage}GB");
+            $this->logger->info('traffic_daily_stats_updated', [
+                'date' => $today,
+                'total_used_gb' => $totalUsedGB,
+                'daily_usage_gb' => $dailyUsage,
+                'display_used_gb' => $displayUsedGB,
+                'remaining_bandwidth_gb' => $remainingBandwidthGB,
+                'traffic_reset' => $trafficReset,
+            ]);
         }
         
         return $result;
@@ -419,9 +507,16 @@ class TrafficMonitor {
                     $totalDailyUsage += $crossDayIncrement;
                     $crossDayHandling = 'positive_increment_included';
                     if ($crossDayIncrement >= $crossDayMaxGB) {
-                        $this->logger->warning("跨日增量异常偏大但已计入(昨天最后→今天00:00): {$crossDayIncrement}GB >= {$crossDayMaxGB}GB");
+                        $this->logger->warning('traffic_crossday_increment_large_but_included', [
+                            'date' => $date,
+                            'cross_day_increment_gb' => $crossDayIncrement,
+                            'crossday_max_gb' => $crossDayMaxGB,
+                        ]);
                     } else {
-                        $this->logger->debug("跨日增量(昨天最后→今天00:00): {$crossDayIncrement}GB");
+                        $this->logger->debug('traffic_crossday_increment_recorded', [
+                            'date' => $date,
+                            'cross_day_increment_gb' => $crossDayIncrement,
+                        ]);
                     }
                 } elseif ($crossDayIncrement < 0) {
                     // 负增量说明发生了流量重置，将 00:00 的值作为新起点
@@ -430,7 +525,14 @@ class TrafficMonitor {
                 }
                 $enableCrossDayValidationLog = (bool) config('traffic.crossday_validation_log', false);
                 if ($enableCrossDayValidationLog) {
-                    $this->logger->info("跨日校验: date={$date}, yesterday={$yesterday}, yesterday_last={$yesterdayLastTotalGB}GB, today_00_00={$todayMidnightTotalGB}GB, cross_day_increment={$crossDayIncrement}GB, handling={$crossDayHandling}");
+                    $this->logger->info('traffic_crossday_validation', [
+                        'date' => $date,
+                        'yesterday' => $yesterday,
+                        'yesterday_last_gb' => $yesterdayLastTotalGB,
+                        'today_midnight_gb' => $todayMidnightTotalGB,
+                        'cross_day_increment_gb' => $crossDayIncrement,
+                        'handling' => $crossDayHandling,
+                    ]);
                 }
                 // 然后从 00:05 开始累计当天内的增量
                 $startIndex = 1;
@@ -451,7 +553,9 @@ class TrafficMonitor {
             }
         } else {
             // 没有前一天的数据，只计算当天快照间的增量（不使用首个快照的绝对值，因为那是月度累计）
-            $this->logger->warning("无前一天快照数据，仅计算当天快照间增量（可能丢失首个快照前的流量）");
+            $this->logger->warning('traffic_missing_yesterday_snapshot', [
+                'date' => $date,
+            ]);
             $startIndex = 1;
         }
         

@@ -32,7 +32,13 @@ $offlineOnly = isset($argv[4]) && $argv[4] === '1';
 $logger = new Logger();
 $maxProcesses = (int) config('monitoring.parallel_max_processes', 24);
 
-$logger->info("批次管理器启动: 总代理={$totalProxies}, 批次大小={$batchSize}, 最大进程={$maxProcesses}");
+$logger->info('parallel_batch_manager_started', [
+    'total_proxies' => $totalProxies,
+    'batch_size' => $batchSize,
+    'max_processes' => $maxProcesses,
+    'temp_dir' => $tempDir,
+    'offline_only' => $offlineOnly,
+]);
 
 try {
     // 更新主状态为运行中
@@ -54,7 +60,10 @@ try {
     for ($offset = 0; $offset < $totalProxies; $offset += $batchSize) {
         // 检查是否被取消
         if (isCancelled($tempDir)) {
-            $logger->info("批次管理器被取消");
+            $logger->info('parallel_batch_manager_cancelled', [
+                'temp_dir' => $tempDir,
+                'started_batch_count' => $batchIndex,
+            ]);
             break;
         }
         
@@ -90,14 +99,25 @@ try {
         if ($process) {
             $processes[$batchId] = $process;
             $checkType = $offlineOnly ? "离线代理" : "所有代理";
-            $logger->info("启动批次 {$batchId} ({$checkType}): offset={$offset}, limit={$currentBatchSize}");
+            $logger->info('parallel_batch_started', [
+                'batch_id' => $batchId,
+                'check_type' => $checkType,
+                'offset' => $offset,
+                'limit' => $currentBatchSize,
+                'status_file' => $statusFile,
+                'temp_dir' => $tempDir,
+                'offline_only' => $offlineOnly,
+            ]);
         }
         
         $batchIndex++;
     }
     
     // 等待所有进程完成
-    $logger->info("等待所有批次完成...");
+    $logger->info('parallel_batch_manager_waiting_for_completion', [
+        'active_batch_count' => count($processes),
+        'temp_dir' => $tempDir,
+    ]);
     waitForAllProcesses($processes, $logger);
     
     // 更新主状态为完成
@@ -110,10 +130,19 @@ try {
         }
     }
     
-    $logger->info("批次管理器完成");
+    $logger->info('parallel_batch_manager_completed', [
+        'total_batches' => $totalBatches,
+        'temp_dir' => $tempDir,
+        'offline_only' => $offlineOnly,
+    ]);
     
 } catch (Exception $e) {
-    $logger->error("批次管理器出现错误: " . $e->getMessage());
+    $logger->error('parallel_batch_manager_failed', [
+        'temp_dir' => $tempDir,
+        'total_proxies' => $totalProxies,
+        'batch_size' => $batchSize,
+        'exception' => $e->getMessage(),
+    ]);
     
     // 更新主状态为错误
     if (file_exists($mainStatusFile)) {
@@ -240,7 +269,10 @@ function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger):
 
         if ($completedBatchId !== null) {
             unset($processes[$completedBatchId]);
-            $logger->info("批次 {$completedBatchId} 完成");
+            $logger->info('parallel_batch_finished', [
+                'batch_id' => $completedBatchId,
+                'remaining_process_count' => count($processes),
+            ]);
         }
 
         usleep((int) config('monitoring.parallel_batch_poll_us', 500000)); // 0.5秒检查间隔
@@ -257,7 +289,10 @@ function waitForAllProcesses(array $processes, Logger $logger): void {
         foreach ($processes as $batchId => $statusFile) {
             if (isBatchFinished($statusFile)) {
                 unset($processes[$batchId]);
-                $logger->info("批次 {$batchId} 完成");
+                $logger->info('parallel_batch_finished', [
+                    'batch_id' => $batchId,
+                    'remaining_process_count' => count($processes),
+                ]);
             }
         }
 

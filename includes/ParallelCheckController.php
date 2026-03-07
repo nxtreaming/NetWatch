@@ -36,7 +36,11 @@ class ParallelCheckController {
             echo json_encode($result);
         } catch (Exception $e) {
             $checkType = $offlineOnly ? '离线代理' : '并行';
-            error_log('[NetWatch][ajax] startParallelCheck: ' . $e->getMessage());
+            $this->logger->error('parallel_check_controller_start_failed', [
+                'offline_only' => $offlineOnly,
+                'check_type' => $checkType,
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => "启动{$checkType}检测失败，请稍后重试"
@@ -58,7 +62,9 @@ class ParallelCheckController {
                 return;
             }
             if (!self::isOwnedParallelSessionId($sessionId)) {
-                error_log('[NetWatch][ajax] getParallelProgress: session_id ownership mismatch: ' . $sessionId);
+                $this->logger->warning('parallel_check_controller_progress_ownership_mismatch', [
+                    'session_id' => $sessionId,
+                ]);
                 echo json_encode(['success' => false, 'error' => '无权访问该检测任务']);
                 return;
             }
@@ -71,7 +77,10 @@ class ParallelCheckController {
             $progress = $parallelMonitor->getParallelProgress();
             echo json_encode($progress);
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] getParallelProgress: ' . $e->getMessage());
+            $this->logger->error('parallel_check_controller_progress_failed', [
+                'session_id' => $sessionId ?? null,
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '获取进度失败，请稍后重试'
@@ -93,7 +102,9 @@ class ParallelCheckController {
                 return;
             }
             if (!self::isOwnedParallelSessionId($sessionId)) {
-                error_log('[NetWatch][ajax] cancelParallelCheck: session_id ownership mismatch: ' . $sessionId);
+                $this->logger->warning('parallel_check_controller_cancel_ownership_mismatch', [
+                    'session_id' => $sessionId,
+                ]);
                 echo json_encode(['success' => false, 'error' => '无权操作该检测任务']);
                 return;
             }
@@ -111,7 +122,10 @@ class ParallelCheckController {
             $result = $parallelMonitor->cancelParallelCheck();
             echo json_encode($result);
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] cancelParallelCheck: ' . $e->getMessage());
+            $this->logger->error('parallel_check_controller_cancel_failed', [
+                'session_id' => $sessionId ?? null,
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '取消检测失败，请稍后重试'

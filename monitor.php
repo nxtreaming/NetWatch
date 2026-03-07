@@ -99,31 +99,61 @@ class NetworkMonitor {
     private function logSuccessfulCheck(array $proxy, string $logPrefix, array $result): void {
         $responseTime = $result['response_time'] ?? 0;
         $errorMessage = $result['error_message'] ?? null;
+        $context = [
+            'proxy_id' => $proxy['id'] ?? null,
+            'proxy_ip' => $proxy['ip'] ?? null,
+            'proxy_port' => $proxy['port'] ?? null,
+            'proxy_type' => $proxy['type'] ?? null,
+            'log_prefix' => $logPrefix,
+            'response_time_ms' => $responseTime,
+        ];
 
         if (!empty($errorMessage)) {
-            $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功 (但传输不完整): {$errorMessage}，网络响应时间: {$responseTime}ms");
+            $context['error_message'] = $errorMessage;
+            $this->logger->info('proxy_check_success_with_transport_warning', $context);
             return;
         }
 
-        $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}成功，网络响应时间: {$responseTime}ms");
+        $this->logger->info('proxy_check_success', $context);
     }
 
     private function logRetryAttempt(array $proxy, string $logPrefix, bool $isException): void {
         $reason = $isException ? '异常' : '失败';
-        $this->logger->info("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}{$reason}，进行第二次检测...");
+        $this->logger->info('proxy_check_retry', [
+            'proxy_id' => $proxy['id'] ?? null,
+            'proxy_ip' => $proxy['ip'] ?? null,
+            'proxy_port' => $proxy['port'] ?? null,
+            'proxy_type' => $proxy['type'] ?? null,
+            'log_prefix' => $logPrefix,
+            'reason' => $reason,
+            'retry_count' => 1,
+        ]);
     }
 
     private function logFailedCheck(array $proxy, string $logPrefix, array $result, int $retryCount): void {
         $retryInfo = $retryCount > 0 ? "(第二次检测)" : "";
         $errorMessage = $result['error_message'] ?? '';
         $responseTime = $result['response_time'] ?? 0;
+        $context = [
+            'proxy_id' => $proxy['id'] ?? null,
+            'proxy_ip' => $proxy['ip'] ?? null,
+            'proxy_port' => $proxy['port'] ?? null,
+            'proxy_type' => $proxy['type'] ?? null,
+            'log_prefix' => $logPrefix,
+            'retry_count' => $retryCount,
+            'retry_label' => $retryInfo,
+            'response_time_ms' => $responseTime,
+            'error_message' => $errorMessage,
+        ];
 
         if (!empty($result['is_exception'])) {
-            $this->logger->error("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}异常{$retryInfo}: {$errorMessage}");
+            $context['is_exception'] = true;
+            $this->logger->error('proxy_check_exception', $context);
             return;
         }
 
-        $this->logger->warning("代理 {$proxy['ip']}:{$proxy['port']} {$logPrefix}失败{$retryInfo}: {$errorMessage}，尝试时间: {$responseTime}ms");
+        $context['is_exception'] = false;
+        $this->logger->warning('proxy_check_failed', $context);
     }
     
     /**
@@ -133,7 +163,9 @@ class NetworkMonitor {
         $proxies = $this->db->getAllProxies();
         $results = [];
         
-        $this->logger->info("开始检查 " . count($proxies) . " 个代理");
+        $this->logger->info('proxy_check_all_started', [
+            'proxy_count' => count($proxies),
+        ]);
         
         foreach ($proxies as $proxy) {
             $result = $this->checkProxy($proxy);
@@ -145,7 +177,9 @@ class NetworkMonitor {
             usleep((int) config('monitoring.request_throttle_us', 10000)); // 0.01秒延迟
         }
         
-        $this->logger->info("代理检查完成");
+        $this->logger->info('proxy_check_all_completed', [
+            'proxy_count' => count($results),
+        ]);
         return $results;
     }
     
@@ -181,7 +215,11 @@ class NetworkMonitor {
             }
         }
         
-        $this->logger->info("导入完成: 成功 $imported 个，跳过 $skipped 个，失败 " . count($errors) . " 个");
+        $this->logger->info('proxy_import_completed', [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'error_count' => count($errors),
+        ]);
         
         return [
             'imported' => $imported,
@@ -210,7 +248,10 @@ class NetworkMonitor {
             
             $parts = explode(':', $line);
             if (count($parts) < 3) {
-                $this->logger->warning("第 " . ($lineNum + 1) . " 行格式错误: $line");
+                $this->logger->warning('proxy_import_line_invalid_format', [
+                    'line_number' => $lineNum + 1,
+                    'line_content' => $line,
+                ]);
                 continue;
             }
             
@@ -220,20 +261,30 @@ class NetworkMonitor {
             
             // 校验IP地址合法性
             if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-                $this->logger->warning("第 " . ($lineNum + 1) . " 行IP地址无效: $ip");
+                $this->logger->warning('proxy_import_invalid_ip', [
+                    'line_number' => $lineNum + 1,
+                    'proxy_ip' => $ip,
+                ]);
                 continue;
             }
             
             // 校验端口范围
             if ($port < 1 || $port > 65535) {
-                $this->logger->warning("第 " . ($lineNum + 1) . " 行端口超出范围: $port");
+                $this->logger->warning('proxy_import_invalid_port', [
+                    'line_number' => $lineNum + 1,
+                    'proxy_port' => $port,
+                ]);
                 continue;
             }
             
             // 校验代理类型白名单
             $allowedTypes = ['http', 'https', 'socks5', 'socks4'];
             if (!in_array($type, $allowedTypes, true)) {
-                $this->logger->warning("第 " . ($lineNum + 1) . " 行代理类型无效: $type (允许: " . implode(', ', $allowedTypes) . ")");
+                $this->logger->warning('proxy_import_invalid_type', [
+                    'line_number' => $lineNum + 1,
+                    'proxy_type' => $type,
+                    'allowed_types' => $allowedTypes,
+                ]);
                 continue;
             }
             
@@ -348,7 +399,11 @@ class NetworkMonitor {
         $proxies = $this->db->getProxiesBatch($offset, $limit);
         $results = [];
         
-        $this->logger->info("开始分批检查代理: offset=$offset, limit=$limit, 实际获取 " . count($proxies) . " 个代理");
+        $this->logger->info('proxy_batch_check_started', [
+            'offset' => $offset,
+            'limit' => $limit,
+            'actual_proxy_count' => count($proxies),
+        ]);
         
         foreach ($proxies as $proxy) {
             $result = $this->checkProxyFast($proxy);
@@ -360,7 +415,11 @@ class NetworkMonitor {
             usleep((int) config('monitoring.request_throttle_us', 10000)); // 0.01秒延迟，更快的批量检查
         }
         
-        $this->logger->info("分批检查完成: 检查了 " . count($results) . " 个代理");
+        $this->logger->info('proxy_batch_check_completed', [
+            'checked_proxy_count' => count($results),
+            'offset' => $offset,
+            'limit' => $limit,
+        ]);
         return $results;
     }
     

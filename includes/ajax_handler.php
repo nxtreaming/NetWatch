@@ -175,8 +175,9 @@ class AjaxHandler {
                         );
                     }
                 } catch (Exception $mailError) {
-                    $this->logger->error('发送邮件失败', [
-                        'error' => $mailError->getMessage()
+                    $this->logger->error('ajax_check_all_email_failed', [
+                        'failed_proxy_count' => count($failedProxies),
+                        'exception' => $mailError->getMessage()
                     ]);
                 }
             }
@@ -189,7 +190,9 @@ class AjaxHandler {
                 'email_sent' => $emailSent
             ]);
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] checkAll: ' . $e->getMessage());
+            $this->logger->error('ajax_check_all_failed', [
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '检查失败，请稍后重试'
@@ -234,7 +237,9 @@ class AjaxHandler {
                 } else {
                     // 写入失败，记录日志并继续（降级为无缓存模式）
                     @unlink($tmpFile);
-                    $this->logger->warning('写入代理数量缓存失败', ['cache_file' => $cacheFile]);
+                    $this->logger->warning('ajax_proxy_count_cache_write_failed', [
+                        'cache_file' => $cacheFile,
+                    ]);
                 }
             }
             
@@ -248,7 +253,9 @@ class AjaxHandler {
                 'execution_time' => $executionTime
             ]);
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] getProxyCount: ' . $e->getMessage());
+            $this->logger->error('ajax_get_proxy_count_failed', [
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '获取代理数量失败，请稍后重试'
@@ -339,13 +346,21 @@ class AjaxHandler {
             ]);
             
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] checkBatch: ' . $e->getMessage());
+            $this->logger->error('ajax_check_batch_failed', [
+                'offset' => $offset ?? null,
+                'limit' => $limit ?? null,
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '批量检查失败，请稍后重试'
             ]);
         } catch (Error $e) {
-            error_log('[NetWatch][ajax] checkBatch fatal: ' . $e->getMessage());
+            $this->logger->error('ajax_check_batch_fatal', [
+                'offset' => $offset ?? null,
+                'limit' => $limit ?? null,
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '服务器内部错误，请稍后重试'
@@ -381,8 +396,9 @@ class AjaxHandler {
                         );
                     }
                 } catch (Exception $mailError) {
-                    $this->logger->error('发送邮件失败', [
-                        'error' => $mailError->getMessage()
+                    $this->logger->error('ajax_check_failed_proxies_email_failed', [
+                        'failed_proxy_count' => count($failedProxies),
+                        'exception' => $mailError->getMessage()
                     ]);
                 }
             }
@@ -393,7 +409,9 @@ class AjaxHandler {
                 'email_sent' => $emailSent
             ]);
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] checkFailedProxies: ' . $e->getMessage());
+            $this->logger->error('ajax_check_failed_proxies_failed', [
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '检查失败代理时出错，请稍后重试'
@@ -448,7 +466,9 @@ class AjaxHandler {
                 'statuses' => $statuses
             ]);
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] debugStatuses: ' . $e->getMessage());
+            $this->logger->error('ajax_debug_statuses_failed', [
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '获取状态信息失败，请稍后重试'
@@ -481,7 +501,9 @@ class AjaxHandler {
                 'updated' => $updated
             ]);
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] createTestData: ' . $e->getMessage());
+            $this->logger->error('ajax_create_test_data_failed', [
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '创建测试数据失败，请稍后重试'
@@ -517,7 +539,12 @@ class AjaxHandler {
                 'status_filter' => $statusFilter
             ]);
         } catch (Exception $e) {
-            error_log('[NetWatch][ajax] search: ' . $e->getMessage());
+            $this->logger->error('ajax_search_failed', [
+                'search_term' => $searchTerm ?? '',
+                'status_filter' => $statusFilter ?? '',
+                'page' => $page ?? null,
+                'exception' => $e->getMessage(),
+            ]);
             echo json_encode([
                 'success' => false,
                 'error' => '搜索失败，请稍后重试'

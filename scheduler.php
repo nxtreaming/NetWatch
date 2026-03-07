@@ -35,7 +35,9 @@ class Scheduler {
      * 运行监控任务
      */
     public function runMonitorTask() {
-        $this->logger->info("开始执行监控任务");
+        $this->logger->info('scheduler_monitor_task_started', [
+            'task' => 'monitor',
+        ]);
         
         try {
             // 检查所有代理
@@ -45,7 +47,10 @@ class Scheduler {
             $failedProxies = $this->monitor->getFailedProxies();
             
             if (!empty($failedProxies)) {
-                $this->logger->warning("发现 " . count($failedProxies) . " 个故障代理，发送邮件通知");
+                $this->logger->warning('scheduler_failed_proxies_detected', [
+                    'task' => 'monitor',
+                    'failed_proxy_count' => count($failedProxies),
+                ]);
                 $this->mailer->sendProxyAlert($failedProxies);
                 
                 // 记录警报
@@ -58,10 +63,17 @@ class Scheduler {
                 }
             }
             
-            $this->logger->info("监控任务执行完成");
+            $this->logger->info('scheduler_monitor_task_completed', [
+                'task' => 'monitor',
+                'result_count' => is_array($results) ? count($results) : 0,
+                'failed_proxy_count' => count($failedProxies),
+            ]);
             
         } catch (Exception $e) {
-            $this->logger->error("监控任务执行失败: " . $e->getMessage());
+            $this->logger->error('scheduler_monitor_task_failed', [
+                'task' => 'monitor',
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
     
@@ -69,15 +81,23 @@ class Scheduler {
      * 发送每日报告
      */
     public function sendDailyReport() {
-        $this->logger->info("开始发送每日报告");
+        $this->logger->info('scheduler_daily_report_started', [
+            'task' => 'daily_report',
+        ]);
         
         try {
             $stats = $this->monitor->getStats();
             $this->mailer->sendStatusReport($stats);
-            $this->logger->info("每日报告发送完成");
+            $this->logger->info('scheduler_daily_report_completed', [
+                'task' => 'daily_report',
+                'stats_keys' => is_array($stats) ? array_keys($stats) : [],
+            ]);
             
         } catch (Exception $e) {
-            $this->logger->error("每日报告发送失败: " . $e->getMessage());
+            $this->logger->error('scheduler_daily_report_failed', [
+                'task' => 'daily_report',
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
     
@@ -85,14 +105,26 @@ class Scheduler {
      * 清理旧日志
      */
     public function cleanupOldLogs($days = 30) {
-        $this->logger->info("开始清理 $days 天前的日志");
+        $this->logger->info('scheduler_log_cleanup_started', [
+            'task' => 'cleanup_old_logs',
+            'days' => $days,
+        ]);
         
         try {
             $result = $this->monitor->cleanupOldLogs($days);
-            $this->logger->info("清理完成: 删除了 {$result['deleted_logs']} 条日志记录和 {$result['deleted_alerts']} 条警报记录");
+            $this->logger->info('scheduler_log_cleanup_completed', [
+                'task' => 'cleanup_old_logs',
+                'days' => $days,
+                'deleted_logs' => $result['deleted_logs'],
+                'deleted_alerts' => $result['deleted_alerts'],
+            ]);
             
         } catch (Exception $e) {
-            $this->logger->error("清理日志失败: " . $e->getMessage());
+            $this->logger->error('scheduler_log_cleanup_failed', [
+                'task' => 'cleanup_old_logs',
+                'days' => $days,
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
     
@@ -100,7 +132,10 @@ class Scheduler {
      * 主循环
      */
     public function run() {
-        $this->logger->info("NetWatch 调度器启动");
+        $this->logger->info('scheduler_started', [
+            'loop_sleep_sec' => (int) config('scheduler.loop_sleep_sec', 60),
+            'check_interval' => CHECK_INTERVAL,
+        ]);
         
         $lastCheck = 0;
         $lastDailyReport = date('Y-m-d');

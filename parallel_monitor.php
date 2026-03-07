@@ -81,7 +81,11 @@ class ParallelMonitor {
     public function startParallelCheck() {
         $startTime = microtime(true);
         $checkType = $this->offlineOnly ? "离线代理" : "所有代理";
-        $this->logger->info("启动并行检查{$checkType} (会话: {$this->sessionId})");
+        $this->logger->info('parallel_check_started', [
+            'session_id' => $this->sessionId,
+            'check_type' => $checkType,
+            'offline_only' => $this->offlineOnly,
+        ]);
         
         // 获取代理总数
         $totalProxies = $this->offlineOnly ? $this->db->getOfflineProxyCount() : $this->db->getProxyCount();
@@ -96,7 +100,14 @@ class ParallelMonitor {
         
         // 计算需要的批次数
         $totalBatches = ceil($totalProxies / $this->batchSize);
-        $this->logger->info("总计 {$totalProxies} 个代理，分为 {$totalBatches} 个批次，每批 {$this->batchSize} 个 (会话: {$this->sessionId})");
+        $this->logger->info('parallel_check_batches_planned', [
+            'session_id' => $this->sessionId,
+            'total_proxies' => $totalProxies,
+            'total_batches' => $totalBatches,
+            'batch_size' => $this->batchSize,
+            'max_processes' => $this->maxProcesses,
+            'offline_only' => $this->offlineOnly,
+        ]);
         
         // 创建会话独立的临时状态文件目录
         $tempDir = $this->getSessionTempDir();
@@ -120,7 +131,11 @@ class ParallelMonitor {
         // 异步启动批次处理
         $launched = $this->startBatchesAsync($totalProxies, $tempDir);
         if (!$launched) {
-            $this->logger->error("启动批次管理器失败 (会话: {$this->sessionId})");
+            $this->logger->error('parallel_batch_manager_launch_failed', [
+                'session_id' => $this->sessionId,
+                'temp_dir' => $tempDir,
+                'total_proxies' => $totalProxies,
+            ]);
             $this->removeTempDir($tempDir);
             return [
                 'success' => false,
@@ -147,7 +162,10 @@ class ParallelMonitor {
         // 在后台启动批次管理器
         $managerScript = __DIR__ . '/parallel_batch_manager.php';
         if (!file_exists($managerScript)) {
-            $this->logger->error("批次管理器脚本不存在: {$managerScript}");
+            $this->logger->error('parallel_batch_manager_script_missing', [
+                'session_id' => $this->sessionId,
+                'script_path' => $managerScript,
+            ]);
             return false;
         }
         
@@ -169,7 +187,10 @@ class ParallelMonitor {
         
         $process = popen($command, 'r');
         if ($process === false) {
-            $this->logger->error("无法启动批次管理器进程");
+            $this->logger->error('parallel_batch_manager_process_start_failed', [
+                'session_id' => $this->sessionId,
+                'command' => $command,
+            ]);
             return false;
         }
 
@@ -187,7 +208,9 @@ class ParallelMonitor {
      */
     public function checkAllProxiesParallel() {
         $startTime = microtime(true);
-        $this->logger->info("开始并行检查所有代理 (会话: {$this->sessionId})");
+        $this->logger->info('parallel_check_sync_started', [
+            'session_id' => $this->sessionId,
+        ]);
         
         // 获取所有代理总数
         $totalProxies = $this->db->getProxyCount();
@@ -197,8 +220,14 @@ class ParallelMonitor {
         
         // 计算需要的批次数
         $totalBatches = ceil($totalProxies / $this->batchSize);
-        $this->logger->info("总计 {$totalProxies} 个代理，分为 {$totalBatches} 个批次，每批 {$this->batchSize} 个 (会话: {$this->sessionId})");
-        
+        $this->logger->info('parallel_check_sync_batches_planned', [
+            'session_id' => $this->sessionId,
+            'total_proxies' => $totalProxies,
+            'total_batches' => $totalBatches,
+            'batch_size' => $this->batchSize,
+            'max_processes' => $this->maxProcesses,
+        ]);
+
         // 创建会话独立的临时状态文件目录
         $tempDir = $this->getSessionTempDir();
         if (!is_dir($tempDir)) {
@@ -220,7 +249,9 @@ class ParallelMonitor {
             
             // 检查是否被取消
             if ($this->isCancelled()) {
-                $this->logger->info("检测到取消信号，停止启动新批次 (会话: {$this->sessionId})");
+                $this->logger->info('parallel_check_cancel_detected', [
+                    'session_id' => $this->sessionId,
+                ]);
                 break;
             }
             
@@ -243,7 +274,11 @@ class ParallelMonitor {
         $results = $this->collectResults($tempDir, $totalBatches);
         
         $executionTime = microtime(true) - $startTime;
-        $this->logger->info("并行检查完成，耗时: " . round($executionTime, 2) . "秒 (会话: {$this->sessionId})");
+        $this->logger->info('parallel_check_completed', [
+            'session_id' => $this->sessionId,
+            'execution_time_seconds' => round($executionTime, 2),
+            'total_batches' => $totalBatches,
+        ]);
         
         return array_merge($results, [
             'success' => true,
@@ -276,10 +311,22 @@ class ParallelMonitor {
         $process = popen($command, 'r');
         if ($process) {
             pclose($process);
-            $this->logger->info("启动批次 {$batchId}，偏移: {$offset}，数量: {$limit} (会话: {$this->sessionId})");
+            $this->logger->info('parallel_batch_process_started', [
+                'session_id' => $this->sessionId,
+                'batch_id' => $batchId,
+                'offset' => $offset,
+                'limit' => $limit,
+                'status_file' => $statusFile,
+            ]);
             return $statusFile;
         } else {
-            $this->logger->error("启动批次 {$batchId} 失败 (会话: {$this->sessionId})");
+            $this->logger->error('parallel_batch_process_start_failed', [
+                'session_id' => $this->sessionId,
+                'batch_id' => $batchId,
+                'offset' => $offset,
+                'limit' => $limit,
+                'status_file' => $statusFile,
+            ]);
             return false;
         }
     }

@@ -33,7 +33,13 @@ $db = new Database();
 $monitor = new NetworkMonitor();
 $logger = new Logger();
 
-$logger->info("工作进程启动: {$batchId}, offset={$offset}, limit={$limit}");
+$logger->info('parallel_worker_started', [
+    'batch_id' => $batchId,
+    'offset' => $offset,
+    'limit' => $limit,
+    'status_file' => $statusFile,
+    'offline_only' => $offlineOnly,
+]);
 
 try {
     // 更新批次状态为运行中
@@ -57,7 +63,14 @@ try {
     }
     
     $checkType = $offlineOnly ? "离线代理" : "代理";
-    $logger->info("批次 {$batchId} 获取到 {$totalProxies} 个{$checkType}");
+    $logger->info('parallel_worker_batch_loaded', [
+        'batch_id' => $batchId,
+        'offset' => $offset,
+        'limit' => $limit,
+        'proxy_count' => $totalProxies,
+        'check_type' => $checkType,
+        'offline_only' => $offlineOnly,
+    ]);
     
     // 检测每个代理
     $checkedCount = 0;
@@ -67,7 +80,12 @@ try {
     foreach ($proxies as $proxy) {
         // 检查是否被取消
         if (isCancelled()) {
-            $logger->info("批次 {$batchId} 被取消");
+            $logger->info('parallel_worker_cancelled', [
+                'batch_id' => $batchId,
+                'checked_count' => $checkedCount,
+                'online_count' => $onlineCount,
+                'offline_count' => $offlineCount,
+            ]);
             updateBatchStatus($statusFile, [
                 'status' => 'cancelled',
                 'end_time' => time()
@@ -98,7 +116,14 @@ try {
 
         // 每检查20个代理记录一次日志
         if ($checkedCount % 20 == 0) {
-            $logger->info("批次 {$batchId} 进度: {$checkedCount}/{$totalProxies} (在线: {$onlineCount}, 离线: {$offlineCount})");
+            $logger->info('parallel_worker_progress', [
+                'batch_id' => $batchId,
+                'checked_count' => $checkedCount,
+                'total_proxies' => $totalProxies,
+                'online_count' => $onlineCount,
+                'offline_count' => $offlineCount,
+                'progress_percent' => round(($checkedCount / $totalProxies) * 100, 2),
+            ]);
         }
     }
     
@@ -109,10 +134,22 @@ try {
         'end_time' => time()
     ]);
     
-    $logger->info("批次 {$batchId} 完成: 检查 {$checkedCount} 个代理，在线 {$onlineCount} 个，离线 {$offlineCount} 个");
+    $logger->info('parallel_worker_completed', [
+        'batch_id' => $batchId,
+        'checked_count' => $checkedCount,
+        'online_count' => $onlineCount,
+        'offline_count' => $offlineCount,
+        'offline_only' => $offlineOnly,
+    ]);
     
 } catch (Exception $e) {
-    $logger->error("批次 {$batchId} 出现错误: " . $e->getMessage());
+    $logger->error('parallel_worker_failed', [
+        'batch_id' => $batchId,
+        'offset' => $offset,
+        'limit' => $limit,
+        'status_file' => $statusFile,
+        'exception' => $e->getMessage(),
+    ]);
     
     updateBatchStatus($statusFile, [
         'status' => 'error',

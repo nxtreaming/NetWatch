@@ -18,6 +18,10 @@ header('Access-Control-Allow-Origin: ' . (string) config('api.allow_origin', '*'
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
+function api_log_event(string $event, array $context = []): void {
+    error_log('[NetWatch][API] ' . $event . ' ' . json_encode($context, JSON_UNESCAPED_UNICODE));
+}
+
 // 处理OPTIONS请求（CORS预检）
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -44,7 +48,9 @@ if (!empty(config('api.ip_whitelist', ''))) {
     $whitelist = is_array($whitelistConfig) ? $whitelistConfig : explode(',', (string) $whitelistConfig);
     $whitelist = array_map('trim', $whitelist);
     if (!in_array($clientIp, $whitelist, true)) {
-        error_log('[NetWatch][API] IP not in whitelist: ' . $clientIp);
+        api_log_event('api_ip_not_in_whitelist', [
+            'client_ip' => $clientIp,
+        ]);
         JsonResponse::error('access_denied', 'Access denied', 403);
         exit;
     }
@@ -158,7 +164,11 @@ class ProxyApi {
                     'username' => $proxy['username'],
                     'password' => $proxy['password']
                 ];
-                error_log('[NetWatch][API] Proxy auth data exposed for proxy_id=' . $proxy['id']);
+                api_log_event('api_proxy_auth_exposed', [
+                    'proxy_id' => $proxy['id'],
+                    'token_id' => $tokenInfo['id'],
+                    'format' => $format,
+                ]);
             }
             
             $formattedProxies[] = $proxyData;
@@ -381,6 +391,11 @@ try {
     }
     
 } catch (Exception $e) {
+    api_log_event('api_request_failed', [
+        'action' => $action ?? '',
+        'client_ip' => $clientIp ?? '',
+        'exception' => $e->getMessage(),
+    ]);
     echo ApiResponse::error('Internal server error: ' . $e->getMessage(), 500);
 }
 ?>
