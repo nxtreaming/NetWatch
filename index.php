@@ -38,7 +38,7 @@ if ($action === 'logout') {
     exit;
 }
 
-if (isset($_GET['ajax'])) {
+if (netwatch_is_ajax_mode_request()) {
     $pageController->handleAjaxRequest($action);
     exit;
 }

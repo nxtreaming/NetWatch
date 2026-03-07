@@ -5,6 +5,7 @@
 
 require_once __DIR__ . '/includes/security_headers.php';
 require_once __DIR__ . '/includes/Config.php';
+require_once __DIR__ . '/includes/functions.php';
 
 class Auth {
     private const MAX_USERNAME_LENGTH = 64;
@@ -285,15 +286,8 @@ class Auth {
             }
         }
         if (!self::isLoggedIn()) {
-            $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
-            $isXmlHttpRequest = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
-            $acceptsJson = !empty($accept) && (strpos($accept, 'application/json') !== false);
-            $acceptsHtml = !empty($accept) && (strpos($accept, 'text/html') !== false);
-            $hasAjaxParam = isset($_GET['ajax']) && ($_GET['ajax'] === '1' || $_GET['ajax'] === 'true' || $_GET['ajax'] === 1);
-
             // 如果是AJAX/JSON请求，返回JSON响应
-            if ($isXmlHttpRequest || $hasAjaxParam || ($acceptsJson && !$acceptsHtml)) {
+            if (netwatch_request_expects_json_response()) {
                 header('Content-Type: application/json; charset=utf-8');
                 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
                 header('Pragma: no-cache');

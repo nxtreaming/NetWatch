@@ -3,6 +3,24 @@
  * NetWatch 通用工具函数
  */
 
+function netwatch_is_ajax_mode_request(): bool {
+    return isset($_GET['ajax']) && (
+        $_GET['ajax'] === '1'
+        || $_GET['ajax'] === 'true'
+        || $_GET['ajax'] === 1
+    );
+}
+
+function netwatch_request_expects_json_response(): bool {
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    $isXmlHttpRequest = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+        && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    $acceptsJson = $accept !== '' && strpos($accept, 'application/json') !== false;
+    $acceptsHtml = $accept !== '' && strpos($accept, 'text/html') !== false;
+
+    return $isXmlHttpRequest || netwatch_is_ajax_mode_request() || ($acceptsJson && !$acceptsHtml);
+}
+
 /**
  * 验证是否为真正的AJAX请求
  * 防止移动端浏览器错误地将页面请求误认为AJAX请求
