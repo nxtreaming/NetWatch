@@ -5,6 +5,7 @@
 
 require_once 'vendor/autoload.php';
 require_once 'config.php';
+require_once 'includes/Config.php';
 require_once 'logger.php';
 require_once __DIR__ . '/includes/MailerInterface.php';
 
@@ -27,25 +28,36 @@ class Mailer implements MailerInterface {
         
         try {
             $smtpPassword = $this->resolveSmtpPassword();
+            $host = (string) config('mail.host', '');
+            $username = (string) config('mail.username', '');
+            $port = (int) config('mail.port', 587);
+            $from = (string) config('mail.from', '');
+            $fromName = (string) config('mail.from_name', 'NetWatch');
+            $to = (string) config('mail.to', '');
+
+            if ($host === '' || $username === '' || $from === '' || $to === '') {
+                throw new Exception('SMTP configuration is incomplete');
+            }
+
             if ($smtpPassword === '') {
                 throw new Exception('SMTP password is not configured');
             }
 
             // 服务器设置
             $mail->isSMTP();
-            $mail->Host = SMTP_HOST;
+            $mail->Host = $host;
             $mail->SMTPAuth = true;
-            $mail->Username = SMTP_USERNAME;
+            $mail->Username = $username;
             $mail->Password = $smtpPassword;
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = SMTP_PORT;
+            $mail->Port = $port;
             $mail->CharSet = 'UTF-8';
             
             // 发件人
-            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+            $mail->setFrom($from, $fromName);
             
             // 收件人
-            $mail->addAddress(SMTP_TO_EMAIL);
+            $mail->addAddress($to);
             
             // 内容
             $mail->isHTML($isHTML);
@@ -66,8 +78,9 @@ class Mailer implements MailerInterface {
      * 解析 SMTP 密码（优先级：环境变量 > 密码文件 > 配置常量）
      */
     private function resolveSmtpPassword() {
-        if (defined('SMTP_PASSWORD_ENV') && is_string(SMTP_PASSWORD_ENV) && SMTP_PASSWORD_ENV !== '') {
-            $envName = trim(SMTP_PASSWORD_ENV);
+        $envConfig = config('mail.password_env', '');
+        if (is_string($envConfig) && $envConfig !== '') {
+            $envName = trim($envConfig);
             if ($envName !== '') {
                 $envValue = getenv($envName);
                 if ($envValue === false) {
@@ -79,8 +92,9 @@ class Mailer implements MailerInterface {
             }
         }
 
-        if (defined('SMTP_PASSWORD_FILE') && is_string(SMTP_PASSWORD_FILE) && SMTP_PASSWORD_FILE !== '') {
-            $filePath = trim(SMTP_PASSWORD_FILE);
+        $fileConfig = config('mail.password_file', '');
+        if (is_string($fileConfig) && $fileConfig !== '') {
+            $filePath = trim($fileConfig);
             if ($filePath !== '' && is_readable($filePath)) {
                 $fileValue = file_get_contents($filePath);
                 if ($fileValue !== false) {
@@ -92,8 +106,9 @@ class Mailer implements MailerInterface {
             }
         }
 
-        if (defined('SMTP_PASSWORD') && is_string(SMTP_PASSWORD) && SMTP_PASSWORD !== '') {
-            return SMTP_PASSWORD;
+        $password = config('mail.password', '');
+        if (is_string($password) && $password !== '') {
+            return $password;
         }
 
         return '';

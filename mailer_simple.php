@@ -5,6 +5,7 @@
  */
 
 require_once 'config.php';
+require_once 'includes/Config.php';
 require_once 'logger.php';
 require_once __DIR__ . '/includes/MailerInterface.php';
 
@@ -20,9 +21,13 @@ class SimpleMailer implements MailerInterface {
      */
     public function sendMail($subject, $body, $isHTML = true) {
         try {
-            $to = SMTP_TO_EMAIL;
-            $from = SMTP_FROM_EMAIL;
-            $fromName = SMTP_FROM_NAME;
+            $to = (string) config('mail.to', '');
+            $from = (string) config('mail.from', '');
+            $fromName = (string) config('mail.from_name', 'NetWatch');
+
+            if ($to === '' || $from === '') {
+                throw new Exception('Mail configuration is incomplete');
+            }
             
             // 设置邮件头
             $headers = [];
