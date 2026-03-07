@@ -5,6 +5,7 @@
 
 require_once '../config.php';
 require_once '../auth.php';
+require_once '../includes/Config.php';
 require_once '../database.php';
 require_once '../monitor.php';
 
@@ -265,9 +266,9 @@ $mailerType = 'PHPMailer (SMTP)';
         <div class="config-info">
             <h3>📋 当前配置信息</h3>
             <p><strong>邮件发送器:</strong> <?php echo $mailerType; ?></p>
-            <p><strong>SMTP服务器:</strong> <?php echo defined('SMTP_HOST') ? SMTP_HOST : '未配置'; ?>:<?php echo defined('SMTP_PORT') ? SMTP_PORT : '未配置'; ?></p>
-            <p><strong>发件人:</strong> <?php echo defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : '未配置'; ?></p>
-            <p><strong>收件人:</strong> <?php echo defined('SMTP_TO_EMAIL') ? SMTP_TO_EMAIL : '未配置'; ?></p>
+            <p><strong>SMTP服务器:</strong> <?php echo htmlspecialchars((string) config('mail.host', '未配置')); ?>:<?php echo htmlspecialchars((string) config('mail.port', '未配置')); ?></p>
+            <p><strong>发件人:</strong> <?php echo htmlspecialchars((string) config('mail.from', '未配置')); ?></p>
+            <p><strong>收件人:</strong> <?php echo htmlspecialchars((string) config('mail.to', '未配置')); ?></p>
         </div>
 
         <div class="test-section">

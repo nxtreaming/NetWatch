@@ -6,6 +6,7 @@
 
 require_once '../config.php';
 require_once '../auth.php';
+require_once '../includes/Config.php';
 require_once '../logger.php';
 
 // 检查登录状态
@@ -21,10 +22,10 @@ if (function_exists('mail')) {
     // 测试基本mail函数
     if (isset($_GET['test_mail'])) {
         echo "<p>测试PHP mail()函数...</p>\n";
-        $to = defined('SMTP_TO_EMAIL') ? SMTP_TO_EMAIL : 'test@example.com';
+        $to = (string) config('mail.to', 'test@example.com');
         $subject = 'PHP mail()函数测试 - ' . date('Y-m-d H:i:s');
         $message = '这是通过PHP内置mail()函数发送的测试邮件。\n\n发送时间: ' . date('Y-m-d H:i:s');
-        $headers = 'From: ' . (defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : 'test@example.com');
+        $headers = 'From: ' . (string) config('mail.from', 'test@example.com');
         
         $result = mail($to, $subject, $message, $headers);
         
@@ -45,13 +46,13 @@ echo "<hr>\n";
 // 检查SMTP配置
 echo "<h3>2. SMTP配置检查</h3>\n";
 $config = [
-    'SMTP_HOST' => defined('SMTP_HOST') ? SMTP_HOST : 'NOT_DEFINED',
-    'SMTP_PORT' => defined('SMTP_PORT') ? SMTP_PORT : 'NOT_DEFINED',
-    'SMTP_USERNAME' => defined('SMTP_USERNAME') ? SMTP_USERNAME : 'NOT_DEFINED',
-    'SMTP_PASSWORD' => defined('SMTP_PASSWORD') ? (empty(SMTP_PASSWORD) ? 'EMPTY' : 'SET') : 'NOT_DEFINED',
-    'SMTP_FROM_EMAIL' => defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : 'NOT_DEFINED',
-    'SMTP_FROM_NAME' => defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'NOT_DEFINED',
-    'SMTP_TO_EMAIL' => defined('SMTP_TO_EMAIL') ? SMTP_TO_EMAIL : 'NOT_DEFINED'
+    'SMTP_HOST' => (string) config('mail.host', 'NOT_DEFINED'),
+    'SMTP_PORT' => (string) config('mail.port', 'NOT_DEFINED'),
+    'SMTP_USERNAME' => (string) config('mail.username', 'NOT_DEFINED'),
+    'SMTP_PASSWORD' => config('mail.password_env', '') !== '' || config('mail.password_file', '') !== '' || config('mail.password', '') !== '' ? 'SET' : 'NOT_DEFINED',
+    'SMTP_FROM_EMAIL' => (string) config('mail.from', 'NOT_DEFINED'),
+    'SMTP_FROM_NAME' => (string) config('mail.from_name', 'NOT_DEFINED'),
+    'SMTP_TO_EMAIL' => (string) config('mail.to', 'NOT_DEFINED')
 ];
 
 echo "<table border='1' style='border-collapse: collapse; width: 100%;'>\n";
@@ -103,21 +104,29 @@ if (file_exists('vendor/autoload.php')) {
                 $mail = new PHPMailer(true);
                 
                 try {
+                    $smtpHost = (string) config('mail.host', '');
+                    $smtpUsername = (string) config('mail.username', '');
+                    $smtpPort = (int) config('mail.port', 587);
+                    $smtpFrom = (string) config('mail.from', '');
+                    $smtpFromName = (string) config('mail.from_name', 'NetWatch');
+                    $smtpTo = (string) config('mail.to', '');
+                    $smtpPassword = (string) config('mail.password', '');
+
                     // 服务器设置
                     $mail->isSMTP();
-                    $mail->Host = SMTP_HOST;
+                    $mail->Host = $smtpHost;
                     $mail->SMTPAuth = true;
-                    $mail->Username = SMTP_USERNAME;
-                    $mail->Password = SMTP_PASSWORD;
+                    $mail->Username = $smtpUsername;
+                    $mail->Password = $smtpPassword;
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port = SMTP_PORT;
+                    $mail->Port = $smtpPort;
                     $mail->CharSet = 'UTF-8';
                     
                     // 发件人
-                    $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+                    $mail->setFrom($smtpFrom, $smtpFromName);
                     
                     // 收件人
-                    $mail->addAddress(SMTP_TO_EMAIL);
+                    $mail->addAddress($smtpTo);
                     
                     // 内容
                     $mail->isHTML(true);
@@ -232,10 +241,12 @@ echo "<hr>\n";
 
 // 网络连接测试
 echo "<h3>7. 网络连接测试</h3>\n";
-if (defined('SMTP_HOST') && defined('SMTP_PORT')) {
-    echo "<p>测试到 " . SMTP_HOST . ":" . SMTP_PORT . " 的连接...</p>\n";
+if (config('mail.host', '') !== '' && config('mail.port', '') !== '') {
+    $smtpHost = (string) config('mail.host', '');
+    $smtpPort = (int) config('mail.port', 587);
+    echo "<p>测试到 " . $smtpHost . ":" . $smtpPort . " 的连接...</p>\n";
     
-    $socket = @fsockopen(SMTP_HOST, SMTP_PORT, $errno, $errstr, 10);
+    $socket = @fsockopen($smtpHost, $smtpPort, $errno, $errstr, 10);
     if ($socket) {
         echo "<p style='color: green;'>✅ 成功连接到SMTP服务器</p>\n";
         

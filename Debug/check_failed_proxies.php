@@ -5,6 +5,7 @@
 
 require_once '../config.php';
 require_once '../auth.php';
+require_once '../includes/Config.php';
 require_once '../database.php';
 require_once '../monitor.php';
 require_once '../logger.php';
@@ -66,17 +67,17 @@ try {
     // 4. 检查邮件配置
     echo "4. 邮件配置检查:\n";
     
-    if (defined('SMTP_HOST')) {
-        echo "   SMTP_HOST: " . SMTP_HOST . "\n";
+    if (config('mail.host', '') !== '') {
+        echo "   SMTP_HOST: " . config('mail.host', '') . "\n";
     }
-    if (defined('SMTP_USERNAME')) {
-        echo "   SMTP_USERNAME: " . SMTP_USERNAME . "\n";
+    if (config('mail.username', '') !== '') {
+        echo "   SMTP_USERNAME: " . config('mail.username', '') . "\n";
     }
-    if (defined('SMTP_TO_EMAIL')) {
-        echo "   SMTP_TO_EMAIL: " . SMTP_TO_EMAIL . "\n";
+    if (config('mail.to', '') !== '') {
+        echo "   SMTP_TO_EMAIL: " . config('mail.to', '') . "\n";
     }
-    if (defined('SMTP_FROM_EMAIL')) {
-        echo "   SMTP_FROM_EMAIL: " . SMTP_FROM_EMAIL . "\n";
+    if (config('mail.from', '') !== '') {
+        echo "   SMTP_FROM_EMAIL: " . config('mail.from', '') . "\n";
     }
     
     echo "   ALERT_THRESHOLD: " . ALERT_THRESHOLD . " 次\n";

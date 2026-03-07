@@ -5,6 +5,7 @@
 
 require_once '../config.php';
 require_once '../auth.php';
+require_once '../includes/Config.php';
 require_once '../monitor.php';
 
 // 检查登录状态
@@ -69,9 +70,11 @@ try {
 // 测试邮件功能（仅测试配置，不实际发送）
 echo "4. 测试邮件配置...\n";
 try {
-    if (defined('SMTP_USERNAME') && SMTP_USERNAME === 'your-email@gmail.com') {
+    $mailUsername = (string) config('mail.username', '');
+    $mailFrom = (string) config('mail.from', '');
+    if ($mailUsername === 'your-email@gmail.com') {
         echo "⚠ 邮件配置未完成，请修改 config.php 中的邮件设置\n";
-    } elseif (defined('SMTP_FROM_EMAIL') && SMTP_FROM_EMAIL !== 'netwatch@yourdomain.com') {
+    } elseif ($mailFrom !== '' && $mailFrom !== 'netwatch@yourdomain.com') {
         echo "✓ 邮件配置已设置\n";
     } else {
         echo "⚠ 邮件配置未完成，请修改 config.php 中的邮件设置\n";
