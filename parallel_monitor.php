@@ -8,6 +8,7 @@
 require_once 'config.php';
 require_once 'database.php';
 require_once 'includes/Config.php';
+require_once 'includes/ParallelStatusUtils.php';
 require_once 'monitor.php';
 require_once 'logger.php';
 
@@ -126,7 +127,7 @@ class ParallelMonitor {
             'status' => 'starting',
             'session_id' => $this->sessionId
         ];
-        $this->writeJsonFile($tempDir . '/main_status.json', $mainStatus);
+        netwatch_write_json_file($tempDir . '/main_status.json', $mainStatus);
         
         // 异步启动批次处理
         $launched = $this->startBatchesAsync($totalProxies, $tempDir);
@@ -373,12 +374,7 @@ class ParallelMonitor {
      * 判断批次是否已结束
      */
     private function isBatchFinished(string $statusFile): bool {
-        $status = $this->readJsonFile($statusFile);
-        if (!is_array($status)) {
-            return false;
-        }
-
-        return in_array($status['status'] ?? '', ['completed', 'cancelled', 'error'], true);
+        return netwatch_is_batch_finished($statusFile);
     }
     
     /**
@@ -395,7 +391,7 @@ class ParallelMonitor {
             $statusFile = $tempDir . '/' . $batchId . '.json';
             
             if (file_exists($statusFile)) {
-                $batchStatus = $this->readJsonFile($statusFile);
+                $batchStatus = netwatch_read_json_file($statusFile);
                 if ($batchStatus) {
                     $totalChecked += $batchStatus['checked'];
                     $totalOnline += $batchStatus['online'];
@@ -437,7 +433,7 @@ class ParallelMonitor {
         $totalProxies = 0; // 总代理数量
         
         foreach ($statusFiles as $statusFile) {
-            $batchStatus = $this->readJsonFile($statusFile);
+            $batchStatus = netwatch_read_json_file($statusFile);
             
             if ($batchStatus) {
                 $totalChecked += $batchStatus['checked'] ?? 0;
@@ -512,8 +508,7 @@ class ParallelMonitor {
      */
     public function isCancelled() {
         $tempDir = $this->getSessionTempDir();
-        $cancelFile = $tempDir . '/cancel.flag';
-        return file_exists($cancelFile);
+        return netwatch_is_cancelled_dir($tempDir);
     }
     
     /**
@@ -530,45 +525,10 @@ class ParallelMonitor {
     private function scheduleCleanup(string $tempDir): void {
         // 写入清理标记文件，包含预定清理时间（当前时间 + 30秒）
         $cleanupFile = $tempDir . '/cleanup_scheduled.json';
-        $this->writeJsonFile($cleanupFile, [
+        netwatch_write_json_file($cleanupFile, [
             'scheduled_at' => time(),
             'cleanup_after' => time() + 30
         ]);
-    }
-
-    /**
-     * 读取 JSON 文件
-     */
-    private function readJsonFile(string $filePath): ?array {
-        if (!file_exists($filePath)) {
-            return null;
-        }
-
-        $content = file_get_contents($filePath);
-        if ($content === false) {
-            return null;
-        }
-
-        $decoded = json_decode($content, true);
-        return is_array($decoded) ? $decoded : null;
-    }
-
-    /**
-     * 原子写入 JSON 文件
-     */
-    private function writeJsonFile(string $filePath, array $payload): bool {
-        $tempFile = $filePath . '.tmp';
-        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        if ($encoded === false) {
-            return false;
-        }
-
-        $written = file_put_contents($tempFile, $encoded, LOCK_EX);
-        if ($written === false) {
-            return false;
-        }
-
-        return rename($tempFile, $filePath);
     }
     
     /**

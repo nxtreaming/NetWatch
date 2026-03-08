@@ -15,6 +15,7 @@ set_time_limit(0); // 无限制
 require_once 'config.php';
 require_once 'database.php';
 require_once 'includes/Config.php';
+require_once 'includes/ParallelStatusUtils.php';
 require_once 'logger.php';
 
 // 检查命令行参数
@@ -44,10 +45,10 @@ try {
     // 更新主状态为运行中
     $mainStatusFile = $tempDir . '/main_status.json';
     if (file_exists($mainStatusFile)) {
-        $mainStatus = readJsonFile($mainStatusFile);
+        $mainStatus = netwatch_read_json_file($mainStatusFile);
         if (is_array($mainStatus)) {
             $mainStatus['status'] = 'running';
-            writeJsonFile($mainStatusFile, $mainStatus);
+            netwatch_write_json_file($mainStatusFile, $mainStatus);
         }
     }
     
@@ -59,7 +60,7 @@ try {
     // 启动所有批次
     for ($offset = 0; $offset < $totalProxies; $offset += $batchSize) {
         // 检查是否被取消
-        if (isCancelled($tempDir)) {
+        if (netwatch_is_cancelled_dir($tempDir)) {
             $logger->info('parallel_batch_manager_cancelled', [
                 'temp_dir' => $tempDir,
                 'started_batch_count' => $batchIndex,
@@ -87,7 +88,7 @@ try {
             'end_time' => null,
             'error' => null
         ];
-        writeJsonFile($statusFile, $batchStatus);
+        netwatch_write_json_file($statusFile, $batchStatus);
         
         // 如果达到最大进程数，等待一些进程完成
         if (count($processes) >= $maxProcesses) {
@@ -122,11 +123,11 @@ try {
     
     // 更新主状态为完成
     if (file_exists($mainStatusFile)) {
-        $mainStatus = readJsonFile($mainStatusFile);
+        $mainStatus = netwatch_read_json_file($mainStatusFile);
         if (is_array($mainStatus)) {
-            $mainStatus['status'] = isCancelled($tempDir) ? 'cancelled' : 'completed';
+            $mainStatus['status'] = netwatch_is_cancelled_dir($tempDir) ? 'cancelled' : 'completed';
             $mainStatus['end_time'] = time();
-            writeJsonFile($mainStatusFile, $mainStatus);
+            netwatch_write_json_file($mainStatusFile, $mainStatus);
         }
     }
     
@@ -146,70 +147,16 @@ try {
     
     // 更新主状态为错误
     if (file_exists($mainStatusFile)) {
-        $mainStatus = readJsonFile($mainStatusFile);
+        $mainStatus = netwatch_read_json_file($mainStatusFile);
         if (is_array($mainStatus)) {
             $mainStatus['status'] = 'error';
             $mainStatus['error'] = $e->getMessage();
             $mainStatus['end_time'] = time();
-            writeJsonFile($mainStatusFile, $mainStatus);
+            netwatch_write_json_file($mainStatusFile, $mainStatus);
         }
     }
     
     exit(1);
-}
-
-/**
- * 读取 JSON 文件
- * @param string $filePath 文件路径
- * @return array|null 解析后的数组
- */
-function readJsonFile(string $filePath): ?array {
-    if (!file_exists($filePath)) {
-        return null;
-    }
-
-    $content = file_get_contents($filePath);
-    if ($content === false) {
-        return null;
-    }
-
-    $decoded = json_decode($content, true);
-    return is_array($decoded) ? $decoded : null;
-}
-
-/**
- * 原子写入 JSON 文件
- * @param string $filePath 文件路径
- * @param array $payload 写入内容
- * @return bool 是否成功
- */
-function writeJsonFile(string $filePath, array $payload): bool {
-    $tempFile = $filePath . '.tmp';
-    $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
-    if ($encoded === false) {
-        return false;
-    }
-
-    $written = file_put_contents($tempFile, $encoded, LOCK_EX);
-    if ($written === false) {
-        return false;
-    }
-
-    return rename($tempFile, $filePath);
-}
-
-/**
- * 判断批次是否已结束
- * @param string $statusFile 状态文件路径
- * @return bool 是否已结束
- */
-function isBatchFinished(string $statusFile): bool {
-    $status = readJsonFile($statusFile);
-    if (!is_array($status)) {
-        return false;
-    }
-
-    return in_array($status['status'] ?? '', ['completed', 'cancelled', 'error'], true);
 }
 
 /**
@@ -261,7 +208,7 @@ function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger):
         $completedBatchId = null;
 
         foreach ($processes as $batchId => $statusFile) {
-            if (isBatchFinished($statusFile)) {
+            if (netwatch_is_batch_finished($statusFile)) {
                 $completedBatchId = $batchId;
                 break;
             }
@@ -287,7 +234,7 @@ function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger):
 function waitForAllProcesses(array $processes, Logger $logger): void {
     while (!empty($processes)) {
         foreach ($processes as $batchId => $statusFile) {
-            if (isBatchFinished($statusFile)) {
+            if (netwatch_is_batch_finished($statusFile)) {
                 unset($processes[$batchId]);
                 $logger->info('parallel_batch_finished', [
                     'batch_id' => $batchId,
@@ -302,12 +249,3 @@ function waitForAllProcesses(array $processes, Logger $logger): void {
     }
 }
 
-/**
- * 检查是否被取消
- * @param string $tempDir 临时目录路径
- * @return bool 是否已取消
- */
-function isCancelled(string $tempDir): bool {
-    $cancelFile = $tempDir . '/cancel.flag';
-    return file_exists($cancelFile);
-}

@@ -22,6 +22,23 @@ function api_log_event(string $event, array $context = []): void {
     error_log('[NetWatch][API] ' . $event . ' ' . json_encode($context, JSON_UNESCAPED_UNICODE));
 }
 
+function api_send_response(array $response): void {
+    $statusCode = (int) ($response['status_code'] ?? 200);
+    $contentType = (string) ($response['content_type'] ?? 'application/json; charset=utf-8');
+    $body = $response['body'] ?? null;
+
+    if (strpos($contentType, 'application/json') === 0 && is_array($body)) {
+        JsonResponse::send($body, $statusCode);
+        return;
+    }
+
+    if (!headers_sent()) {
+        header('Content-Type: ' . $contentType);
+    }
+    http_response_code($statusCode);
+    echo (string) $body;
+}
+
 // 处理OPTIONS请求（CORS预检）
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -32,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 if ((bool) config('api.require_https', false) === true) {
     $isHttps = netwatch_is_https_request();
     if (!$isHttps) {
-        echo ApiResponse::error('HTTPS is required for API access', 403);
+        JsonResponse::error('https_required', 'HTTPS is required for API access', 403);
         exit;
     }
 }
@@ -72,26 +89,6 @@ if (!$rateLimiter->attempt($rateLimitKey)) {
     $rateLimiter->sendTooManyRequestsResponse($rateLimitKey);
 }
 
-class ApiResponse {
-    public static function success($data = null, $message = '') {
-        return json_encode([
-            'success' => true,
-            'data' => $data,
-            'message' => $message,
-            'timestamp' => time()
-        ], JSON_UNESCAPED_UNICODE);
-    }
-    
-    public static function error($message, $code = 400) {
-        http_response_code($code);
-        return json_encode([
-            'success' => false,
-            'error' => $message,
-            'timestamp' => time()
-        ], JSON_UNESCAPED_UNICODE);
-    }
-}
-
 class ProxyApi {
     private $db;
     
@@ -126,7 +123,14 @@ class ProxyApi {
         // 验证Token
         $tokenInfo = $this->validateToken($token);
         if (!$tokenInfo) {
-            return ApiResponse::error('Invalid or expired token', 401);
+            return [
+                'status_code' => 401,
+                'body' => [
+                    'success' => false,
+                    'error' => 'Invalid or expired token',
+                    'timestamp' => time(),
+                ],
+            ];
         }
 
         $includeAuth = $this->shouldExposeProxyAuth();
@@ -178,12 +182,20 @@ class ProxyApi {
             case 'list':
                 return $this->formatAsList($formattedProxies);
             default:
-                return ApiResponse::success([
-                    'token_name' => $tokenInfo['name'],
-                    'total_assigned' => count($proxies),
-                    'online_count' => count($onlineProxies),
-                    'proxies' => $formattedProxies
-                ]);
+                return [
+                    'status_code' => 200,
+                    'body' => [
+                        'success' => true,
+                        'data' => [
+                            'token_name' => $tokenInfo['name'],
+                            'total_assigned' => count($proxies),
+                            'online_count' => count($onlineProxies),
+                            'proxies' => $formattedProxies
+                        ],
+                        'message' => '',
+                        'timestamp' => time(),
+                    ],
+                ];
         }
     }
     
@@ -191,7 +203,6 @@ class ProxyApi {
      * 格式化为文本格式
      */
     private function formatAsText($proxies) {
-        header('Content-Type: text/plain');
         $output = [];
         
         foreach ($proxies as $proxy) {
@@ -214,14 +225,17 @@ class ProxyApi {
             }
         }
         
-        return implode("\n", $output);
+        return [
+            'status_code' => 200,
+            'content_type' => 'text/plain; charset=utf-8',
+            'body' => implode("\n", $output),
+        ];
     }
     
     /**
      * 格式化为简单列表格式
      */
     private function formatAsList($proxies) {
-        header('Content-Type: text/plain');
         $output = [];
         
         foreach ($proxies as $proxy) {
@@ -242,7 +256,11 @@ class ProxyApi {
             }
         }
         
-        return implode("\n", $output);
+        return [
+            'status_code' => 200,
+            'content_type' => 'text/plain; charset=utf-8',
+            'body' => implode("\n", $output),
+        ];
     }
     
     /**
@@ -251,7 +269,14 @@ class ProxyApi {
     public function getTokenInfo($token) {
         $tokenInfo = $this->validateToken($token);
         if (!$tokenInfo) {
-            return ApiResponse::error('Invalid or expired token', 401);
+            return [
+                'status_code' => 401,
+                'body' => [
+                    'success' => false,
+                    'error' => 'Invalid or expired token',
+                    'timestamp' => time(),
+                ],
+            ];
         }
         
         $proxies = $this->db->getTokenProxies($tokenInfo['id']);
@@ -259,14 +284,22 @@ class ProxyApi {
             return $proxy['status'] === 'online';
         }));
         
-        return ApiResponse::success([
-            'name' => $tokenInfo['name'],
-            'proxy_count' => $tokenInfo['proxy_count'],
-            'assigned_count' => count($proxies),
-            'online_count' => $onlineCount,
-            'expires_at' => $tokenInfo['expires_at'],
-            'created_at' => $tokenInfo['created_at']
-        ]);
+        return [
+            'status_code' => 200,
+            'body' => [
+                'success' => true,
+                'data' => [
+                    'name' => $tokenInfo['name'],
+                    'proxy_count' => $tokenInfo['proxy_count'],
+                    'assigned_count' => count($proxies),
+                    'online_count' => $onlineCount,
+                    'expires_at' => $tokenInfo['expires_at'],
+                    'created_at' => $tokenInfo['created_at']
+                ],
+                'message' => '',
+                'timestamp' => time(),
+            ],
+        ];
     }
     
     /**
@@ -275,7 +308,14 @@ class ProxyApi {
     public function checkProxyStatus($token, $proxyId = null) {
         $tokenInfo = $this->validateToken($token);
         if (!$tokenInfo) {
-            return ApiResponse::error('Invalid or expired token', 401);
+            return [
+                'status_code' => 401,
+                'body' => [
+                    'success' => false,
+                    'error' => 'Invalid or expired token',
+                    'timestamp' => time(),
+                ],
+            ];
         }
         
         $proxies = $this->db->getTokenProxies($tokenInfo['id']);
@@ -287,19 +327,34 @@ class ProxyApi {
             });
             
             if (empty($proxy)) {
-                return ApiResponse::error('Proxy not found or not authorized', 404);
+                return [
+                    'status_code' => 404,
+                    'body' => [
+                        'success' => false,
+                        'error' => 'Proxy not found or not authorized',
+                        'timestamp' => time(),
+                    ],
+                ];
             }
             
             $proxy = array_values($proxy)[0];
-            return ApiResponse::success([
-                'id' => $proxy['id'],
-                'host' => $proxy['ip'],
-                'port' => $proxy['port'],
-                'status' => $proxy['status'],
-                'response_time' => $proxy['response_time'],
-                'last_check' => $proxy['last_check'],
-                'failure_count' => $proxy['failure_count']
-            ]);
+            return [
+                'status_code' => 200,
+                'body' => [
+                    'success' => true,
+                    'data' => [
+                        'id' => $proxy['id'],
+                        'host' => $proxy['ip'],
+                        'port' => $proxy['port'],
+                        'status' => $proxy['status'],
+                        'response_time' => $proxy['response_time'],
+                        'last_check' => $proxy['last_check'],
+                        'failure_count' => $proxy['failure_count']
+                    ],
+                    'message' => '',
+                    'timestamp' => time(),
+                ],
+            ];
         } else {
             // 返回所有代理状态统计
             $statusCount = [
@@ -312,11 +367,19 @@ class ProxyApi {
                 $statusCount[$proxy['status']]++;
             }
             
-            return ApiResponse::success([
-                'total' => count($proxies),
-                'status_breakdown' => $statusCount,
-                'last_updated' => date('Y-m-d H:i:s')
-            ]);
+            return [
+                'status_code' => 200,
+                'body' => [
+                    'success' => true,
+                    'data' => [
+                        'total' => count($proxies),
+                        'status_breakdown' => $statusCount,
+                        'last_updated' => date('Y-m-d H:i:s')
+                    ],
+                    'message' => '',
+                    'timestamp' => time(),
+                ],
+            ];
         }
     }
 }
@@ -342,23 +405,23 @@ try {
         case 'proxies':
         case 'get_proxies':
             $format = $_GET['format'] ?? 'json';
-            echo $api->getProxies($token, $format);
+            api_send_response($api->getProxies($token, $format));
             break;
             
         case 'info':
         case 'token_info':
-            echo $api->getTokenInfo($token);
+            api_send_response($api->getTokenInfo($token));
             break;
             
         case 'status':
         case 'check_status':
             $proxyId = $_GET['proxy_id'] ?? null;
-            echo $api->checkProxyStatus($token, $proxyId);
+            api_send_response($api->checkProxyStatus($token, $proxyId));
             break;
             
         case 'help':
             $authEnabled = defined('API_EXPOSE_PROXY_AUTH') && API_EXPOSE_PROXY_AUTH === true;
-            echo ApiResponse::success([
+            JsonResponse::success([
                 'endpoints' => [
                     'GET /api.php?action=proxies&token=YOUR_TOKEN' => '获取授权的代理列表',
                     'GET /api.php?action=proxies&token=YOUR_TOKEN&format=txt' => '获取文本格式的代理列表',
@@ -384,7 +447,8 @@ try {
             break;
             
         default:
-            echo ApiResponse::error('Invalid action. Use ?action=help for available endpoints', 400);
+            JsonResponse::error('invalid_action', 'Invalid action. Use ?action=help for available endpoints', 400);
+            break;
     }
     
 } catch (Exception $e) {
@@ -393,5 +457,5 @@ try {
         'client_ip' => $clientIp ?? '',
         'exception' => $e->getMessage(),
     ]);
-    echo ApiResponse::error('Internal server error', 500);
+    JsonResponse::error('internal_server_error', 'Internal server error', 500);
 }
