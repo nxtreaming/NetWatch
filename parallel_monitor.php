@@ -292,14 +292,14 @@ class ParallelMonitor {
      */
     private function startBatchProcess($batchId, $offset, $limit, $statusFile) {
         $scriptPath = __DIR__ . '/parallel_worker.php';
-        $command = sprintf(
-            'php "%s" "%s" %d %d "%s"',
-            $scriptPath,
-            $batchId,
-            $offset,
-            $limit,
-            $statusFile
-        );
+        $args = implode(' ', [
+            escapeshellarg($scriptPath),
+            escapeshellarg((string) $batchId),
+            (int) $offset,
+            (int) $limit,
+            escapeshellarg((string) $statusFile),
+        ]);
+        $command = 'php ' . $args;
         
         // 在Windows系统上使用不同的命令
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {

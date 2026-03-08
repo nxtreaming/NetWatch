@@ -27,8 +27,8 @@ class Scheduler {
     public function __construct() {
         $this->monitor = new NetworkMonitor();
         $this->mailer = USE_PHPMAILER ? new Mailer() : new SimpleMailer();
-        $this->db = new Database();
-        $this->logger = new Logger();
+        $this->db = $this->monitor->getDatabase();
+        $this->logger = $this->monitor->getLogger();
     }
     
     /**

@@ -311,4 +311,3 @@ function isCancelled(string $tempDir): bool {
     $cancelFile = $tempDir . '/cancel.flag';
     return file_exists($cancelFile);
 }
-?>

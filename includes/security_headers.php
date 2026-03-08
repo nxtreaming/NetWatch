@@ -29,6 +29,13 @@ if (!function_exists('netwatch_send_security_headers')) {
             . "frame-ancestors 'none'; "
             . "form-action 'self'";
 
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: DENY');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+        if (netwatch_is_https_request()) {
+            header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+        }
         header('Content-Security-Policy: ' . $csp);
     }
 }

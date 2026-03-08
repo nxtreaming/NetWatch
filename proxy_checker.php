@@ -1,6 +1,7 @@
 <?php
 
 require_once 'config.php';
+require_once 'includes/Config.php';
 
 class ProxyChecker {
     public function check(array $proxy, int $timeout, int $connectTimeout): array {
@@ -8,6 +9,7 @@ class ProxyChecker {
         $errorMessage = null;
         $responseTime = 0;
         $ch = null;
+        $verifySsl = (bool) config('security.verify_ssl', true);
 
         try {
             $ch = curl_init();
@@ -21,8 +23,8 @@ class ProxyChecker {
                 CURLOPT_TIMEOUT => $timeout,
                 CURLOPT_CONNECTTIMEOUT => $connectTimeout,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_SSL_VERIFYPEER => $verifySsl,
+                CURLOPT_SSL_VERIFYHOST => $verifySsl ? 2 : 0,
                 CURLOPT_USERAGENT => 'NetWatch Monitor/1.0'
             ]);
 

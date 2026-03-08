@@ -46,6 +46,7 @@ class TrafficMonitor {
         $maxRetries = (int) config('monitoring.max_retries', 3);
         $retryDelayUs = (int) config('monitoring.retry_delay_us', 200000);
         $lastError = '';
+        $verifySsl = (bool) config('security.verify_ssl', true);
         
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
             $ch = null;
@@ -60,8 +61,8 @@ class TrafficMonitor {
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 30);
                 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifySsl);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $verifySsl ? 2 : 0);
                 
                 // 如果配置了代理认证，使用HTTP代理
                 if (!empty($this->proxyHost) && !empty($this->proxyUsername) && !empty($this->proxyPassword)) {

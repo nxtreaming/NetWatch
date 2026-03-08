@@ -37,6 +37,9 @@ class Database {
             
             $this->pdo = new PDO('sqlite:' . DB_PATH);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->pdo->exec('PRAGMA journal_mode=WAL');
+            $this->pdo->exec('PRAGMA busy_timeout=5000');
+            $this->pdo->exec('PRAGMA synchronous=NORMAL');
         } catch (PDOException $e) {
             throw new DatabaseException('数据库连接失败', 500, $e, [
                 'db_path' => DB_PATH

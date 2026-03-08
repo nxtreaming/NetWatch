@@ -62,6 +62,7 @@ class Config {
             ],
             'security' => [
                 'session_timeout' => defined('SESSION_TIMEOUT') ? (int) SESSION_TIMEOUT : 3600,
+                'verify_ssl' => defined('VERIFY_SSL') ? (bool) VERIFY_SSL : true,
                 'csrf_enabled' => true,
                 'rate_limit' => [
                     'enabled' => true,
@@ -228,6 +229,11 @@ class Config {
         $trafficApiUrl = (string) $this->get('traffic.api_url', '');
         if ($trafficApiUrl !== '' && filter_var($trafficApiUrl, FILTER_VALIDATE_URL) === false) {
             throw new ConfigurationException('TRAFFIC_API_URL 配置无效');
+        }
+
+        $verifySsl = $this->get('security.verify_ssl', true);
+        if (!is_bool($verifySsl)) {
+            throw new ConfigurationException('VERIFY_SSL 配置无效，必须为布尔值');
         }
 
         $this->validated = true;

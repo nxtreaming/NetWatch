@@ -23,6 +23,7 @@ define('SMTP_TO_EMAIL', 'admin@example.com');  // 接收通知的邮箱
 define('CHECK_INTERVAL', 300);  // 检查间隔（秒）
 define('TIMEOUT', 10);  // curl超时时间（秒）
 define('CONNECT_TIMEOUT', 5);  // curl连接超时时间（秒）
+define('VERIFY_SSL', true);  // 是否验证目标站点SSL证书（生产环境建议保持开启）
 define('ENABLE_RETRY', true);  // 是否启用重试机制（失败后进行第二次检测）
 define('MAX_RETRIES', 3);  // 最大重试次数
 define('PROXY_RETRY_DELAY_US', 200000);

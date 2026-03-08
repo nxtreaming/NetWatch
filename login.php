@@ -21,7 +21,7 @@ $maxUsernameLength = 64;
 $maxPasswordLength = 1024;
 // 初始化表单字段，默认空字符串，并进行trim处理
 $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-$password = isset($_POST['password']) ? trim($_POST['password']) : '';
+$password = isset($_POST['password']) ? (string) $_POST['password'] : '';
 $csrfToken = Auth::getCsrfToken();
 
 // 检查存储空间状态
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 对用户名和密码进行trim，避免首尾空格导致的登录失败
     $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    $password = (string) ($_POST['password'] ?? '');
     
     if (empty($error) && (empty($username) || empty($password))) {
         $error = '请输入用户名和密码';

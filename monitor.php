@@ -363,7 +363,7 @@ class NetworkMonitor {
     /**
      * 清理旧日志
      */
-    public function cleanupOldLogs(int $days = 30): int {
+    public function cleanupOldLogs(int $days = 30): array {
         return $this->db->cleanupOldLogs($days);
     }
     

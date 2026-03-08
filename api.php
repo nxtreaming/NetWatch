@@ -393,6 +393,5 @@ try {
         'client_ip' => $clientIp ?? '',
         'exception' => $e->getMessage(),
     ]);
-    echo ApiResponse::error('Internal server error: ' . $e->getMessage(), 500);
+    echo ApiResponse::error('Internal server error', 500);
 }
-?>

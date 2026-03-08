@@ -39,7 +39,4 @@ Thumbs.db
 phpunit.xml.dist
 /localdev/*
 /migrations/*
-dev2.md
-dev3.md
-dev_review_v6.md
 todo_v1.md

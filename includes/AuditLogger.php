@@ -2,27 +2,15 @@
 
 class AuditLogger {
     private static function getClientIp(): string {
-        $keys = [
-            'HTTP_CF_CONNECTING_IP',
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_REAL_IP',
-            'REMOTE_ADDR'
-        ];
-
-        foreach ($keys as $key) {
-            if (!empty($_SERVER[$key])) {
-                $value = trim((string)$_SERVER[$key]);
-                if ($key === 'HTTP_X_FORWARDED_FOR') {
-                    $parts = explode(',', $value);
-                    $value = trim($parts[0] ?? '');
-                }
-                if ($value !== '') {
-                    return $value;
-                }
-            }
+        if (!class_exists('RateLimiter')) {
+            require_once __DIR__ . '/RateLimiter.php';
         }
 
-        return '';
+        if (class_exists('RateLimiter')) {
+            return RateLimiter::getClientIp();
+        }
+
+        return (string) ($_SERVER['REMOTE_ADDR'] ?? '');
     }
 
     public static function log(string $action, ?string $targetType = null, $targetId = null, $details = null, ?string $username = null): void {

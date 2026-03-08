@@ -167,10 +167,6 @@ try {
  * @return bool 是否成功
  */
 function updateBatchStatus(string $statusFile, array $updates): bool {
-    if (!file_exists($statusFile)) {
-        return false;
-    }
-    
     // 使用文件锁确保原子性操作
     $lockFile = $statusFile . '.lock';
     $lockHandle = fopen($lockFile, 'w');
@@ -181,9 +177,15 @@ function updateBatchStatus(string $statusFile, array $updates): bool {
     }
     
     try {
-        $status = json_decode(file_get_contents($statusFile), true);
-        if (!$status) {
-            return false;
+        $status = [];
+        if (file_exists($statusFile)) {
+            $existing = file_get_contents($statusFile);
+            if ($existing !== false) {
+                $decoded = json_decode($existing, true);
+                if (is_array($decoded)) {
+                    $status = $decoded;
+                }
+            }
         }
         
         // 合并更新
