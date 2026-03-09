@@ -10,9 +10,15 @@ echo "╚═══════════════════════�
 
 $testDir = __DIR__ . '/Unit';
 $testFiles = glob($testDir . '/*Test.php');
+$phpBinary = defined('PHP_BINARY') && PHP_BINARY !== '' ? PHP_BINARY : 'php';
 
 if ($testFiles === false) {
     fwrite(STDERR, "无法读取测试目录\n");
+    exit(1);
+}
+
+if (empty($testFiles)) {
+    fwrite(STDERR, "未找到任何测试文件\n");
     exit(1);
 }
 
@@ -29,9 +35,12 @@ foreach ($testFiles as $testFile) {
     // 在子进程中运行测试
     $output = [];
     $returnCode = 0;
-    exec("php \"{$testFile}\" 2>&1", $output, $returnCode);
+    $command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($testFile) . ' 2>&1';
+    exec($command, $output, $returnCode);
     
-    echo implode("\n", $output) . "\n";
+    if (!empty($output)) {
+        echo implode("\n", $output) . "\n";
+    }
 
     if ($returnCode === 0) {
         $totalPassed++;
