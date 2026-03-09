@@ -103,7 +103,8 @@ PHP;
             '__CONFIG_PATH__' => $configPath,
         ]));
 
-        $decoded = json_decode($result['output'], true);
+        $jsonOutput = $this->extractTrailingJsonObject($result['output']);
+        $decoded = $jsonOutput !== null ? json_decode($jsonOutput, true) : null;
         $this->assert($result['exitCode'] === 1, 'API context 以退出码 1 结束');
         $this->assert(is_array($decoded), 'API context 输出有效 JSON');
         $this->assert(($decoded['success'] ?? null) === false, 'API context 返回 success=false');
@@ -300,6 +301,21 @@ PHP;
             'exitCode' => $returnCode,
             'output' => implode("\n", $output),
         ];
+    }
+
+    private function extractTrailingJsonObject(string $output): ?string {
+        $trimmed = trim($output);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $start = strrpos($trimmed, '{');
+        $end = strrpos($trimmed, '}');
+        if ($start === false || $end === false || $end < $start) {
+            return null;
+        }
+
+        return substr($trimmed, $start, $end - $start + 1);
     }
 
     private function cleanup(): void {
