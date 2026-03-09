@@ -3,6 +3,7 @@ require_once 'auth.php';
 require_once 'config.php';
 require_once 'database.php';
 require_once 'includes/functions.php';
+require_once 'includes/JsonResponse.php';
 if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
     require_once __DIR__ . '/includes/AuditLogger.php';
 }
@@ -15,8 +16,6 @@ $db->initializeSchema();
 
 // 处理AJAX请求
 if (isset($_GET['ajax'])) {
-    header('Content-Type: application/json');
-    
     $action = $_GET['action'] ?? '';
 
     // CSRF Token验证（对于修改数据的操作）
@@ -24,7 +23,7 @@ if (isset($_GET['ajax'])) {
     if (in_array($action, $modifyingActions, true)) {
         $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         if (!Auth::validateCsrfToken($csrfToken)) {
-            echo json_encode(['success' => false, 'error' => 'csrf_validation_failed', 'message' => 'CSRF验证失败，请刷新页面后重试']);
+            JsonResponse::error('csrf_validation_failed', 'CSRF验证失败，请刷新页面后重试', 403);
             exit;
         }
     }
@@ -36,7 +35,7 @@ if (isset($_GET['ajax'])) {
             $expiryDays = (int)($_POST['expiry_days'] ?? 30);
             
             if (empty($name) || $proxyCount < 1 || $expiryDays < 1) {
-                echo json_encode(['success' => false, 'message' => '参数无效']);
+                JsonResponse::error('invalid_parameters', '参数无效', 400);
                 exit;
             }
             
@@ -51,9 +50,12 @@ if (isset($_GET['ajax'])) {
                         'expires_at' => $expiresAt
                     ]);
                 }
-                echo json_encode(['success' => true, 'token' => $token, 'message' => 'Token创建成功']);
+                JsonResponse::success(null, 'Token创建成功', 200, [
+                    'success' => true,
+                    'token' => $token,
+                ]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Token创建失败']);
+                JsonResponse::error('token_create_failed', 'Token创建失败', 500);
             }
             break;
             
@@ -62,7 +64,7 @@ if (isset($_GET['ajax'])) {
             $expiryDays = (int)($_POST['expiry_days'] ?? 30);
             
             if ($tokenId < 1 || $expiryDays < 1) {
-                echo json_encode(['success' => false, 'message' => '参数无效']);
+                JsonResponse::error('invalid_parameters', '参数无效', 400);
                 exit;
             }
             
@@ -75,9 +77,9 @@ if (isset($_GET['ajax'])) {
                         'expires_at' => $newExpiresAt
                     ]);
                 }
-                echo json_encode(['success' => true, 'message' => 'Token有效期刷新成功']);
+                JsonResponse::success(null, 'Token有效期刷新成功');
             } else {
-                echo json_encode(['success' => false, 'message' => 'Token刷新失败']);
+                JsonResponse::error('token_refresh_failed', 'Token刷新失败', 500);
             }
             break;
             
@@ -85,7 +87,7 @@ if (isset($_GET['ajax'])) {
             $tokenId = (int)($_POST['token_id'] ?? 0);
             
             if ($tokenId < 1) {
-                echo json_encode(['success' => false, 'message' => '参数无效']);
+                JsonResponse::error('invalid_parameters', '参数无效', 400);
                 exit;
             }
             
@@ -95,9 +97,9 @@ if (isset($_GET['ajax'])) {
                 if (class_exists('AuditLogger')) {
                     AuditLogger::log('token_delete', 'token', $tokenId);
                 }
-                echo json_encode(['success' => true, 'message' => 'Token删除成功']);
+                JsonResponse::success(null, 'Token删除成功');
             } else {
-                echo json_encode(['success' => false, 'message' => 'Token删除失败']);
+                JsonResponse::error('token_delete_failed', 'Token删除失败', 500);
             }
             break;
             
@@ -106,7 +108,7 @@ if (isset($_GET['ajax'])) {
             $proxyCount = (int)($_POST['proxy_count'] ?? 1);
             
             if ($tokenId < 1 || $proxyCount < 1) {
-                echo json_encode(['success' => false, 'message' => '参数无效']);
+                JsonResponse::error('invalid_parameters', '参数无效', 400);
                 exit;
             }
             
@@ -118,19 +120,19 @@ if (isset($_GET['ajax'])) {
                         'proxy_count' => $proxyCount
                     ]);
                 }
-                echo json_encode(['success' => true, 'message' => '代理重新分配成功']);
+                JsonResponse::success(null, '代理重新分配成功');
             } else {
-                echo json_encode(['success' => false, 'message' => '代理重新分配失败']);
+                JsonResponse::error('token_reassign_failed', '代理重新分配失败', 500);
             }
             break;
             
         case 'list':
             $tokens = $db->getAllTokens();
-            echo json_encode(['success' => true, 'tokens' => $tokens]);
+            JsonResponse::send(['success' => true, 'tokens' => $tokens]);
             break;
             
         default:
-            echo json_encode(['success' => false, 'message' => '未知操作']);
+            JsonResponse::error('unknown_action', '未知操作', 400);
     }
     exit;
 }

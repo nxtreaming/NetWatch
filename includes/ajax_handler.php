@@ -119,18 +119,16 @@ class AjaxHandler {
     }
     
     private function handleStats() {
-        $this->setJsonHeaders();
-        echo json_encode($this->monitor->getStats());
+        JsonResponse::send($this->monitor->getStats());
     }
     
     private function handleCheck() {
-        $this->setJsonHeaders();
         $proxyId = isset($_GET['proxy_id']) ? intval($_GET['proxy_id']) : 0;
         if ($proxyId > 0) {
             $proxy = $this->monitor->getProxyById($proxyId);
             if ($proxy) {
                 $result = $this->monitor->checkProxy($proxy);
-                echo json_encode($result);
+                JsonResponse::send($result);
             } else {
                 JsonResponse::error('proxy_not_found', '代理不存在', 404);
             }
@@ -140,13 +138,11 @@ class AjaxHandler {
     }
     
     private function handleLogs() {
-        $this->setJsonHeaders();
         $logs = $this->monitor->getRecentLogs(50);
-        echo json_encode($logs);
+        JsonResponse::send($logs);
     }
     
     private function handleCheckAll() {
-        $this->setJsonHeaders();
         try {
             if (file_exists(__DIR__ . '/AuditLogger.php')) {
                 require_once __DIR__ . '/AuditLogger.php';
@@ -182,9 +178,8 @@ class AjaxHandler {
                 }
             }
             
-            echo json_encode([
+            JsonResponse::success(null, '所有代理检查完成', 200, [
                 'success' => true,
-                'message' => '所有代理检查完成',
                 'results' => $results,
                 'failed_proxies' => count($failedProxies),
                 'email_sent' => $emailSent
@@ -193,15 +188,11 @@ class AjaxHandler {
             $this->logger->error('ajax_check_all_failed', [
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => '检查失败，请稍后重试'
-            ]);
+            JsonResponse::error('check_all_failed', '检查失败，请稍后重试', 500);
         }
     }
     
     private function handleGetProxyCount() {
-        $this->setJsonHeaders();
         try {
             // 记录开始时间
             $startTime = microtime(true);
@@ -246,7 +237,7 @@ class AjaxHandler {
             // 计算执行时间
             $executionTime = round((microtime(true) - $startTime) * 1000, 2);
             
-            echo json_encode([
+            JsonResponse::send([
                 'success' => true,
                 'count' => $count,
                 'cached' => $useCache,
@@ -256,10 +247,7 @@ class AjaxHandler {
             $this->logger->error('ajax_get_proxy_count_failed', [
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => '获取代理数量失败，请稍后重试'
-            ]);
+            JsonResponse::error('get_proxy_count_failed', '获取代理数量失败，请稍后重试', 500);
         }
     }
     
@@ -369,7 +357,6 @@ class AjaxHandler {
     }
     
     private function handleCheckFailedProxies() {
-        $this->setJsonHeaders();
         try {
             if (file_exists(__DIR__ . '/AuditLogger.php')) {
                 require_once __DIR__ . '/AuditLogger.php';
@@ -403,7 +390,7 @@ class AjaxHandler {
                 }
             }
             
-            echo json_encode([
+            JsonResponse::send([
                 'success' => true,
                 'failed_proxies' => count($failedProxies),
                 'email_sent' => $emailSent
@@ -412,10 +399,7 @@ class AjaxHandler {
             $this->logger->error('ajax_check_failed_proxies_failed', [
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => '检查失败代理时出错，请稍后重试'
-            ]);
+            JsonResponse::error('check_failed_proxies_failed', '检查失败代理时出错，请稍后重试', 500);
         }
     }
     
@@ -435,7 +419,6 @@ class AjaxHandler {
     }
     
     private function handleSessionCheck() {
-        $this->setJsonHeaders();
         try {
             if (!Auth::isLoggedIn()) {
                 JsonResponse::send([
@@ -458,10 +441,9 @@ class AjaxHandler {
     }
     
     private function handleDebugStatuses() {
-        $this->setJsonHeaders();
         try {
             $statuses = $this->db->getDistinctStatuses();
-            echo json_encode([
+            JsonResponse::send([
                 'success' => true,
                 'statuses' => $statuses
             ]);
@@ -469,15 +451,11 @@ class AjaxHandler {
             $this->logger->error('ajax_debug_statuses_failed', [
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => '获取状态信息失败，请稍后重试'
-            ]);
+            JsonResponse::error('debug_statuses_failed', '获取状态信息失败，请稍后重试', 500);
         }
     }
     
     private function handleCreateTestData() {
-        $this->setJsonHeaders();
         try {
             // 获取前5个代理的ID
             $proxies = $this->db->getProxiesBatch(0, 5);
@@ -495,24 +473,19 @@ class AjaxHandler {
                 }
             }
             
-            echo json_encode([
+            JsonResponse::success(null, "已创建测试数据：2个离线代理和2个未知代理", 200, [
                 'success' => true,
-                'message' => "已创建测试数据：2个离线代理和2个未知代理",
                 'updated' => $updated
             ]);
         } catch (Exception $e) {
             $this->logger->error('ajax_create_test_data_failed', [
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => '创建测试数据失败，请稍后重试'
-            ]);
+            JsonResponse::error('create_test_data_failed', '创建测试数据失败，请稍后重试', 500);
         }
     }
     
     private function handleSearch() {
-        $this->setJsonHeaders();
         try {
             $searchTerm = mb_substr(trim($_GET['term'] ?? ''), 0, 64);
             $statusFilter = $_GET['status'] ?? '';
@@ -528,7 +501,7 @@ class AjaxHandler {
             $totalCount = $this->db->getSearchCount($searchTerm, $statusFilter);
             $totalPages = ceil($totalCount / $perPage);
             
-            echo json_encode([
+            JsonResponse::send([
                 'success' => true,
                 'proxies' => $proxies,
                 'total_count' => $totalCount,
@@ -545,10 +518,7 @@ class AjaxHandler {
                 'page' => $page ?? null,
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => '搜索失败，请稍后重试'
-            ]);
+            JsonResponse::error('search_failed', '搜索失败，请稍后重试', 500);
         }
     }
 

@@ -41,65 +41,43 @@ function netwatch_is_csrf_exempt_ajax_action(string $action, ?string $requestMet
  * 验证是否为真正的AJAX请求
  * 防止移动端浏览器错误地将页面请求误认为AJAX请求
  */
-function isValidAjaxRequest() {
-    // 【新增】检查是否有特殊的AJAX token参数（用于绕过可能被过滤的请求头）
-    $hasAjaxToken = isset($_GET['_ajax_token']) && is_numeric($_GET['_ajax_token']);
-    
-    // 检查是否有XMLHttpRequest标头
-    $isXmlHttpRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-                       strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-    
-    // 检查Accept标头是否包含json或任意类型
-    $acceptsJson = isset($_SERVER['HTTP_ACCEPT']) && 
-                   (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false ||
-                    strpos($_SERVER['HTTP_ACCEPT'], '*/*') !== false);
-    
-    // 检查Content-Type是否为json相关
-    $contentTypeJson = isset($_SERVER['CONTENT_TYPE']) && 
-                      strpos($_SERVER['CONTENT_TYPE'], 'json') !== false;
-    
-    // 检查Referer是否来自同一页面（防止直接访问）
-    $hasValidReferer = isset($_SERVER['HTTP_REFERER']) && 
-                      strpos($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST']) !== false;
-    
-    // 检查是否为浏览器发起的请求（而不是直接访问）
-    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-    $isBrowserRequest = !empty($userAgent) && 
-                       (strpos($userAgent, 'Mozilla') !== false || 
-                        strpos($userAgent, 'Chrome') !== false ||
-                        strpos($userAgent, 'Safari') !== false ||
-                        strpos($userAgent, 'Edge') !== false);
-    
-    // 移动端特殊处理：对于移动端浏览器，放宽验证条件
-    $isMobile = strpos($userAgent, 'Mobile') !== false || 
-                strpos($userAgent, 'Android') !== false || 
-                strpos($userAgent, 'iPhone') !== false || 
-                strpos($userAgent, 'iPad') !== false;
-    
-    // 【优先】如果有AJAX token且有有效Referer，直接认为是合法请求
-    if ($hasAjaxToken && $hasValidReferer) {
-        return true;
+function isValidAjaxRequest(): bool {
+    if (!netwatch_is_ajax_mode_request()) {
+        return false;
     }
-    
-    // 如果是移动端且是浏览器请求，只要有Accept头就认为是有效的AJAX请求
-    if ($isMobile && $isBrowserRequest && $acceptsJson) {
-        return true;
+
+    $xRequestedWith = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+    $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+    $contentType = strtolower((string) ($_SERVER['CONTENT_TYPE'] ?? ''));
+    $secFetchMode = strtolower((string) ($_SERVER['HTTP_SEC_FETCH_MODE'] ?? ''));
+    $secFetchDest = strtolower((string) ($_SERVER['HTTP_SEC_FETCH_DEST'] ?? ''));
+    $csrfToken = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+
+    $isXmlHttpRequest = $xRequestedWith === 'xmlhttprequest';
+    $acceptsJson = strpos($accept, 'application/json') !== false;
+    $contentTypeJson = strpos($contentType, 'json') !== false;
+    $hasCsrfHeader = $csrfToken !== '';
+    $isProgrammaticFetch = in_array($secFetchMode, ['cors', 'same-origin'], true)
+        || ($secFetchDest !== '' && $secFetchDest !== 'document');
+
+    $refererHost = strtolower((string) parse_url($referer, PHP_URL_HOST));
+    $refererPort = parse_url($referer, PHP_URL_PORT);
+    $normalizedHost = $host;
+    if (strpos($normalizedHost, ':') !== false) {
+        $normalizedHost = strtolower((string) parse_url('http://' . $normalizedHost, PHP_URL_HOST));
     }
-    
-    // 特殊情况：如果是浏览器直接访问且没有Referer，则可能是问题请求
-    if (!$hasValidReferer && $isBrowserRequest && !$isMobile) {
-        // 检查是否是直接在地址栏输入或书签访问
-        $isDirectAccess = !isset($_SERVER['HTTP_REFERER']) || empty($_SERVER['HTTP_REFERER']);
-        if ($isDirectAccess) {
-            return false; // 直接访问带ajax参数的URL，很可能是问题
-        }
-    }
-    
-    // 对于正常的AJAX请求，只要满足以下任一条件即可：
-    // 1. 有XMLHttpRequest标头
-    // 2. Accept头包含json或*/*
-    // 3. 有有效的Referer且是浏览器请求
-    return $isXmlHttpRequest || $acceptsJson || ($hasValidReferer && $isBrowserRequest);
+    $hasSameOriginReferer = $refererHost !== ''
+        && $normalizedHost !== ''
+        && $refererHost === $normalizedHost
+        && ($refererPort === null || strpos($host, ':' . $refererPort) !== false || strpos($host, ':') === false);
+
+    return $isXmlHttpRequest
+        || $hasCsrfHeader
+        || $contentTypeJson
+        || ($acceptsJson && ($isProgrammaticFetch || $hasSameOriginReferer))
+        || ($isProgrammaticFetch && $hasSameOriginReferer);
 }
 
 /**

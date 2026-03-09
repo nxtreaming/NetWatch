@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/Config.php';
+require_once __DIR__ . '/JsonResponse.php';
 
 class ParallelCheckController {
     private Logger $logger;
@@ -33,7 +34,7 @@ class ParallelCheckController {
             $parallelMonitor = new ParallelMonitor($maxProcesses, $batchSize, $sessionId, $offlineOnly);
             $result = $parallelMonitor->startParallelCheck();
 
-            echo json_encode($result);
+            JsonResponse::send($result);
         } catch (Exception $e) {
             $checkType = $offlineOnly ? '离线代理' : '并行';
             $this->logger->error('parallel_check_controller_start_failed', [
@@ -41,10 +42,7 @@ class ParallelCheckController {
                 'check_type' => $checkType,
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => "启动{$checkType}检测失败，请稍后重试"
-            ]);
+            JsonResponse::error('parallel_check_start_failed', "启动{$checkType}检测失败，请稍后重试", 500);
         }
     }
 
@@ -54,18 +52,18 @@ class ParallelCheckController {
             require_once 'parallel_monitor.php';
             $sessionId = $_GET['session_id'] ?? null;
             if (!$sessionId) {
-                echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
+                JsonResponse::error('missing_session_id', '缺少会话ID参数', 400);
                 return;
             }
             if (!self::isValidParallelSessionId($sessionId)) {
-                echo json_encode(['success' => false, 'error' => '无效的会话ID']);
+                JsonResponse::error('invalid_session_id', '无效的会话ID', 400);
                 return;
             }
             if (!self::isOwnedParallelSessionId($sessionId)) {
                 $this->logger->warning('parallel_check_controller_progress_ownership_mismatch', [
                     'session_id' => $sessionId,
                 ]);
-                echo json_encode(['success' => false, 'error' => '无权访问该检测任务']);
+                JsonResponse::error('forbidden_session_access', '无权访问该检测任务', 403);
                 return;
             }
             $parallelMonitor = new ParallelMonitor(
@@ -75,16 +73,13 @@ class ParallelCheckController {
             );
 
             $progress = $parallelMonitor->getParallelProgress();
-            echo json_encode($progress);
+            JsonResponse::send($progress);
         } catch (Exception $e) {
             $this->logger->error('parallel_check_controller_progress_failed', [
                 'session_id' => $sessionId ?? null,
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => '获取进度失败，请稍后重试'
-            ]);
+            JsonResponse::error('parallel_check_progress_failed', '获取进度失败，请稍后重试', 500);
         }
     }
 
@@ -94,18 +89,18 @@ class ParallelCheckController {
             require_once 'parallel_monitor.php';
             $sessionId = $_GET['session_id'] ?? null;
             if (!$sessionId) {
-                echo json_encode(['success' => false, 'error' => '缺少会话ID参数']);
+                JsonResponse::error('missing_session_id', '缺少会话ID参数', 400);
                 return;
             }
             if (!self::isValidParallelSessionId($sessionId)) {
-                echo json_encode(['success' => false, 'error' => '无效的会话ID']);
+                JsonResponse::error('invalid_session_id', '无效的会话ID', 400);
                 return;
             }
             if (!self::isOwnedParallelSessionId($sessionId)) {
                 $this->logger->warning('parallel_check_controller_cancel_ownership_mismatch', [
                     'session_id' => $sessionId,
                 ]);
-                echo json_encode(['success' => false, 'error' => '无权操作该检测任务']);
+                JsonResponse::error('forbidden_session_access', '无权操作该检测任务', 403);
                 return;
             }
 
@@ -120,16 +115,13 @@ class ParallelCheckController {
             );
 
             $result = $parallelMonitor->cancelParallelCheck();
-            echo json_encode($result);
+            JsonResponse::send($result);
         } catch (Exception $e) {
             $this->logger->error('parallel_check_controller_cancel_failed', [
                 'session_id' => $sessionId ?? null,
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
-                'success' => false,
-                'error' => '取消检测失败，请稍后重试'
-            ]);
+            JsonResponse::error('parallel_check_cancel_failed', '取消检测失败，请稍后重试', 500);
         }
     }
 
