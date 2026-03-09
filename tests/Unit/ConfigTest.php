@@ -30,6 +30,8 @@ class ConfigTest {
         $this->testValidateAcceptsWritablePathsAndBooleanVerifySsl();
         $this->testValidateRejectsInvalidVerifySslType();
         $this->testValidateRejectsInvalidTrafficApiUrl();
+        $this->testHandleConfigValidationFailureForCliContext();
+        $this->testHandleConfigValidationFailureForApiContext();
 
         $this->printResults();
         $this->cleanup();
@@ -47,6 +49,46 @@ class ConfigTest {
         $config->set('custom.feature.enabled', true);
         $this->assert($config->has('custom.feature.enabled'), 'set 后 has 返回 true');
         $this->assert($config->get('custom.feature.enabled') === true, 'set 后可正确读取嵌套值');
+
+        echo "\n";
+    }
+
+    private function testHandleConfigValidationFailureForCliContext(): void {
+        echo "测试 handle_config_validation_failure() CLI 子进程:\n";
+
+        $result = $this->runPhpSubprocess(<<<'PHP'
+require_once __DIR__ . '/../../includes/Exceptions.php';
+require_once __DIR__ . '/../../includes/JsonResponse.php';
+require_once __DIR__ . '/../../includes/Config.php';
+
+$exception = new ConfigurationException('CLI 配置错误', 503);
+handle_config_validation_failure($exception, 'cli');
+PHP);
+
+        $this->assert($result['exitCode'] === 1, 'CLI context 以退出码 1 结束');
+        $this->assert(strpos($result['output'], '[NetWatch][Config] CLI 配置错误') !== false, 'CLI context 输出错误信息到 STDERR');
+
+        echo "\n";
+    }
+
+    private function testHandleConfigValidationFailureForApiContext(): void {
+        echo "测试 handle_config_validation_failure() API 子进程:\n";
+
+        $result = $this->runPhpSubprocess(<<<'PHP'
+require_once __DIR__ . '/../../includes/Exceptions.php';
+require_once __DIR__ . '/../../includes/JsonResponse.php';
+require_once __DIR__ . '/../../includes/Config.php';
+
+$exception = new ConfigurationException('API 配置错误', 503);
+handle_config_validation_failure($exception, 'api');
+PHP);
+
+        $decoded = json_decode($result['output'], true);
+        $this->assert($result['exitCode'] === 1, 'API context 以退出码 1 结束');
+        $this->assert(is_array($decoded), 'API context 输出有效 JSON');
+        $this->assert(($decoded['success'] ?? null) === false, 'API context 返回 success=false');
+        $this->assert(($decoded['error'] ?? null) === 'configuration_error', 'API context 返回 configuration_error');
+        $this->assert(($decoded['message'] ?? null) === 'API 配置错误', 'API context 返回异常消息');
 
         echo "\n";
     }
@@ -219,6 +261,25 @@ class ConfigTest {
         } finally {
             $_SERVER = $originalServer;
         }
+    }
+
+    private function runPhpSubprocess(string $scriptBody): array {
+        $scriptPath = $this->tempDir . DIRECTORY_SEPARATOR . 'subprocess_' . uniqid('', true) . '.php';
+        $phpBinary = defined('PHP_BINARY') && PHP_BINARY !== '' ? PHP_BINARY : 'php';
+
+        file_put_contents($scriptPath, "<?php\n" . $scriptBody . "\n");
+
+        $output = [];
+        $returnCode = 0;
+        $command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($scriptPath) . ' 2>&1';
+        exec($command, $output, $returnCode);
+
+        @unlink($scriptPath);
+
+        return [
+            'exitCode' => $returnCode,
+            'output' => implode("\n", $output),
+        ];
     }
 
     private function cleanup(): void {
