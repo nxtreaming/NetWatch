@@ -4,6 +4,8 @@
  * 防止API滥用和暴力攻击
  */
 
+require_once __DIR__ . '/JsonResponse.php';
+
 class RateLimiter {
     private string $storageDir;
     private int $maxRequests;
@@ -260,18 +262,16 @@ class RateLimiter {
      * 发送429响应
      */
     public function sendTooManyRequestsResponse(string $key): void {
-        http_response_code(429);
         header('Retry-After: ' . $this->retryAfter($key));
         $this->sendHeaders($key);
         
         if ($this->isJsonRequest()) {
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode([
+            JsonResponse::error('too_many_requests', '请求过于频繁，请稍后再试', 429, [
                 'error' => true,
-                'message' => '请求过于频繁，请稍后再试',
                 'retry_after' => $this->retryAfter($key)
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } else {
+            http_response_code(429);
             echo '请求过于频繁，请稍后再试';
         }
         exit;

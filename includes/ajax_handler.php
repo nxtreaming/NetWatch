@@ -30,14 +30,17 @@ class AjaxHandler {
             $this->logger = new Logger();
         }
     }
-    
-    /**
-     * 设置标准JSON响应头
-     */
-    private function setJsonHeaders() {
+
+    private function startStreamingJsonResponse(): void {
         if (!headers_sent()) {
-            header('Content-Type: application/json; charset=utf-8');
+            header('Content-Type: text/plain; charset=utf-8');
+            header('X-Accel-Buffering: no');
+            header('Cache-Control: no-cache');
         }
+    }
+
+    private function emitStreamingJsonPayload(array $payload): void {
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
     
     /**
@@ -263,9 +266,7 @@ class AjaxHandler {
             
             // 设置响应头，启用分块传输编码
             // 使用 text/plain 因为流式输出中会插入心跳空格，前端需要 trim 后再 JSON.parse
-            header('Content-Type: text/plain; charset=utf-8');
-            header('X-Accel-Buffering: no'); // 禁用nginx缓冲
-            header('Cache-Control: no-cache'); // 禁用缓存
+            $this->startStreamingJsonResponse();
             
             // 记录开始时间
             $startTime = microtime(true);
@@ -282,7 +283,7 @@ class AjaxHandler {
             $proxies = $this->db->getProxiesBatch($offset, $limit);
             
             if (empty($proxies)) {
-                echo json_encode([
+                $this->emitStreamingJsonPayload([
                     'success' => true,
                     'results' => [],
                     'execution_time' => 0,
@@ -321,8 +322,7 @@ class AjaxHandler {
             // 计算执行时间
             $executionTime = round((microtime(true) - $startTime) * 1000, 2);
             
-            // 发送最终结果（前面的空格会被JSON解析器忽略）
-            echo json_encode([
+            $this->emitStreamingJsonPayload([
                 'success' => true,
                 'results' => $results,
                 'execution_time' => $executionTime,
@@ -339,7 +339,7 @@ class AjaxHandler {
                 'limit' => $limit ?? null,
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
+            $this->emitStreamingJsonPayload([
                 'success' => false,
                 'error' => '批量检查失败，请稍后重试'
             ]);
@@ -349,7 +349,7 @@ class AjaxHandler {
                 'limit' => $limit ?? null,
                 'exception' => $e->getMessage(),
             ]);
-            echo json_encode([
+            $this->emitStreamingJsonPayload([
                 'success' => false,
                 'error' => '服务器内部错误，请稍后重试'
             ]);

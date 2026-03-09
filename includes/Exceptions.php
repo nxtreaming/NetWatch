@@ -4,6 +4,8 @@
  * 提供标准化的异常处理机制
  */
 
+require_once __DIR__ . '/JsonResponse.php';
+
 /**
  * NetWatch 基础异常类
  */
@@ -180,13 +182,11 @@ class ExceptionHandler {
         
         // 如果是AJAX请求，返回JSON
         if (self::isAjaxRequest()) {
-            http_response_code($code >= 400 && $code < 600 ? $code : 500);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode([
+            $statusCode = $code >= 400 && $code < 600 ? $code : 500;
+            JsonResponse::error('exception', $message, $statusCode, [
                 'error' => true,
-                'message' => $message,
                 'code' => $code
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } else {
             // 否则显示错误页面
             http_response_code($code >= 400 && $code < 600 ? $code : 500);

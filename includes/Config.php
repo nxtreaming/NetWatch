@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/Exceptions.php';
+require_once __DIR__ . '/JsonResponse.php';
 
 class Config {
     private static ?Config $instance = null;
@@ -345,16 +346,7 @@ function handle_config_validation_failure(ConfigurationException $exception, ?st
     error_log('[NetWatch][Config] ' . $exception->getMessage());
 
     if ($resolvedContext === 'api') {
-        if (!headers_sent()) {
-            header('Content-Type: application/json; charset=utf-8');
-        }
-        http_response_code($statusCode);
-        echo json_encode([
-            'success' => false,
-            'error' => 'configuration_error',
-            'message' => $exception->getMessage(),
-            'timestamp' => time(),
-        ], JSON_UNESCAPED_UNICODE);
+        JsonResponse::error('configuration_error', $exception->getMessage(), $statusCode);
         exit(1);
     }
 
