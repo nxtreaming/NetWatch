@@ -60,14 +60,20 @@ class ConfigTest {
         $jsonResponsePath = var_export(PROJECT_ROOT . '/includes/JsonResponse.php', true);
         $configPath = var_export(PROJECT_ROOT . '/includes/Config.php', true);
 
-        $result = $this->runPhpSubprocess(<<<PHP
-require_once {$exceptionsPath};
-require_once {$jsonResponsePath};
-require_once {$configPath};
+        $script = <<<'PHP'
+require_once __EXCEPTIONS_PATH__;
+require_once __JSON_RESPONSE_PATH__;
+require_once __CONFIG_PATH__;
 
 $exception = new ConfigurationException('CLI 配置错误', 503);
 handle_config_validation_failure($exception, 'cli');
-PHP);
+PHP;
+
+        $result = $this->runPhpSubprocess(strtr($script, [
+            '__EXCEPTIONS_PATH__' => $exceptionsPath,
+            '__JSON_RESPONSE_PATH__' => $jsonResponsePath,
+            '__CONFIG_PATH__' => $configPath,
+        ]));
 
         $this->assert($result['exitCode'] === 1, 'CLI context 以退出码 1 结束');
         $this->assert(strpos($result['output'], '[NetWatch][Config] CLI 配置错误') !== false, 'CLI context 输出错误信息到 STDERR');
@@ -82,14 +88,20 @@ PHP);
         $jsonResponsePath = var_export(PROJECT_ROOT . '/includes/JsonResponse.php', true);
         $configPath = var_export(PROJECT_ROOT . '/includes/Config.php', true);
 
-        $result = $this->runPhpSubprocess(<<<PHP
-require_once {$exceptionsPath};
-require_once {$jsonResponsePath};
-require_once {$configPath};
+        $script = <<<'PHP'
+require_once __EXCEPTIONS_PATH__;
+require_once __JSON_RESPONSE_PATH__;
+require_once __CONFIG_PATH__;
 
 $exception = new ConfigurationException('API 配置错误', 503);
 handle_config_validation_failure($exception, 'api');
-PHP);
+PHP;
+
+        $result = $this->runPhpSubprocess(strtr($script, [
+            '__EXCEPTIONS_PATH__' => $exceptionsPath,
+            '__JSON_RESPONSE_PATH__' => $jsonResponsePath,
+            '__CONFIG_PATH__' => $configPath,
+        ]));
 
         $decoded = json_decode($result['output'], true);
         $this->assert($result['exitCode'] === 1, 'API context 以退出码 1 结束');
