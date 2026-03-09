@@ -56,10 +56,14 @@ class ConfigTest {
     private function testHandleConfigValidationFailureForCliContext(): void {
         echo "测试 handle_config_validation_failure() CLI 子进程:\n";
 
-        $result = $this->runPhpSubprocess(<<<'PHP'
-require_once __DIR__ . '/../../includes/Exceptions.php';
-require_once __DIR__ . '/../../includes/JsonResponse.php';
-require_once __DIR__ . '/../../includes/Config.php';
+        $exceptionsPath = var_export(PROJECT_ROOT . '/includes/Exceptions.php', true);
+        $jsonResponsePath = var_export(PROJECT_ROOT . '/includes/JsonResponse.php', true);
+        $configPath = var_export(PROJECT_ROOT . '/includes/Config.php', true);
+
+        $result = $this->runPhpSubprocess(<<<PHP
+require_once {$exceptionsPath};
+require_once {$jsonResponsePath};
+require_once {$configPath};
 
 $exception = new ConfigurationException('CLI 配置错误', 503);
 handle_config_validation_failure($exception, 'cli');
@@ -74,10 +78,14 @@ PHP);
     private function testHandleConfigValidationFailureForApiContext(): void {
         echo "测试 handle_config_validation_failure() API 子进程:\n";
 
-        $result = $this->runPhpSubprocess(<<<'PHP'
-require_once __DIR__ . '/../../includes/Exceptions.php';
-require_once __DIR__ . '/../../includes/JsonResponse.php';
-require_once __DIR__ . '/../../includes/Config.php';
+        $exceptionsPath = var_export(PROJECT_ROOT . '/includes/Exceptions.php', true);
+        $jsonResponsePath = var_export(PROJECT_ROOT . '/includes/JsonResponse.php', true);
+        $configPath = var_export(PROJECT_ROOT . '/includes/Config.php', true);
+
+        $result = $this->runPhpSubprocess(<<<PHP
+require_once {$exceptionsPath};
+require_once {$jsonResponsePath};
+require_once {$configPath};
 
 $exception = new ConfigurationException('API 配置错误', 503);
 handle_config_validation_failure($exception, 'api');
