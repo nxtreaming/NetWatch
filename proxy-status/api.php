@@ -4,9 +4,8 @@
  * 支持局部刷新功能
  */
 
-header('Content-Type: application/json');
-
 require_once '../config.php';
+require_once '../includes/JsonResponse.php';
 
 // CORS: 仅允许同源请求，不对外暴露通配符
 $allowedOrigin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
@@ -22,11 +21,7 @@ require_once '../traffic_monitor.php';
 
 // 检查登录状态
 if (!Auth::isLoggedIn()) {
-    echo json_encode([
-        'success' => false,
-        'error' => 'unauthorized',
-        'message' => '请先登录后再执行此操作'
-    ]);
+    JsonResponse::error('unauthorized', '请先登录后再执行此操作', 401);
     exit;
 }
 
@@ -54,7 +49,7 @@ try {
 
             $chartDisplayContext = $trafficMonitor->buildSnapshotChartContext($date, $snapshots);
             
-            echo json_encode([
+            JsonResponse::send([
                 'success' => true,
                 'data' => $snapshots,
                 'chart_context' => $chartDisplayContext,
@@ -100,7 +95,7 @@ try {
                 unset($stat);
             }
             
-            echo json_encode([
+            JsonResponse::send([
                 'success' => true,
                 'data' => $stats,
                 'center_date' => $centerDate
@@ -114,8 +109,5 @@ try {
 } catch (Exception $e) {
     // 记录详细错误到服务器日志，不向客户端暴露内部信息
     error_log('[NetWatch][proxy-status/api] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-    echo json_encode([
-        'success' => false,
-        'message' => '请求处理失败，请稍后重试'
-    ]);
+    JsonResponse::error('request_failed', '请求处理失败，请稍后重试', 500);
 }

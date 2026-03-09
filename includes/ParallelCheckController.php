@@ -11,7 +11,6 @@ class ParallelCheckController {
     }
 
     public function startParallelCheck(bool $offlineOnly = false): void {
-        $this->setJsonHeaders();
         try {
             require_once 'parallel_monitor.php';
             $sessionId = session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
@@ -47,7 +46,6 @@ class ParallelCheckController {
     }
 
     public function getParallelProgress(): void {
-        $this->setJsonHeaders();
         try {
             require_once 'parallel_monitor.php';
             $sessionId = $_GET['session_id'] ?? null;
@@ -84,7 +82,6 @@ class ParallelCheckController {
     }
 
     public function cancelParallelCheck(): void {
-        $this->setJsonHeaders();
         try {
             require_once 'parallel_monitor.php';
             $sessionId = $_GET['session_id'] ?? null;
@@ -122,12 +119,6 @@ class ParallelCheckController {
                 'exception' => $e->getMessage(),
             ]);
             JsonResponse::error('parallel_check_cancel_failed', '取消检测失败，请稍后重试', 500);
-        }
-    }
-
-    private function setJsonHeaders(): void {
-        if (!headers_sent()) {
-            header('Content-Type: application/json; charset=utf-8');
         }
     }
 
