@@ -31,6 +31,8 @@ class RateLimiterTest {
         $this->testGetClientIpFallsBackWhenProxyNotTrusted();
         $this->testGetClientIpUsesLeftmostForwardedAddress();
         $this->testRateLimitPresetsCreateInstances();
+        $this->testSendTooManyRequestsResponseOutputsJsonInSubprocess();
+        $this->testSendTooManyRequestsResponseOutputsPlainTextInSubprocess();
 
         $this->printResults();
         $this->cleanup();
@@ -185,6 +187,71 @@ class RateLimiterTest {
         echo "\n";
     }
 
+    private function testSendTooManyRequestsResponseOutputsJsonInSubprocess(): void {
+        echo "测试 sendTooManyRequestsResponse() JSON 子进程:\n";
+
+        $rateLimiterPath = var_export(PROJECT_ROOT . '/includes/RateLimiter.php', true);
+        $storageDir = var_export($this->storageDir, true);
+
+        $script = <<<'PHP'
+require_once __RATELIMITER_PATH__;
+
+$_SERVER['HTTP_ACCEPT'] = 'application/json';
+$_GET['ajax'] = '1';
+
+$limiter = new RateLimiter(1, 60, __STORAGE_DIR__);
+$key = 'subprocess_json_response';
+$limiter->attempt($key);
+$limiter->sendTooManyRequestsResponse($key);
+PHP;
+
+        $result = $this->runPhpSubprocess(strtr($script, [
+            '__RATELIMITER_PATH__' => $rateLimiterPath,
+            '__STORAGE_DIR__' => $storageDir,
+        ]));
+
+        $jsonOutput = $this->extractTrailingJsonObject($result['output']);
+        $decoded = $jsonOutput !== null ? json_decode($jsonOutput, true) : null;
+
+        $this->assert($result['exitCode'] === 0, 'JSON 限流响应以正常退出结束');
+        $this->assert(is_array($decoded), 'JSON 限流响应输出有效 JSON');
+        $this->assert(($decoded['success'] ?? null) === false, 'JSON 限流响应 success=false');
+        $this->assert(($decoded['error'] ?? null) === true, 'JSON 限流响应包含 error=true 覆盖值');
+        $this->assert(($decoded['message'] ?? null) === '请求过于频繁，请稍后再试', 'JSON 限流响应 message 正确');
+        $this->assert(isset($decoded['retry_after']) && is_int($decoded['retry_after']), 'JSON 限流响应包含 retry_after');
+
+        echo "\n";
+    }
+
+    private function testSendTooManyRequestsResponseOutputsPlainTextInSubprocess(): void {
+        echo "测试 sendTooManyRequestsResponse() 文本子进程:\n";
+
+        $rateLimiterPath = var_export(PROJECT_ROOT . '/includes/RateLimiter.php', true);
+        $storageDir = var_export($this->storageDir, true);
+
+        $script = <<<'PHP'
+require_once __RATELIMITER_PATH__;
+
+unset($_SERVER['HTTP_ACCEPT']);
+unset($_GET['ajax']);
+
+$limiter = new RateLimiter(1, 60, __STORAGE_DIR__);
+$key = 'subprocess_text_response';
+$limiter->attempt($key);
+$limiter->sendTooManyRequestsResponse($key);
+PHP;
+
+        $result = $this->runPhpSubprocess(strtr($script, [
+            '__RATELIMITER_PATH__' => $rateLimiterPath,
+            '__STORAGE_DIR__' => $storageDir,
+        ]));
+
+        $this->assert($result['exitCode'] === 0, '文本限流响应以正常退出结束');
+        $this->assert(strpos($result['output'], '请求过于频繁，请稍后再试') !== false, '文本限流响应输出预期文案');
+
+        echo "\n";
+    }
+
     private function makeLimiter(int $maxRequests, int $windowSeconds): RateLimiter {
         return new RateLimiter($maxRequests, $windowSeconds, $this->storageDir);
     }
@@ -198,6 +265,40 @@ class RateLimiterTest {
         } finally {
             $_SERVER = $originalServer;
         }
+    }
+
+    private function runPhpSubprocess(string $scriptBody): array {
+        $scriptPath = $this->storageDir . DIRECTORY_SEPARATOR . 'subprocess_' . uniqid('', true) . '.php';
+        $phpBinary = defined('PHP_BINARY') && PHP_BINARY !== '' ? PHP_BINARY : 'php';
+
+        file_put_contents($scriptPath, "<?php\n" . $scriptBody . "\n");
+
+        $output = [];
+        $returnCode = 0;
+        $command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($scriptPath) . ' 2>&1';
+        exec($command, $output, $returnCode);
+
+        @unlink($scriptPath);
+
+        return [
+            'exitCode' => $returnCode,
+            'output' => implode("\n", $output),
+        ];
+    }
+
+    private function extractTrailingJsonObject(string $output): ?string {
+        $trimmed = trim($output);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $start = strrpos($trimmed, '{');
+        $end = strrpos($trimmed, '}');
+        if ($start === false || $end === false || $end < $start) {
+            return null;
+        }
+
+        return substr($trimmed, $start, $end - $start + 1);
     }
 
     private function cleanup(): void {
