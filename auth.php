@@ -353,16 +353,30 @@ class Auth {
      */
     public static function getRedirectUrl(): string {
         self::startSession();
-        $redirectUrl = $_SESSION['redirect_after_login'] ?? '/';
+        $redirectUrl = (string) ($_SESSION['redirect_after_login'] ?? '/');
         unset($_SESSION['redirect_after_login']);
-        
-        // Ensure we return a valid URL path
-        if ($redirectUrl === '/' || empty($redirectUrl)) {
+
+        if ($redirectUrl === '' || $redirectUrl === '/') {
             return '/';
         }
-        
-        // Remove any leading slashes to prevent double slashes
-        return '/' . ltrim($redirectUrl, '/');
+
+        if (preg_match('/[\x00-\x1F\x7F]/', $redirectUrl) === 1) {
+            return '/';
+        }
+
+        if (preg_match('/^[a-z][a-z0-9+\-.]*:/i', $redirectUrl) === 1) {
+            return '/';
+        }
+
+        if (strncmp($redirectUrl, '//', 2) === 0 || strncmp($redirectUrl, '\\\\', 2) === 0) {
+            return '/';
+        }
+
+        if ($redirectUrl[0] !== '/') {
+            return '/';
+        }
+
+        return $redirectUrl;
     }
     
     /**
