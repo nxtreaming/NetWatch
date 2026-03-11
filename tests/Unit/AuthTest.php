@@ -12,6 +12,8 @@ class AuthTest {
     private array $errors = [];
 
     public function run(): bool {
+        Auth::startSession();
+
         echo "=== Auth 单元测试 ===\n\n";
 
         $this->testGetRedirectUrlReturnsSafeRelativePath();
@@ -113,7 +115,6 @@ class AuthTest {
     private function cleanupSession(): void {
         if (session_status() === PHP_SESSION_ACTIVE) {
             $_SESSION = [];
-            session_write_close();
         }
     }
 
