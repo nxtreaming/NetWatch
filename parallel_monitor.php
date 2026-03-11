@@ -8,6 +8,7 @@
 require_once 'config.php';
 require_once 'database.php';
 require_once 'includes/Config.php';
+require_once 'includes/MailerFactory.php';
 require_once 'includes/ParallelStatusUtils.php';
 require_once 'monitor.php';
 require_once 'logger.php';
@@ -125,7 +126,11 @@ class ParallelMonitor {
             'total_proxies' => $totalProxies,
             'total_batches' => $totalBatches,
             'status' => 'starting',
-            'session_id' => $this->sessionId
+            'session_id' => $this->sessionId,
+            'alert_email_attempted' => false,
+            'alert_email_sent' => false,
+            'alert_email_failed_proxies' => 0,
+            'alert_email_error' => null
         ];
         netwatch_write_json_file($tempDir . '/main_status.json', $mainStatus);
         
@@ -418,6 +423,9 @@ class ParallelMonitor {
         if (!is_dir($tempDir)) {
             return ['success' => false, 'error' => '没有正在进行的并行检测'];
         }
+
+        $mainStatusFile = $tempDir . '/main_status.json';
+        $mainStatus = netwatch_read_json_file($mainStatusFile);
         
         $statusFiles = glob($tempDir . '/batch_*.json');
         if (empty($statusFiles)) {
@@ -451,9 +459,45 @@ class ParallelMonitor {
         
         // 基于实际检测的IP数量计算进度，而不是批次完成情况
         $overallProgress = $totalProxies > 0 ? ($totalChecked / $totalProxies) * 100 : 0;
-        
-        // 如果所有批次已完成，自动清理临时目录
-        if ($completedBatches === $totalBatches && $totalBatches > 0) {
+
+        $emailSent = false;
+        $emailAttempted = false;
+        $emailError = null;
+        $failedProxyCount = 0;
+
+        if (is_array($mainStatus)) {
+            $emailSent = (bool) ($mainStatus['alert_email_sent'] ?? false);
+            $emailAttempted = (bool) ($mainStatus['alert_email_attempted'] ?? false);
+            $emailError = $mainStatus['alert_email_error'] ?? null;
+            $failedProxyCount = (int) ($mainStatus['alert_email_failed_proxies'] ?? 0);
+        }
+
+        if (
+            $completedBatches === $totalBatches
+            && $totalBatches > 0
+            && is_array($mainStatus)
+            && ($mainStatus['status'] ?? '') === 'completed'
+            && !$emailAttempted
+        ) {
+            $alertResult = $this->sendFailedProxyAlerts();
+            $mainStatus['alert_email_attempted'] = true;
+            $mainStatus['alert_email_sent'] = $alertResult['email_sent'];
+            $mainStatus['alert_email_failed_proxies'] = $alertResult['failed_proxy_count'];
+            $mainStatus['alert_email_error'] = $alertResult['email_error'];
+            netwatch_write_json_file($mainStatusFile, $mainStatus);
+
+            $emailSent = $alertResult['email_sent'];
+            $emailAttempted = true;
+            $emailError = $alertResult['email_error'];
+            $failedProxyCount = $alertResult['failed_proxy_count'];
+        }
+
+        if (
+            $completedBatches === $totalBatches
+            && $totalBatches > 0
+            && is_array($mainStatus)
+            && ($mainStatus['alert_email_attempted'] ?? false)
+        ) {
             $this->removeTempDir($tempDir);
         }
         
@@ -466,9 +510,78 @@ class ParallelMonitor {
             'total_checked' => $totalChecked,
             'total_online' => $totalOnline,
             'total_offline' => $totalOffline,
+            'failed_proxies' => $failedProxyCount,
+            'email_attempted' => $emailAttempted,
+            'email_sent' => $emailSent,
+            'email_error' => $emailError,
             'batch_statuses' => $batchStatuses,
             'session_id' => $this->sessionId
         ];
+    }
+
+    private function sendFailedProxyAlerts(): array {
+        $failedProxies = $this->monitor->getFailedProxies();
+        $failedProxyCount = count($failedProxies);
+
+        if ($failedProxyCount === 0) {
+            return [
+                'email_sent' => false,
+                'failed_proxy_count' => 0,
+                'email_error' => null,
+            ];
+        }
+
+        try {
+            $mailer = MailerFactory::create();
+            $emailSent = $mailer->sendProxyAlert($failedProxies) === true;
+
+            if ($emailSent) {
+                foreach ($failedProxies as $proxy) {
+                    $this->monitor->addAlert(
+                        $proxy['id'],
+                        'proxy_failure',
+                        "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
+                    );
+                }
+
+                $this->logger->warning('parallel_check_failed_proxy_alert_sent', [
+                    'session_id' => $this->sessionId,
+                    'failed_proxy_count' => $failedProxyCount,
+                    'offline_only' => $this->offlineOnly,
+                ]);
+
+                return [
+                    'email_sent' => true,
+                    'failed_proxy_count' => $failedProxyCount,
+                    'email_error' => null,
+                ];
+            }
+
+            $this->logger->error('parallel_check_failed_proxy_alert_send_failed', [
+                'session_id' => $this->sessionId,
+                'failed_proxy_count' => $failedProxyCount,
+                'offline_only' => $this->offlineOnly,
+            ]);
+
+            return [
+                'email_sent' => false,
+                'failed_proxy_count' => $failedProxyCount,
+                'email_error' => 'failed_to_send_proxy_alert',
+            ];
+        } catch (Throwable $e) {
+            $this->logger->error('parallel_check_failed_proxy_alert_exception', [
+                'session_id' => $this->sessionId,
+                'failed_proxy_count' => $failedProxyCount,
+                'offline_only' => $this->offlineOnly,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'email_sent' => false,
+                'failed_proxy_count' => $failedProxyCount,
+                'email_error' => $e->getMessage(),
+            ];
+        }
     }
     
     /**

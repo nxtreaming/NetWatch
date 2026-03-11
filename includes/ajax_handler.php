@@ -162,16 +162,20 @@ class AjaxHandler {
                     require_once __DIR__ . '/MailerFactory.php';
                     $mailer = MailerFactory::create();
                     
-                    $mailer->sendProxyAlert($failedProxies);
-                    $emailSent = true;
-                    
-                    // 记录警报
-                    foreach ($failedProxies as $proxy) {
-                        $this->monitor->addAlert(
-                            $proxy['id'],
-                            'proxy_failure',
-                            "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
-                        );
+                    $emailSent = $mailer->sendProxyAlert($failedProxies) === true;
+
+                    if ($emailSent) {
+                        foreach ($failedProxies as $proxy) {
+                            $this->monitor->addAlert(
+                                $proxy['id'],
+                                'proxy_failure',
+                                "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
+                            );
+                        }
+                    } else {
+                        $this->logger->error('ajax_check_all_email_send_failed', [
+                            'failed_proxy_count' => count($failedProxies),
+                        ]);
                     }
                 } catch (Exception $mailError) {
                     $this->logger->error('ajax_check_all_email_failed', [
@@ -371,16 +375,20 @@ class AjaxHandler {
                     require_once __DIR__ . '/MailerFactory.php';
                     $mailer = MailerFactory::create();
                     
-                    $mailer->sendProxyAlert($failedProxies);
-                    $emailSent = true;
-                    
-                    // 记录警报
-                    foreach ($failedProxies as $proxy) {
-                        $this->monitor->addAlert(
-                            $proxy['id'],
-                            'proxy_failure',
-                            "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
-                        );
+                    $emailSent = $mailer->sendProxyAlert($failedProxies) === true;
+
+                    if ($emailSent) {
+                        foreach ($failedProxies as $proxy) {
+                            $this->monitor->addAlert(
+                                $proxy['id'],
+                                'proxy_failure',
+                                "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
+                            );
+                        }
+                    } else {
+                        $this->logger->error('ajax_check_failed_proxies_email_send_failed', [
+                            'failed_proxy_count' => count($failedProxies),
+                        ]);
                     }
                 } catch (Exception $mailError) {
                     $this->logger->error('ajax_check_failed_proxies_email_failed', [
