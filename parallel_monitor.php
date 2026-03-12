@@ -476,7 +476,6 @@ class ParallelMonitor {
             $completedBatches === $totalBatches
             && $totalBatches > 0
             && is_array($mainStatus)
-            && ($mainStatus['status'] ?? '') === 'completed'
             && !$emailAttempted
         ) {
             $alertResult = $this->sendFailedProxyAlerts();
@@ -484,6 +483,10 @@ class ParallelMonitor {
             $mainStatus['alert_email_sent'] = $alertResult['email_sent'];
             $mainStatus['alert_email_failed_proxies'] = $alertResult['failed_proxy_count'];
             $mainStatus['alert_email_error'] = $alertResult['email_error'];
+            if (($mainStatus['status'] ?? '') === 'starting' || ($mainStatus['status'] ?? '') === 'running') {
+                $mainStatus['status'] = 'completed';
+                $mainStatus['end_time'] = $mainStatus['end_time'] ?? time();
+            }
             netwatch_write_json_file($mainStatusFile, $mainStatus);
 
             $emailSent = $alertResult['email_sent'];
