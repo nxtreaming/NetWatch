@@ -9,6 +9,21 @@ require_once '../traffic_monitor.php';
 require_once __DIR__ . '/partials/banner.php';
 require_once __DIR__ . '/includes/helpers.php';
 
+ $requestPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+ $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/proxy-status/index.php');
+ $scriptDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+ $allowedPaths = [
+     $scriptDir === '' ? '/' : $scriptDir . '/',
+     ($scriptDir === '' ? '' : $scriptDir) . '/index.php',
+ ];
+
+ if ($requestPath !== '' && !in_array($requestPath, $allowedPaths, true)) {
+     http_response_code(404);
+     header('Content-Type: text/plain; charset=UTF-8');
+     echo '404 Not Found';
+     exit;
+ }
+
 // 强制要求登录
 Auth::requireLogin();
 

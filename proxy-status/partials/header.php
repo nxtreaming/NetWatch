@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <?php $proxyStatusBaseHref = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/proxy-status/index.php')), '/') . '/'; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="<?php echo htmlspecialchars($proxyStatusBaseHref, ENT_QUOTES, 'UTF-8'); ?>">
     <title>动态IP池流量监控 - NetWatch</title>
     <link rel="stylesheet" href="../includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/../../includes/style-v2.css'); ?>">
     <link rel="stylesheet" href="assets/css/proxy-status.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/proxy-status.css'); ?>">
