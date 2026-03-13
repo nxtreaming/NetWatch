@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <?php $proxyStatusBaseHref = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/proxy-status/index.php')), '/') . '/'; ?>
+    <?php
+        $proxyStatusBasePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/proxy-status/index.php')), '/');
+        $appRootPath = $proxyStatusBasePath === '' ? '/' : dirname($proxyStatusBasePath) . '/';
+        $appRootPath = str_replace('//', '/', $appRootPath);
+    ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base href="<?php echo htmlspecialchars($proxyStatusBaseHref, ENT_QUOTES, 'UTF-8'); ?>">
     <title>动态IP池流量监控 - NetWatch</title>
-    <link rel="stylesheet" href="../includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/../../includes/style-v2.css'); ?>">
-    <link rel="stylesheet" href="assets/css/proxy-status.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/proxy-status.css'); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($appRootPath . 'includes/style-v2.css?v=' . filemtime(__DIR__ . '/../../includes/style-v2.css'), ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars(($proxyStatusBasePath === '' ? '' : $proxyStatusBasePath . '/') . 'assets/css/proxy-status.css?v=' . filemtime(__DIR__ . '/../assets/css/proxy-status.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="assets/js/proxy-status.js?v=<?php echo filemtime(__DIR__ . '/../assets/js/proxy-status.js'); ?>" defer></script>
+    <script src="<?php echo htmlspecialchars(($proxyStatusBasePath === '' ? '' : $proxyStatusBasePath . '/') . 'assets/js/proxy-status.js?v=' . filemtime(__DIR__ . '/../assets/js/proxy-status.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
 <body>
     <div class="header">
@@ -24,7 +27,7 @@
                     <div class="user-info">
                         <div class="user-row">
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='?action=logout'); return false;">退出</a>
+                            <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='<?php echo htmlspecialchars(($proxyStatusBasePath === '' ? '/' : $proxyStatusBasePath . '/') . '?action=logout', ENT_QUOTES, 'UTF-8'); ?>'); return false;">退出</a>
                         </div>
                     </div>
                 </div>
@@ -36,6 +39,6 @@
     <!-- 导航链接 -->
     <div class="container">
         <div class="nav-links">
-            <a href="../index.php" class="nav-link">主页</a>
+            <a href="<?php echo htmlspecialchars($appRootPath . 'index.php', ENT_QUOTES, 'UTF-8'); ?>" class="nav-link">主页</a>
         </div>
     </div>

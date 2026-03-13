@@ -20,9 +20,9 @@
     ?>
     </script>
     <!-- 新模块化JS -->
-    <script src="../includes/js/core.js?v=<?php echo filemtime(__DIR__ . '/../../includes/js/core.js'); ?>"></script>
-    <script src="../includes/js/ui.js?v=<?php echo filemtime(__DIR__ . '/../../includes/js/ui.js'); ?>"></script>
-    <script src="../includes/utils.js?v=<?php echo filemtime(__DIR__ . '/../../includes/utils.js'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($appRootPath . 'includes/js/core.js?v=' . filemtime(__DIR__ . '/../../includes/js/core.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($appRootPath . 'includes/js/ui.js?v=' . filemtime(__DIR__ . '/../../includes/js/ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($appRootPath . 'includes/utils.js?v=' . filemtime(__DIR__ . '/../../includes/utils.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     </div>
 </body>
 </html>
