@@ -13,6 +13,21 @@ require_once 'includes/IndexPageController.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
 
+ $requestPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+ $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
+ $scriptDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+ $allowedPaths = [
+     $scriptDir === '' ? '/' : $scriptDir . '/',
+     ($scriptDir === '' ? '' : $scriptDir) . '/index.php',
+ ];
+
+ if ($requestPath !== '' && !in_array($requestPath, $allowedPaths, true)) {
+     http_response_code(404);
+     header('Content-Type: text/plain; charset=UTF-8');
+     echo '404 Not Found';
+     exit;
+ }
+
 ensure_valid_config('web');
 
 // 检查登录状态
