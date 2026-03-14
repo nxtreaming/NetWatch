@@ -21,6 +21,23 @@ function netwatch_request_expects_json_response(): bool {
     return $isXmlHttpRequest || netwatch_is_ajax_mode_request() || ($acceptsJson && !$acceptsHtml);
 }
 
+function netwatch_enforce_entrypoint_paths(string $defaultScriptName): void {
+    $requestPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? $defaultScriptName);
+    $scriptDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+    $allowedPaths = [
+        $scriptDir === '' ? '/' : $scriptDir . '/',
+        ($scriptDir === '' ? '' : $scriptDir) . '/index.php',
+    ];
+
+    if ($requestPath !== '' && !in_array($requestPath, $allowedPaths, true)) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo '404 Not Found';
+        exit;
+    }
+}
+
 function netwatch_is_csrf_exempt_ajax_action(string $action, ?string $requestMethod = null): bool {
     $method = strtoupper($requestMethod ?? ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
     $csrfExemptReadActions = [
