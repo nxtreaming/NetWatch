@@ -284,18 +284,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="header-left">
                     <h1>🌐 子网代理导入</h1>
                     <p>导入子网代理服务器</p>
-                </div>
-                <?php if (Auth::isLoginEnabled()): ?>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-row">
-                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='index.php?action=logout'); return false;">退出</a>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-            </div>
+                 </div>
+                 <?php if (Auth::isLoginEnabled()): ?>
+                 <div class="header-right">
+                     <div class="user-info">
+                         <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser(), ENT_QUOTES, 'UTF-8'); ?></div>
+                            <button type="button" class="logout-btn" onclick="showCustomConfirm('确定要退出登录吗？', () => submitLogout()); return false;">退出</button>
+                         </div>
+                     </div>
+                 </div>
+                 <?php endif; ?>
+             </div>
         </div>
     </div>
     
@@ -336,7 +336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h4>错误详情:</h4>
             <div style="max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;">
                 <?php foreach ($result['errors'] as $error): ?>
-                <div style="padding: 5px 0; border-bottom: 1px solid #e9ecef; font-size: 13px;"><?php echo htmlspecialchars($error); ?></div>
+                <div style="padding: 5px 0; border-bottom: 1px solid #e9ecef; font-size: 13px;"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
@@ -345,12 +345,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <?php if (isset($error)): ?>
         <div class="alert alert-error">
-            <strong>导入失败:</strong> <?php echo htmlspecialchars($error); ?>
+            <strong>导入失败:</strong> <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
         </div>
         <?php endif; ?>
         
         <form method="post" id="subnetForm">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken()); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
             <div class="section">
                 <h2>公共配置</h2>
                 <div class="form-row">
@@ -367,11 +367,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-group">
                         <label for="username">用户名</label>
-                        <input type="text" name="username" id="username" value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
+                        <input type="text" name="username" id="username" value="<?php echo htmlspecialchars($_POST['username'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <div class="form-group">
                         <label for="password">密码</label>
-                        <input type="password" name="password" id="password" value="<?php echo htmlspecialchars($_POST['password'] ?? ''); ?>">
+                        <input type="password" name="password" id="password" value="<?php echo htmlspecialchars($_POST['password'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                 </div>
                 <div class="form-group">
@@ -550,6 +550,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    (parseInt(parts[1]) << 16) + 
                    (parseInt(parts[2]) << 8) + 
                    parseInt(parts[3]);
+        }
+    </script>
+    <form id="logout-form" method="POST" action="index.php?action=logout" style="display:none;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
+    </form>
+    <script>
+        function submitLogout() {
+            document.getElementById('logout-form').submit();
         }
     </script>
     <!-- 新模块化JS -->

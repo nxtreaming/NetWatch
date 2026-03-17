@@ -15,10 +15,19 @@ require_once __DIR__ . '/includes/helpers.php';
 // 强制要求登录
 Auth::requireLogin();
 
-// 处理登出请求
+// 处理登出请求（仅接受 POST + CSRF，防止 CSRF 强制登出）
 $action = $_GET['action'] ?? '';
 if ($action === 'logout') {
-    Auth::logout();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Location: index.php');
+        exit;
+    }
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!Auth::validateCsrfToken($csrfToken)) {
+        header('Location: index.php');
+        exit;
+    }
+    Auth::logout(false);
     header('Location: ../login.php?action=logout');
     exit;
 }
@@ -44,15 +53,18 @@ if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
     $isViewingToday = true;
 }
 
-// 图表展示上下文：首个采样点补齐跨日增量，保证图表增量总和与当日使用一致
-$chartDisplayContext = $trafficMonitor->buildSnapshotChartContext($snapshotDate, $todaySnapshots);
+ // 图表展示上下文：首个采样点补齐跨日增量，保证图表增量总和与当日使用一致
+ $chartDisplayContext = $trafficMonitor->buildSnapshotChartContext($snapshotDate, $todaySnapshots);
 
-// 调试：显示快照数据
-if (isset($_GET['debug']) && !empty($todaySnapshots)) {
-    echo "<pre style='background: #f5f5f5; padding: 20px; margin: 20px; border: 1px solid #ddd; color: #333;'>";
-    echo "=== 流量快照数据调试信息 ===\n";
-    echo "查询日期: $snapshotDate\n";
-    echo "总记录数: " . count($todaySnapshots) . "\n\n";
+$isDebugViewAllowed = defined('ENABLE_DEBUG_TOOLS') && ENABLE_DEBUG_TOOLS === true
+    && (!defined('APP_ENV') || in_array(strtolower((string) APP_ENV), ['local', 'dev', 'development', 'test', 'testing'], true));
+
+ // 调试：显示快照数据
+if ($isDebugViewAllowed && isset($_GET['debug']) && !empty($todaySnapshots)) {
+     echo "<pre style='background: #f5f5f5; padding: 20px; margin: 20px; border: 1px solid #ddd; color: #333;'>";
+     echo "=== 流量快照数据调试信息 ===\n";
+     echo "查询日期: $snapshotDate\n";
+     echo "总记录数: " . count($todaySnapshots) . "\n\n";
     
     // 显示最新一条快照（最后一条）
     $lastSnapshot = end($todaySnapshots);
@@ -346,5 +358,15 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             </div>
         </div>
         <?php endif; ?>
+        
+        <form id="logout-form" method="POST" action="?action=logout" style="display:none;">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
+        </form>
+
+        <script>
+            function submitLogout() {
+                document.getElementById('logout-form').submit();
+            }
+        </script>
         
 <?php require_once __DIR__ . '/partials/footer.php'; ?>

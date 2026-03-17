@@ -493,22 +493,22 @@ $tokens = $db->getAllTokens();
 <body>
     <div class="header">
         <div class="container">
-            <div class="header-content">
-                <div class="header-left">
-                    <h1>🔑 Token 管理</h1>
-                    <p>Token授权管理</p>
-                </div>
-                <?php if (Auth::isLoginEnabled()): ?>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-row">
-                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='index.php?action=logout'); return false;">退出</a>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-            </div>
+             <div class="header-content">
+                 <div class="header-left">
+                     <h1>🔑 Token 管理</h1>
+                     <p>Token授权管理</p>
+                 </div>
+                 <?php if (Auth::isLoginEnabled()): ?>
+                 <div class="header-right">
+                     <div class="user-info">
+                         <div class="user-row">
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser(), ENT_QUOTES, 'UTF-8'); ?></div>
+                            <button type="button" class="logout-btn" onclick="showCustomConfirm('确定要退出登录吗？', () => submitLogout()); return false;">退出</button>
+                         </div>
+                     </div>
+                 </div>
+                 <?php endif; ?>
+             </div>
         </div>
     </div>
     
@@ -572,10 +572,10 @@ $tokens = $db->getAllTokens();
                         <tbody id="token-list">
                             <?php foreach ($tokens as $token): ?>
                             <tr data-token-id="<?php echo $token['id']; ?>">
-                                <td><?php echo htmlspecialchars($token['name']); ?></td>
+                                <td><?php echo htmlspecialchars($token['name'], ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td>
-                                    <div class="token-value" title="<?php echo htmlspecialchars($token['token']); ?>">
-                                        <?php echo htmlspecialchars(substr($token['token'], 0, 16) . '...'); ?>
+                                    <div class="token-value" title="<?php echo htmlspecialchars($token['token'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        <?php echo htmlspecialchars(substr($token['token'], 0, 16) . '...', ENT_QUOTES, 'UTF-8'); ?>
                                     </div>
                                 </td>
                                 <td><?php echo $token['proxy_count']; ?></td>
@@ -589,7 +589,7 @@ $tokens = $db->getAllTokens();
                                 <td><?php echo formatTime($token['expires_at']); ?></td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="btn-small btn-primary" onclick="copyToken('<?php echo htmlspecialchars($token['token']); ?>')">复制</button>
+                                        <button class="btn-small btn-primary" onclick="copyToken('<?php echo htmlspecialchars($token['token'], ENT_QUOTES, 'UTF-8'); ?>')">复制</button>
                                         <button class="btn-small btn-warning" onclick="refreshToken(<?php echo $token['id']; ?>)">刷新</button>
                                         <button class="btn-small btn-success" onclick="reassignProxies(<?php echo $token['id']; ?>, <?php echo $token['proxy_count']; ?>)">重分配</button>
                                         <button class="btn-small btn-danger" onclick="deleteToken(<?php echo $token['id']; ?>)">删除</button>
@@ -809,6 +809,14 @@ $tokens = $db->getAllTokens();
                 closeTokenModal();
             }
         });
+    </script>
+    <form id="logout-form" method="POST" action="index.php?action=logout" style="display:none;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
+    </form>
+    <script>
+        function submitLogout() {
+            document.getElementById('logout-form').submit();
+        }
     </script>
     <!-- 新模块化JS -->
     <script src="includes/js/core.js?v=<?php echo time(); ?>"></script>

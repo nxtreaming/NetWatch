@@ -27,7 +27,7 @@
                     <div class="user-info">
                         <div class="user-row">
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='<?php echo htmlspecialchars(($proxyStatusBasePath === '' ? '/' : $proxyStatusBasePath . '/') . '?action=logout', ENT_QUOTES, 'UTF-8'); ?>'); return false;">退出</a>
+                            <button type="button" class="logout-btn" onclick="showCustomConfirm('确定要退出登录吗？', () => submitLogout()); return false;">退出</button>
                         </div>
                     </div>
                 </div>

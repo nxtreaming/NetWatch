@@ -69,7 +69,7 @@ $recentLogs = $dashboardData['recentLogs'];
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
     <script>
         // 将CSRF Token注入到全局变量
-        window.csrfToken = '<?php echo Auth::getCsrfToken(); ?>';
+        window.csrfToken = <?php echo json_encode(Auth::getCsrfToken(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
     </script>
 </head>
 <body>
@@ -84,7 +84,7 @@ $recentLogs = $dashboardData['recentLogs'];
                 <div class="header-right">
                     <div class="user-info">
                         <div class="user-row">
-                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser(), ENT_QUOTES, 'UTF-8'); ?></div>
                             <button type="button" class="logout-btn" onclick="showCustomConfirm('确定要退出登录吗？', () => submitLogout()); return false;">退出</button>
                         </div>
                     </div>

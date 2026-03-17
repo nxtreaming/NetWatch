@@ -7,11 +7,8 @@
 require_once '../config.php';
 require_once '../auth.php';
 
-// 只允许已登录用户访问，如果无法登录则跳过验证
-$skipAuth = isset($_GET['skip_auth']) && $_GET['skip_auth'] === 'true';
-if (!$skipAuth) {
-    Auth::requireLogin();
-}
+// 只允许已登录用户访问
+Auth::requireLogin();
 
 ?>
 <!DOCTYPE html>
@@ -309,7 +306,7 @@ if (!$skipAuth) {
         </div>
 
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-            <p><a href="../index.php">← 返回主页</a> | <a href="?skip_auth=true">跳过登录验证访问</a></p>
+            <p><a href="../index.php">← 返回主页</a></p>
         </div>
     </div>
 </body>

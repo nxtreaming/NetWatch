@@ -192,7 +192,7 @@ foreach ($proxies as $proxy) {
                     <div class="user-info">
                         <div class="user-row">
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="#" class="logout-btn" onclick="event.preventDefault(); if(confirm('确定要退出登录吗？')) window.location.href='../index.php?action=logout'; return false;">退出</a>
+                            <button type="button" class="logout-btn" onclick="showCustomConfirm('确定要退出登录吗？', () => submitLogout()); return false;">退出</button>
                         </div>
                     </div>
                 </div>
@@ -275,6 +275,16 @@ foreach ($proxies as $proxy) {
                 </table>
             </div>
         </div>
+
+        <form id="logout-form" method="POST" action="../index.php?action=logout" style="display:none;">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
+        </form>
+
+        <script>
+            function submitLogout() {
+                document.getElementById('logout-form').submit();
+            }
+        </script>
         
         <!-- 导入格式说明 -->
         <div class="section">

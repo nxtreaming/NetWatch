@@ -396,7 +396,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="user-info">
                         <div class="user-row">
                             <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
-                            <a href="#" class="logout-btn" onclick="event.preventDefault(); showCustomConfirm('确定要退出登录吗？', () => window.location.href='index.php?action=logout'); return false;">退出</a>
+                            <button type="button" class="logout-btn" onclick="showCustomConfirm('确定要退出登录吗？', () => submitLogout()); return false;">退出</button>
                         </div>
                     </div>
                 </div>
@@ -504,8 +504,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </ul>
         </div>
     </div>
+
+    <form id="logout-form" method="POST" action="index.php?action=logout" style="display:none;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
+    </form>
     
     <script>
+        function submitLogout() {
+            document.getElementById('logout-form').submit();
+        }
+
         function clearForm() {
             document.getElementById('import_text').value = '';
             document.getElementById('import_file').value = '';
