@@ -14,12 +14,62 @@ require_once __DIR__ . '/includes/security_headers.php';
 ensure_valid_config('api');
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: ' . (string) config('api.allow_origin', '*'));
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+$apiAllowOrigin = trim((string) config('api.allow_origin', ''));
+if ($apiAllowOrigin !== '') {
+    header('Access-Control-Allow-Origin: ' . $apiAllowOrigin);
+    header('Vary: Origin');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+}
 
 function api_log_event(string $event, array $context = []): void {
     error_log('[NetWatch][API] ' . $event . ' ' . json_encode($context, JSON_UNESCAPED_UNICODE));
+}
+
+function api_get_request_headers(): array {
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (is_array($headers)) {
+            return $headers;
+        }
+    }
+
+    $headers = [];
+    foreach ($_SERVER as $key => $value) {
+        if (strpos($key, 'HTTP_') !== 0) {
+            continue;
+        }
+
+        $headerName = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+        $headers[$headerName] = $value;
+    }
+
+    return $headers;
+}
+
+function api_extract_token(): string {
+    $headers = api_get_request_headers();
+    foreach ($headers as $headerName => $headerValue) {
+        if (strcasecmp($headerName, 'Authorization') === 0 && preg_match('/Bearer\s+(.+)$/i', (string) $headerValue, $matches)) {
+            return trim($matches[1]);
+        }
+    }
+
+    $postToken = trim((string) ($_POST['token'] ?? ''));
+    if ($postToken !== '') {
+        return $postToken;
+    }
+
+    return trim((string) ($_GET['token'] ?? ''));
+}
+
+function api_build_rate_limit_key(string $token, string $clientIp): string {
+    if ($token !== '') {
+        return 'api:token:' . hash('sha256', $token);
+    }
+
+    return 'api:ip:' . $clientIp;
 }
 
 function api_send_response(array $response): void {
@@ -70,21 +120,10 @@ if (!empty(config('api.ip_whitelist', ''))) {
     }
 }
 
-$tokenForRateLimit = $_GET['token'] ?? $_POST['token'] ?? '';
-if (empty($tokenForRateLimit)) {
-    $headers = function_exists('getallheaders') ? getallheaders() : [];
-    if (isset($headers['Authorization'])) {
-        $auth = $headers['Authorization'];
-        if (preg_match('/Bearer\s+(.*)$/i', $auth, $matches)) {
-            $tokenForRateLimit = $matches[1];
-        }
-    }
-}
+$tokenForRateLimit = api_extract_token();
 
 $rateLimiter = RateLimitPresets::api();
-$rateLimitKey = !empty($tokenForRateLimit)
-    ? ('api:token:' . $tokenForRateLimit)
-    : ('api:ip:' . $clientIp);
+$rateLimitKey = api_build_rate_limit_key($tokenForRateLimit, $clientIp);
 if (!$rateLimiter->attempt($rateLimitKey)) {
     $rateLimiter->sendTooManyRequestsResponse($rateLimitKey);
 }
@@ -188,7 +227,8 @@ class ProxyApi {
                         'success' => true,
                         'data' => [
                             'token_name' => $tokenInfo['name'],
-                            'total_assigned' => count($proxies),
+                            'proxy_count' => $tokenInfo['proxy_count'],
+                            'assigned_count' => count($proxies),
                             'online_count' => count($onlineProxies),
                             'proxies' => $formattedProxies
                         ],
@@ -388,19 +428,8 @@ class ProxyApi {
 try {
     $api = new ProxyApi();
     $action = $_GET['action'] ?? '';
-    $token = $_GET['token'] ?? $_POST['token'] ?? '';
-    
-    // 从Authorization头获取token
-    if (empty($token)) {
-        $headers = getallheaders();
-        if (isset($headers['Authorization'])) {
-            $auth = $headers['Authorization'];
-            if (preg_match('/Bearer\s+(.*)$/i', $auth, $matches)) {
-                $token = $matches[1];
-            }
-        }
-    }
-    
+    $token = api_extract_token();
+     
     switch ($action) {
         case 'proxies':
         case 'get_proxies':
@@ -423,17 +452,17 @@ try {
             $authEnabled = defined('API_EXPOSE_PROXY_AUTH') && API_EXPOSE_PROXY_AUTH === true;
             JsonResponse::success([
                 'endpoints' => [
-                    'GET /api.php?action=proxies&token=YOUR_TOKEN' => '获取授权的代理列表',
-                    'GET /api.php?action=proxies&token=YOUR_TOKEN&format=txt' => '获取文本格式的代理列表',
-                    'GET /api.php?action=proxies&token=YOUR_TOKEN&format=list' => '获取简单列表格式的代理',
-                    'GET /api.php?action=info&token=YOUR_TOKEN' => '获取Token信息',
-                    'GET /api.php?action=status&token=YOUR_TOKEN' => '获取代理状态统计',
-                    'GET /api.php?action=status&token=YOUR_TOKEN&proxy_id=123' => '获取特定代理状态'
+                    'GET /api.php?action=proxies' => '获取授权的代理列表（推荐使用 Authorization: Bearer YOUR_TOKEN）',
+                    'GET /api.php?action=proxies&format=txt' => '获取文本格式的代理列表',
+                    'GET /api.php?action=proxies&format=list' => '获取简单列表格式的代理',
+                    'GET /api.php?action=info' => '获取Token信息',
+                    'GET /api.php?action=status' => '获取代理状态统计',
+                    'GET /api.php?action=status&proxy_id=123' => '获取特定代理状态'
                 ],
                 'authentication' => [
-                    'query_parameter' => '?token=YOUR_TOKEN',
+                    'recommended' => 'Authorization: Bearer YOUR_TOKEN',
                     'post_parameter' => 'token=YOUR_TOKEN',
-                    'authorization_header' => 'Authorization: Bearer YOUR_TOKEN'
+                    'legacy_query_parameter' => '?token=YOUR_TOKEN（兼容保留，不推荐）'
                 ],
                 'formats' => [
                     'json' => '默认JSON格式',

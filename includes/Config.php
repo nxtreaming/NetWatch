@@ -99,7 +99,7 @@ class Config {
                 'loop_sleep_sec' => defined('SCHEDULER_LOOP_SLEEP_SEC') ? (int) SCHEDULER_LOOP_SLEEP_SEC : 60,
             ],
             'api' => [
-                'allow_origin' => defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : '*',
+                'allow_origin' => defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : '',
                 'require_https' => defined('API_REQUIRE_HTTPS') ? API_REQUIRE_HTTPS : false,
                 'ip_whitelist' => defined('API_IP_WHITELIST') ? API_IP_WHITELIST : '',
             ],
