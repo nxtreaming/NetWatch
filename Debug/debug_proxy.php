@@ -10,8 +10,12 @@ require_once '../monitor.php';
 // 检查登录状态
 Auth::requireLogin();
 
+function debug_proxy_escape(?string $value): string {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
 if (isset($_GET['proxy_id'])) {
-    $proxyId = $_GET['proxy_id'];
+    $proxyId = (int) $_GET['proxy_id'];
     
     $monitor = new NetworkMonitor();
     $proxies = $monitor->getAllProxies();
@@ -29,7 +33,7 @@ if (isset($_GET['proxy_id'])) {
     }
     
     echo "<h2>代理调试信息</h2>";
-    echo "<p><strong>代理:</strong> {$proxy['ip']}:{$proxy['port']} ({$proxy['type']})</p>";
+    echo "<p><strong>代理:</strong> " . debug_proxy_escape($proxy['ip'] . ':' . $proxy['port'] . ' (' . $proxy['type'] . ')') . "</p>";
     
     // 详细检查代理
     $startTime = microtime(true);
@@ -66,9 +70,9 @@ if (isset($_GET['proxy_id'])) {
     }
     
     echo "<h3>请求详情</h3>";
-    echo "<p><strong>测试URL:</strong> " . TEST_URL . "</p>";
-    echo "<p><strong>代理URL:</strong> $proxyUrl</p>";
-    echo "<p><strong>代理类型:</strong> " . ($proxy['type'] === 'socks5' ? 'SOCKS5' : 'HTTP') . "</p>";
+    echo "<p><strong>测试URL:</strong> " . debug_proxy_escape(TEST_URL) . "</p>";
+    echo "<p><strong>代理URL:</strong> " . debug_proxy_escape($proxyUrl) . "</p>";
+    echo "<p><strong>代理类型:</strong> " . debug_proxy_escape($proxy['type'] === 'socks5' ? 'SOCKS5' : 'HTTP') . "</p>";
     echo "<p><strong>超时设置:</strong> " . TIMEOUT . " 秒</p>";
     
     $response = curl_exec($ch);
@@ -82,8 +86,8 @@ if (isset($_GET['proxy_id'])) {
     
     echo "<h3>响应结果</h3>";
     echo "<p><strong>响应时间:</strong> " . number_format($responseTime, 2) . " ms</p>";
-    echo "<p><strong>HTTP状态码:</strong> $httpCode</p>";
-    echo "<p><strong>cURL错误:</strong> " . ($curlError ?: '无') . "</p>";
+    echo "<p><strong>HTTP状态码:</strong> " . debug_proxy_escape((string) $httpCode) . "</p>";
+    echo "<p><strong>cURL错误:</strong> " . debug_proxy_escape($curlError ?: '无') . "</p>";
     
     echo "<h3>详细信息</h3>";
     echo "<pre>";
@@ -126,8 +130,8 @@ if (isset($_GET['proxy_id'])) {
     $directError = curl_error($ch2);
     curl_close($ch2);
     
-    echo "<p><strong>直连HTTP状态码:</strong> $directHttpCode</p>";
-    echo "<p><strong>直连错误:</strong> " . ($directError ?: '无') . "</p>";
+    echo "<p><strong>直连HTTP状态码:</strong> " . debug_proxy_escape((string) $directHttpCode) . "</p>";
+    echo "<p><strong>直连错误:</strong> " . debug_proxy_escape($directError ?: '无') . "</p>";
     
     if ($directResponse !== false && $directHttpCode === 200) {
         echo "<p style='color: green;'><strong>✓ 测试URL可以直接访问</strong></p>";
@@ -145,7 +149,7 @@ if (isset($_GET['proxy_id'])) {
     echo "<h3>可用代理列表:</h3>";
     echo "<ul>";
     foreach ($proxies as $proxy) {
-        echo "<li><a href='?proxy_id={$proxy['id']}'>{$proxy['ip']}:{$proxy['port']} ({$proxy['type']})</a></li>";
+        echo "<li><a href='?proxy_id=" . urlencode((string) $proxy['id']) . "'>" . debug_proxy_escape($proxy['ip'] . ':' . $proxy['port'] . ' (' . $proxy['type'] . ')') . "</a></li>";
     }
     echo "</ul>";
 }

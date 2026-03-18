@@ -22,6 +22,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
     $action = $_POST['action'];
     $result = ['success' => false, 'message' => '', 'debug' => []];
+
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!Auth::validateCsrfToken($csrfToken)) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'CSRF验证失败，请刷新页面后重试',
+            'debug' => []
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     
     try {
         $result['debug'][] = "开始处理操作: $action";
@@ -123,6 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     </div>
 
     <script>
+        const csrfToken = <?php echo json_encode(Auth::getCsrfToken(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+
         function runTest(action) {
             const buttons = document.querySelectorAll('.test-button');
             const resultDiv = document.getElementById('result');
@@ -140,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `action=${action}`
+                body: `action=${encodeURIComponent(action)}&csrf_token=${encodeURIComponent(csrfToken)}`
             })
             .then(response => {
                 console.log('Response status:', response.status);

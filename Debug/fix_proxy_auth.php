@@ -12,6 +12,10 @@ require_once '../monitor.php';
 Auth::requireLogin();
 $monitor = new NetworkMonitor();
 
+function debug_fix_proxy_auth_escape(?string $value): string {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
 echo "<h2>代理认证修复工具</h2>";
 
 // 获取所有代理
@@ -22,17 +26,19 @@ echo "<table border='1' style='border-collapse: collapse; width: 100%;'>";
 echo "<tr><th>ID</th><th>IP:端口</th><th>类型</th><th>用户名</th><th>密码</th><th>状态</th><th>操作</th></tr>";
 
 foreach ($proxies as $proxy) {
-    $username = $proxy['username'] ?: '<span style="color: red;">未设置</span>';
+    $username = $proxy['username']
+        ? '<span style="color: green;">' . debug_fix_proxy_auth_escape((string) $proxy['username']) . '</span>'
+        : '<span style="color: red;">未设置</span>';
     $password = $proxy['password'] ? '***已设置***' : '<span style="color: red;">未设置</span>';
     
     echo "<tr>";
-    echo "<td>{$proxy['id']}</td>";
-    echo "<td>{$proxy['ip']}:{$proxy['port']}</td>";
-    echo "<td>" . strtoupper($proxy['type']) . "</td>";
+    echo "<td>" . debug_fix_proxy_auth_escape((string) $proxy['id']) . "</td>";
+    echo "<td>" . debug_fix_proxy_auth_escape($proxy['ip'] . ':' . $proxy['port']) . "</td>";
+    echo "<td>" . debug_fix_proxy_auth_escape(strtoupper((string) $proxy['type'])) . "</td>";
     echo "<td>$username</td>";
     echo "<td>$password</td>";
-    echo "<td>{$proxy['status']}</td>";
-    echo "<td><a href='debug_proxy.php?proxy_id={$proxy['id']}' target='_blank'>调试</a></td>";
+    echo "<td>" . debug_fix_proxy_auth_escape($proxy['status']) . "</td>";
+    echo "<td><a href='debug_proxy.php?proxy_id=" . debug_fix_proxy_auth_escape((string) $proxy['id']) . "' target='_blank'>调试</a></td>";
     echo "</tr>";
 }
 
@@ -40,24 +46,31 @@ echo "</table>";
 
 // 处理更新请求
 if ($_POST && isset($_POST['proxy_id'], $_POST['username'], $_POST['password'])) {
-    $proxyId = $_POST['proxy_id'];
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    
-    // 使用Database类的公共方法更新认证信息
-    $db = new Database();
-    
-    if ($db->updateProxyAuth($proxyId, $username, $password)) {
-        echo "<div style='color: green; padding: 10px; background: #e8f5e8; margin: 10px 0;'>";
-        echo "✓ 代理 ID $proxyId 的认证信息已更新";
-        echo "</div>";
-        
-        // 刷新页面显示更新后的数据
-        echo "<script>setTimeout(function(){ location.reload(); }, 2000);</script>";
-    } else {
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!Auth::validateCsrfToken($csrfToken)) {
         echo "<div style='color: red; padding: 10px; background: #ffe8e8; margin: 10px 0;'>";
-        echo "✗ 更新失败";
+        echo "✗ CSRF验证失败";
         echo "</div>";
+    } else {
+        $proxyId = (int) $_POST['proxy_id'];
+        $username = (string) $_POST['username'];
+        $password = (string) $_POST['password'];
+        
+        // 使用Database类的公共方法更新认证信息
+        $db = new Database();
+        
+        if ($db->updateProxyAuth($proxyId, $username, $password)) {
+            echo "<div style='color: green; padding: 10px; background: #e8f5e8; margin: 10px 0;'>";
+            echo "✓ 代理 ID " . debug_fix_proxy_auth_escape((string) $proxyId) . " 的认证信息已更新";
+            echo "</div>";
+            
+            // 刷新页面显示更新后的数据
+            echo "<script>setTimeout(function(){ location.reload(); }, 2000);</script>";
+        } else {
+            echo "<div style='color: red; padding: 10px; background: #ffe8e8; margin: 10px 0;'>";
+            echo "✗ 更新失败";
+            echo "</div>";
+        }
     }
 }
 
@@ -74,10 +87,11 @@ if (!empty($needAuthProxies)) {
     
     foreach ($needAuthProxies as $proxy) {
         echo "<div style='border: 1px solid #ccc; padding: 10px; margin: 10px 0;'>";
-        echo "<h4>代理: {$proxy['ip']}:{$proxy['port']}</h4>";
+        echo "<h4>代理: " . debug_fix_proxy_auth_escape($proxy['ip'] . ':' . $proxy['port']) . "</h4>";
         echo "<form method='post' style='display: inline-block;'>";
-        echo "<input type='hidden' name='proxy_id' value='{$proxy['id']}'>";
-        echo "<label>用户名: <input type='text' name='username' value='{$proxy['username']}' placeholder='输入用户名'></label><br><br>";
+        echo "<input type='hidden' name='csrf_token' value='" . debug_fix_proxy_auth_escape(Auth::getCsrfToken()) . "'>";
+        echo "<input type='hidden' name='proxy_id' value='" . debug_fix_proxy_auth_escape((string) $proxy['id']) . "'>";
+        echo "<label>用户名: <input type='text' name='username' value='" . debug_fix_proxy_auth_escape((string) ($proxy['username'] ?? '')) . "' placeholder='输入用户名'></label><br><br>";
         echo "<label>密码: <input type='password' name='password' placeholder='输入密码'></label><br><br>";
         echo "<button type='submit'>更新认证信息</button>";
         echo "</form>";

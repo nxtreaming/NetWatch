@@ -31,8 +31,11 @@ if (file_exists($logFile)) {
 
 // 处理清除日志请求
 if (isset($_POST['clear_log'])) {
-    if (file_exists($logFile)) {
-        unlink($logFile);
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (Auth::validateCsrfToken($csrfToken)) {
+        if (file_exists($logFile)) {
+            unlink($logFile);
+        }
     }
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
@@ -194,7 +197,7 @@ if (isset($_POST['clear_log'])) {
                 <div class="header-right">
                     <div class="user-info">
                         <div class="user-row">
-                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser()); ?></div>
+                            <div class="username">👤 <?php echo htmlspecialchars(Auth::getCurrentUser(), ENT_QUOTES, 'UTF-8'); ?></div>
                             <button type="button" class="logout-btn" onclick="showCustomConfirm('确定要退出登录吗？', () => submitLogout()); return false;">退出</button>
                         </div>
                     </div>
@@ -218,6 +221,7 @@ if (isset($_POST['clear_log'])) {
                 <a href="../index.php" class="btn btn-secondary">🏠 返回主页</a>
                 <?php if (!empty($logs)): ?>
                 <form method="post" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
                     <button type="submit" name="clear_log" class="btn btn-danger" onclick="return confirm('确定要清除所有日志吗？')">🗑️ 清除日志</button>
                 </form>
                 <?php endif; ?>

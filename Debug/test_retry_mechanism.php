@@ -138,7 +138,7 @@ require_once '../monitor.php';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = $_POST['action'] ?? '';
             
-            if ($action === 'test_retry') {
+            if ($action === 'test_retry' && Auth::validateCsrfToken($_POST['csrf_token'] ?? '')) {
                 echo '<div class="test-section">';
                 echo '<h2>📊 测试结果</h2>';
                 
@@ -242,6 +242,7 @@ require_once '../monitor.php';
             <h2>🧪 开始测试</h2>
             <form method="POST">
                 <input type="hidden" name="action" value="test_retry">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
                 <button type="submit">运行重试机制测试</button>
             </form>
             <p style="color: #666; margin-top: 10px;">

@@ -117,14 +117,19 @@ Auth::requireLogin();
         // 测试session写入
         $sessionTestResult = null;
         if (isset($_POST['test_session'])) {
-            session_start();
-            $_SESSION['test_key'] = 'test_value_' . time();
-            session_write_close();
-            
-            session_start();
-            if (isset($_SESSION['test_key']) && $_SESSION['test_key'] === $_SESSION['test_key']) {
-                $sessionTestResult = 'success';
-                unset($_SESSION['test_key']);
+            $csrfToken = $_POST['csrf_token'] ?? '';
+            if (Auth::validateCsrfToken($csrfToken)) {
+                session_start();
+                $_SESSION['test_key'] = 'test_value_' . time();
+                session_write_close();
+                
+                session_start();
+                if (isset($_SESSION['test_key']) && $_SESSION['test_key'] === $_SESSION['test_key']) {
+                    $sessionTestResult = 'success';
+                    unset($_SESSION['test_key']);
+                } else {
+                    $sessionTestResult = 'failed';
+                }
             } else {
                 $sessionTestResult = 'failed';
             }
@@ -234,6 +239,7 @@ Auth::requireLogin();
             <?php endif; ?>
 
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
                 <button type="submit" name="test_session" class="test-button">
                     🧪 测试Session读写功能
                 </button>
