@@ -41,8 +41,10 @@ if (php_sapi_name() === 'cli') {
         $targetMonth = (int)$argv[$monthIdx + 1];
     }
 } else {
-    $applyMode = isset($_GET['apply']) && $_GET['apply'] === '1';
-    $rollbackMode = isset($_GET['rollback']) && $_GET['rollback'] === '1';
+    $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    $csrfValid = $requestMethod === 'POST' && Auth::validateCsrfToken($_POST['csrf_token'] ?? '');
+    $applyMode = $csrfValid && isset($_POST['apply']) && $_POST['apply'] === '1';
+    $rollbackMode = $csrfValid && isset($_POST['rollback']) && $_POST['rollback'] === '1';
     if (isset($_GET['month'])) {
         $targetMonth = (int)$_GET['month'];
     }

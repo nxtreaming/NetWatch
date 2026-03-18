@@ -12,6 +12,10 @@ require_once '../logger.php';
 // 检查登录状态
 Auth::requireLogin();
 
+function debug_sensitive_escape(?string $value): string {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
 echo "=== NetWatch 敏感数据过滤测试 ===\n\n";
 
 try {
@@ -162,9 +166,7 @@ try {
     }
     
 } catch (Exception $e) {
-    echo "❌ 测试失败: " . $e->getMessage() . "\n";
-    echo "错误堆栈:\n";
-    echo $e->getTraceAsString() . "\n";
+    echo "❌ 测试失败: " . debug_sensitive_escape($e->getMessage()) . "\n";
 }
 
 echo "\n=== 测试完成 ===\n";

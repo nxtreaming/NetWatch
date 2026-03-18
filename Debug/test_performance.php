@@ -11,6 +11,10 @@ require_once '../monitor.php';
 // 检查登录状态
 Auth::requireLogin();
 
+function debug_performance_escape(?string $value): string {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
 echo "=== NetWatch 性能测试和诊断 ===\n\n";
 
 try {
@@ -153,6 +157,5 @@ try {
     echo "=== 性能测试完成 ===\n";
     
 } catch (Exception $e) {
-    echo "❌ 测试失败: " . $e->getMessage() . "\n";
-    echo "错误详情: " . $e->getTraceAsString() . "\n";
+    echo "❌ 测试失败: " . debug_performance_escape($e->getMessage()) . "\n";
 }

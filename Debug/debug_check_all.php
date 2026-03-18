@@ -12,6 +12,10 @@ require_once '../logger.php';
 // 检查登录状态
 Auth::requireLogin();
 
+function debug_check_all_escape(?string $value): string {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
 echo "=== NetWatch checkAllProxies 调试 ===\n\n";
 
 try {
@@ -40,9 +44,9 @@ try {
     
     // 2. 检查配置常量
     echo "2. 配置检查:\n";
-    echo "   TEST_URL: " . (defined('TEST_URL') ? TEST_URL : '未定义') . "\n";
-    echo "   TIMEOUT: " . (defined('TIMEOUT') ? TIMEOUT : '未定义') . "\n";
-    echo "   LOG_PATH: " . (defined('LOG_PATH') ? LOG_PATH : '未定义') . "\n";
+    echo "   TEST_URL: " . debug_check_all_escape(defined('TEST_URL') ? TEST_URL : '未定义') . "\n";
+    echo "   TIMEOUT: " . debug_check_all_escape((string) (defined('TIMEOUT') ? TIMEOUT : '未定义')) . "\n";
+    echo "   LOG_PATH: " . debug_check_all_escape(defined('LOG_PATH') ? LOG_PATH : '未定义') . "\n";
     echo "\n";
     
     // 3. 测试单个代理检查
@@ -88,7 +92,7 @@ try {
     $logPath = LOG_PATH;
     if (is_dir($logPath)) {
         $logFiles = glob($logPath . '*.log');
-        echo "   日志目录: $logPath\n";
+        echo "   日志目录: " . debug_check_all_escape($logPath) . "\n";
         echo "   日志文件数量: " . count($logFiles) . "\n";
         
         if (count($logFiles) > 0) {
@@ -106,7 +110,7 @@ try {
             }
         }
     } else {
-        echo "   ❌ 日志目录不存在: $logPath\n";
+        echo "   ❌ 日志目录不存在: " . debug_check_all_escape($logPath) . "\n";
     }
     echo "\n";
     
@@ -137,15 +141,11 @@ try {
         echo "   在线: $online, 离线: $offline\n";
         
     } catch (Exception $e) {
-        echo "   ❌ 检查失败: " . $e->getMessage() . "\n";
-        echo "   错误堆栈:\n";
-        echo "   " . $e->getTraceAsString() . "\n";
+        echo "   ❌ 检查失败: " . debug_check_all_escape($e->getMessage()) . "\n";
     }
     
 } catch (Exception $e) {
-    echo "❌ 初始化失败: " . $e->getMessage() . "\n";
-    echo "错误堆栈:\n";
-    echo $e->getTraceAsString() . "\n";
+    echo "❌ 初始化失败: " . debug_check_all_escape($e->getMessage()) . "\n";
 }
 
 echo "\n=== 调试完成 ===\n";

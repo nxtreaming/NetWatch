@@ -12,6 +12,14 @@ require_once '../logger.php';
 // 检查登录状态
 Auth::requireLogin();
 
+function debug_mail_escape(?string $value): string {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
+$debugMailAction = $_POST['action'] ?? '';
+$debugMailPostAllowed = $_SERVER['REQUEST_METHOD'] === 'POST'
+    && Auth::validateCsrfToken($_POST['csrf_token'] ?? '');
+
 echo "<h2>📧 邮件发送调试工具</h2>\n";
 
 // 检查PHP mail函数
@@ -20,7 +28,7 @@ if (function_exists('mail')) {
     echo "<p style='color: green;'>✅ PHP mail()函数可用</p>\n";
     
     // 测试基本mail函数
-    if (isset($_GET['test_mail'])) {
+    if ($debugMailPostAllowed && $debugMailAction === 'test_mail') {
         echo "<p>测试PHP mail()函数...</p>\n";
         $to = (string) config('mail.to', 'test@example.com');
         $subject = 'PHP mail()函数测试 - ' . date('Y-m-d H:i:s');
@@ -35,7 +43,7 @@ if (function_exists('mail')) {
             echo "<p style='color: red;'>❌ mail()函数返回false</p>\n";
         }
     } else {
-        echo "<p><a href='?test_mail=1'>点击测试PHP mail()函数</a></p>\n";
+        echo "<form method='post'><input type='hidden' name='csrf_token' value='" . debug_mail_escape(Auth::getCsrfToken()) . "'><button type='submit' name='action' value='test_mail'>测试PHP mail()函数</button></form>\n";
     }
 } else {
     echo "<p style='color: red;'>❌ PHP mail()函数不可用</p>\n";
@@ -58,7 +66,7 @@ $config = [
 echo "<table border='1' style='border-collapse: collapse; width: 100%;'>\n";
 foreach ($config as $key => $value) {
     $color = ($value === 'NOT_DEFINED' || $value === 'EMPTY') ? 'red' : 'green';
-    echo "<tr><td><strong>$key</strong></td><td style='color: $color;'>$value</td></tr>\n";
+    echo "<tr><td><strong>" . debug_mail_escape($key) . "</strong></td><td style='color: $color;'>" . debug_mail_escape((string) $value) . "</td></tr>\n";
 }
 echo "</table>\n";
 
@@ -76,7 +84,7 @@ $mailConfig = [
 echo "<table border='1' style='border-collapse: collapse; width: 100%;'>\n";
 foreach ($mailConfig as $key => $value) {
     $displayValue = empty($value) ? '(空)' : $value;
-    echo "<tr><td><strong>$key</strong></td><td>$displayValue</td></tr>\n";
+    echo "<tr><td><strong>" . debug_mail_escape($key) . "</strong></td><td>" . debug_mail_escape((string) $displayValue) . "</td></tr>\n";
 }
 echo "</table>\n";
 
@@ -94,14 +102,10 @@ if (file_exists('vendor/autoload.php')) {
             echo "<p style='color: green;'>✅ PHPMailer类可用</p>\n";
             
             // 测试PHPMailer
-            if (isset($_GET['test_phpmailer'])) {
+            if ($debugMailPostAllowed && $debugMailAction === 'test_phpmailer') {
                 echo "<p>测试PHPMailer...</p>\n";
                 
-                use PHPMailer\PHPMailer\PHPMailer;
-                use PHPMailer\PHPMailer\SMTP;
-                use PHPMailer\PHPMailer\Exception;
-                
-                $mail = new PHPMailer(true);
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
                 
                 try {
                     $smtpHost = (string) config('mail.host', '');
@@ -118,7 +122,7 @@ if (file_exists('vendor/autoload.php')) {
                     $mail->SMTPAuth = true;
                     $mail->Username = $smtpUsername;
                     $mail->Password = $smtpPassword;
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
                     $mail->Port = $smtpPort;
                     $mail->CharSet = 'UTF-8';
                     
@@ -140,17 +144,17 @@ if (file_exists('vendor/autoload.php')) {
                     echo "<p style='color: green;'>✅ PHPMailer邮件发送成功</p>\n";
                     
                 } catch (Exception $e) {
-                    echo "<p style='color: red;'>❌ PHPMailer邮件发送失败: " . htmlspecialchars($mail->ErrorInfo) . "</p>\n";
+                    echo "<p style='color: red;'>❌ PHPMailer邮件发送失败: " . debug_mail_escape($mail->ErrorInfo) . "</p>\n";
                 }
             } else {
-                echo "<p><a href='?test_phpmailer=1'>点击测试PHPMailer</a></p>\n";
+                echo "<form method='post'><input type='hidden' name='csrf_token' value='" . debug_mail_escape(Auth::getCsrfToken()) . "'><button type='submit' name='action' value='test_phpmailer'>测试PHPMailer</button></form>\n";
             }
             
         } else {
             echo "<p style='color: red;'>❌ PHPMailer类不可用</p>\n";
         }
     } catch (Exception $e) {
-        echo "<p style='color: red;'>❌ 加载PHPMailer时出错: " . htmlspecialchars($e->getMessage()) . "</p>\n";
+        echo "<p style='color: red;'>❌ 加载PHPMailer时出错: " . debug_mail_escape($e->getMessage()) . "</p>\n";
     }
 } else {
     echo "<p style='color: red;'>❌ vendor/autoload.php不存在，PHPMailer未安装</p>\n";
@@ -163,7 +167,7 @@ echo "<h3>5. SimpleMailer测试</h3>\n";
 if (file_exists('mailer_simple.php')) {
     echo "<p style='color: green;'>✅ mailer_simple.php存在</p>\n";
     
-    if (isset($_GET['test_simple'])) {
+    if ($debugMailPostAllowed && $debugMailAction === 'test_simple') {
         echo "<p>测试SimpleMailer...</p>\n";
         
         try {
@@ -185,10 +189,10 @@ if (file_exists('mailer_simple.php')) {
             }
             
         } catch (Exception $e) {
-            echo "<p style='color: red;'>❌ SimpleMailer测试异常: " . htmlspecialchars($e->getMessage()) . "</p>\n";
+            echo "<p style='color: red;'>❌ SimpleMailer测试异常: " . debug_mail_escape($e->getMessage()) . "</p>\n";
         }
     } else {
-        echo "<p><a href='?test_simple=1'>点击测试SimpleMailer</a></p>\n";
+        echo "<form method='post'><input type='hidden' name='csrf_token' value='" . debug_mail_escape(Auth::getCsrfToken()) . "'><button type='submit' name='action' value='test_simple'>测试SimpleMailer</button></form>\n";
     }
 } else {
     echo "<p style='color: red;'>❌ mailer_simple.php不存在</p>\n";
@@ -207,7 +211,7 @@ $logPaths = [
 $foundLog = false;
 foreach ($logPaths as $logPath) {
     if (file_exists($logPath)) {
-        echo "<p style='color: green;'>✅ 找到日志文件: $logPath</p>\n";
+        echo "<p style='color: green;'>✅ 找到日志文件: " . debug_mail_escape($logPath) . "</p>\n";
         
         $logContent = file_get_contents($logPath);
         if (!empty($logContent)) {
@@ -232,7 +236,7 @@ if (!$foundLog) {
     echo "<p>尝试的路径:</p>\n";
     echo "<ul>\n";
     foreach ($logPaths as $path) {
-        echo "<li>" . htmlspecialchars($path) . "</li>\n";
+        echo "<li>" . debug_mail_escape($path) . "</li>\n";
     }
     echo "</ul>\n";
 }
@@ -244,18 +248,18 @@ echo "<h3>7. 网络连接测试</h3>\n";
 if (config('mail.host', '') !== '' && config('mail.port', '') !== '') {
     $smtpHost = (string) config('mail.host', '');
     $smtpPort = (int) config('mail.port', 587);
-    echo "<p>测试到 " . $smtpHost . ":" . $smtpPort . " 的连接...</p>\n";
+    echo "<p>测试到 " . debug_mail_escape($smtpHost) . ":" . debug_mail_escape((string) $smtpPort) . " 的连接...</p>\n";
     
     $socket = @fsockopen($smtpHost, $smtpPort, $errno, $errstr, 10);
     if ($socket) {
         echo "<p style='color: green;'>✅ 成功连接到SMTP服务器</p>\n";
         
         $response = fgets($socket, 512);
-        echo "<p>服务器响应: " . htmlspecialchars(trim($response)) . "</p>\n";
+        echo "<p>服务器响应: " . debug_mail_escape(trim($response)) . "</p>\n";
         fclose($socket);
     } else {
         echo "<p style='color: red;'>❌ 无法连接到SMTP服务器</p>\n";
-        echo "<p>错误: $errstr ($errno)</p>\n";
+        echo "<p>错误: " . debug_mail_escape($errstr) . " (" . debug_mail_escape((string) $errno) . ")</p>\n";
         echo "<p>可能的原因:</p>\n";
         echo "<ul>\n";
         echo "<li>防火墙阻止了连接</li>\n";

@@ -85,10 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
     } catch (Exception $e) {
         $result['message'] = '操作异常: ' . $e->getMessage();
-        $result['debug'][] = '异常详情: ' . $e->getTraceAsString();
+        $result['debug'][] = '异常详情已隐藏，请查看服务端日志';
     } catch (Error $e) {
         $result['message'] = 'PHP错误: ' . $e->getMessage();
-        $result['debug'][] = '错误详情: ' . $e->getTraceAsString();
+        $result['debug'][] = '错误详情已隐藏，请查看服务端日志';
     }
     
     echo json_encode($result, JSON_UNESCAPED_UNICODE);

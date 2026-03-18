@@ -13,6 +13,27 @@ require_once '../logger.php';
 // 检查登录状态
 Auth::requireLogin();
 
+function debug_check_failed_escape(?string $value): string {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
+function debug_check_failed_mask(?string $value): string {
+    if ($value === null || $value === '') {
+        return '';
+    }
+
+    $length = strlen($value);
+    if ($length <= 4) {
+        return str_repeat('*', $length);
+    }
+
+    return substr($value, 0, 2) . str_repeat('*', max(2, $length - 4)) . substr($value, -2);
+}
+
+$sendAlertsRequested = $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['send_alerts'])
+    && Auth::validateCsrfToken($_POST['csrf_token'] ?? '');
+
 echo "=== NetWatch 失败代理检查 ===\n\n";
 
 try {
@@ -38,7 +59,7 @@ try {
     if (count($failedProxies) > 0) {
         echo "   详情:\n";
         foreach ($failedProxies as $proxy) {
-            echo "   - {$proxy['type']}://{$proxy['ip']}:{$proxy['port']} (失败 {$proxy['failure_count']} 次)\n";
+            echo "   - " . debug_check_failed_escape($proxy['type'] . '://' . $proxy['ip'] . ':' . $proxy['port']) . " (失败 " . debug_check_failed_escape((string) $proxy['failure_count']) . " 次)\n";
         }
     } else {
         echo "   ✅ 没有需要发送警报的代理\n";
@@ -59,7 +80,7 @@ try {
         foreach ($offlineProxies as $proxy) {
             $failureCount = $proxy['failure_count'] ?? 0;
             $lastCheck = $proxy['last_check'] ?? '从未检查';
-            echo "   - {$proxy['type']}://{$proxy['ip']}:{$proxy['port']} (失败 {$failureCount} 次, 最后检查: {$lastCheck})\n";
+            echo "   - " . debug_check_failed_escape($proxy['type'] . '://' . $proxy['ip'] . ':' . $proxy['port']) . " (失败 " . debug_check_failed_escape((string) $failureCount) . " 次, 最后检查: " . debug_check_failed_escape((string) $lastCheck) . ")\n";
         }
     }
     echo "\n";
@@ -68,16 +89,16 @@ try {
     echo "4. 邮件配置检查:\n";
     
     if (config('mail.host', '') !== '') {
-        echo "   SMTP_HOST: " . config('mail.host', '') . "\n";
+        echo "   SMTP_HOST: " . debug_check_failed_escape(debug_check_failed_mask((string) config('mail.host', ''))) . "\n";
     }
     if (config('mail.username', '') !== '') {
-        echo "   SMTP_USERNAME: " . config('mail.username', '') . "\n";
+        echo "   SMTP_USERNAME: " . debug_check_failed_escape(debug_check_failed_mask((string) config('mail.username', ''))) . "\n";
     }
     if (config('mail.to', '') !== '') {
-        echo "   SMTP_TO_EMAIL: " . config('mail.to', '') . "\n";
+        echo "   SMTP_TO_EMAIL: " . debug_check_failed_escape(debug_check_failed_mask((string) config('mail.to', ''))) . "\n";
     }
     if (config('mail.from', '') !== '') {
-        echo "   SMTP_FROM_EMAIL: " . config('mail.from', '') . "\n";
+        echo "   SMTP_FROM_EMAIL: " . debug_check_failed_escape(debug_check_failed_mask((string) config('mail.from', ''))) . "\n";
     }
     
     echo "   ALERT_THRESHOLD: " . ALERT_THRESHOLD . " 次\n";
@@ -90,38 +111,42 @@ try {
     }
     echo "\n";
     
-    // 5. 测试邮件发送（如果有失败代理）
+    // 5. 测试邮件发送（需要显式 POST + CSRF 触发）
     if (count($failedProxies) > 0) {
-        echo "5. 测试邮件发送:\n";
-        try {
-            if (file_exists('vendor/autoload.php')) {
-                require_once 'mailer.php';
-                $mailer = new Mailer();
-            } else {
-                require_once 'mailer_simple.php';
-                $mailer = new SimpleMailer();
-            }
-            
-            echo "   正在发送测试邮件...\n";
-            $result = $mailer->sendProxyAlert($failedProxies);
-            
-            if ($result) {
-                echo "   ✅ 邮件发送成功！\n";
-                
-                // 记录警报
-                foreach ($failedProxies as $proxy) {
-                    $monitor->addAlert(
-                        $proxy['id'],
-                        'proxy_failure',
-                        "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
-                    );
+        echo "5. 邮件发送控制:\n";
+        echo "   默认仅预览，不会自动发送。\n";
+        if ($sendAlertsRequested) {
+            try {
+                if (file_exists('vendor/autoload.php')) {
+                    require_once 'mailer.php';
+                    $mailer = new Mailer();
+                } else {
+                    require_once 'mailer_simple.php';
+                    $mailer = new SimpleMailer();
                 }
-                echo "   ✅ 警报记录已保存\n";
-            } else {
-                echo "   ❌ 邮件发送失败\n";
+                
+                echo "   正在发送测试邮件...\n";
+                $result = $mailer->sendProxyAlert($failedProxies);
+                
+                if ($result) {
+                    echo "   ✅ 邮件发送成功！\n";
+                    
+                    foreach ($failedProxies as $proxy) {
+                        $monitor->addAlert(
+                            $proxy['id'],
+                            'proxy_failure',
+                            "代理 {$proxy['ip']}:{$proxy['port']} 连续失败 {$proxy['failure_count']} 次"
+                        );
+                    }
+                    echo "   ✅ 警报记录已保存\n";
+                } else {
+                    echo "   ❌ 邮件发送失败\n";
+                }
+            } catch (Exception $e) {
+                echo "   ❌ 邮件发送异常\n";
             }
-        } catch (Exception $e) {
-            echo "   ❌ 邮件发送异常: " . $e->getMessage() . "\n";
+        } else {
+            echo "   如需发送，请使用下方表单显式提交。\n";
         }
     } else {
         echo "5. 邮件发送:\n";
@@ -129,10 +154,14 @@ try {
     }
     
 } catch (Exception $e) {
-    echo "❌ 检查失败: " . $e->getMessage() . "\n";
-    echo "错误堆栈:\n";
-    echo $e->getTraceAsString() . "\n";
+    echo "❌ 检查失败: " . debug_check_failed_escape($e->getMessage()) . "\n";
 }
 
 echo "\n=== 检查完成 ===\n";
+if (count($failedProxies ?? []) > 0) {
+    echo "\n<form method='post'>";
+    echo "<input type='hidden' name='csrf_token' value='" . debug_check_failed_escape(Auth::getCsrfToken()) . "'>";
+    echo "<button type='submit' name='send_alerts' value='1'>发送失败代理告警邮件</button>";
+    echo "</form>";
+}
 ?>

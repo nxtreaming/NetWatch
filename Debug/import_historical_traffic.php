@@ -10,6 +10,9 @@ require_once __DIR__ . '../database.php';
 
 Auth::requireLogin();
 
+$allowImport = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+    && Auth::validateCsrfToken($_POST['csrf_token'] ?? '');
+
 // JSON数据
 $jsonData = '{
     "code": 200,
@@ -52,6 +55,15 @@ if ($response['code'] !== 200) {
 
 $data = $response['data'];
 echo "📊 找到 " . count($data) . " 条历史记录\n\n";
+
+if (!$allowImport) {
+    echo "📋 当前为预览模式，未写入数据库。\n";
+    echo "\n<form method='post'>";
+    echo "<input type='hidden' name='csrf_token' value='" . htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8') . "'>";
+    echo "<button type='submit' name='confirm_import' value='1'>执行历史流量导入</button>";
+    echo "</form>\n";
+    exit;
+}
 
 // 连接数据库
 $db = new Database();
