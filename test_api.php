@@ -68,10 +68,10 @@ $baseUrl = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) 
 
 $testEndpoints = [
     'help' => "?action=help",
-    'token_info' => "?action=info&token=$testToken",
-    'proxy_list_json' => "?action=proxies&token=$testToken",
-    'proxy_list_txt' => "?action=proxies&token=$testToken&format=txt",
-    'status' => "?action=status&token=$testToken"
+    'token_info' => "?action=info",
+    'proxy_list_json' => "?action=proxies",
+    'proxy_list_txt' => "?action=proxies&format=txt",
+    'status' => "?action=status"
 ];
 
 foreach ($testEndpoints as $name => $endpoint) {
@@ -81,7 +81,8 @@ foreach ($testEndpoints as $name => $endpoint) {
     $context = stream_context_create([
         'http' => [
             'timeout' => 10,
-            'ignore_errors' => true
+            'ignore_errors' => true,
+            'header' => "Authorization: Bearer {$testToken}\r\n"
         ]
     ]);
     
@@ -129,9 +130,17 @@ echo "\n";
 // 6. 测试无效Token
 echo "6. 测试安全性（无效Token）...\n";
 $invalidToken = "invalid_token_12345";
-$url = $baseUrl . "?action=proxies&token=$invalidToken";
+$url = $baseUrl . "?action=proxies";
 
-$response = @file_get_contents($url, false, $context);
+$invalidContext = stream_context_create([
+    'http' => [
+        'timeout' => 10,
+        'ignore_errors' => true,
+        'header' => "Authorization: Bearer {$invalidToken}\r\n"
+    ]
+]);
+
+$response = @file_get_contents($url, false, $invalidContext);
 if ($response !== false) {
     $data = json_decode($response, true);
     if ($data && !$data['success']) {

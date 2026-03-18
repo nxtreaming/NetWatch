@@ -9,7 +9,7 @@ NetWatch API授权系统允许管理员为特定用户创建Token，授权访问
 - ✅ **基于Token的授权机制** - 安全的API访问控制
 - ✅ **固定代理分配** - 同一Token始终返回相同的代理列表
 - ✅ **多种输出格式** - 支持JSON、文本、列表格式
-- ✅ **灵活的认证方式** - URL参数、POST参数、Authorization头
+- ✅ **灵活的认证方式** - Authorization头（推荐）、POST参数
 - ✅ **完整的管理界面** - 可视化Token管理和API测试
 - ✅ **智能代理分配** - 优先分配在线且响应快的代理
 
@@ -50,19 +50,22 @@ NetWatch API系统
 
 #### 基本用法
 ```bash
-# 获取JSON格式的代理列表
-curl "https://your-domain.com/api.php?action=proxies&token=YOUR_TOKEN"
+# 使用Authorization头获取JSON格式的代理列表
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+     "https://your-domain.com/api.php?action=proxies"
 
 # 获取文本格式的代理URL
-curl "https://your-domain.com/api.php?action=proxies&token=YOUR_TOKEN&format=txt"
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+     "https://your-domain.com/api.php?action=proxies&format=txt"
 
 # 获取简单列表格式
-curl "https://your-domain.com/api.php?action=proxies&token=YOUR_TOKEN&format=list"
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+     "https://your-domain.com/api.php?action=proxies&format=list"
 ```
 
-#### 使用Authorization头
+#### 使用POST参数
 ```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
+curl -X POST -d "token=YOUR_TOKEN" \
      "https://your-domain.com/api.php?action=proxies"
 ```
 
@@ -71,7 +74,8 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 ### 1. 获取代理列表
 - **端点**: `GET /api.php?action=proxies`
 - **参数**: 
-  - `token` (必需): API Token
+  - `Authorization` 请求头（推荐）: `Bearer YOUR_TOKEN`
+  - `token` (POST参数，兼容支持): API Token
   - `format` (可选): 输出格式 `json|txt|list`
 - **返回**: 授权的代理服务器列表
 
@@ -111,14 +115,15 @@ http://9.10.11.12:3128
 
 ### 2. 获取Token信息
 - **端点**: `GET /api.php?action=info`
-- **参数**: `token` (必需)
+- **认证**: `Authorization: Bearer YOUR_TOKEN` 或 POST参数 `token`
 - **返回**: Token的基本信息和统计数据
 
 ### 3. 获取状态统计
 - **端点**: `GET /api.php?action=status`
 - **参数**: 
-  - `token` (必需)
-  - `proxy_id` (可选): 特定代理ID
+  - `Authorization` 请求头（推荐）: `Bearer YOUR_TOKEN`
+  - `token` (POST参数，兼容支持)
+  - `proxy_id` (可选): 特定代理的ID
 - **返回**: 代理状态统计信息
 
 ### 4. 帮助信息
