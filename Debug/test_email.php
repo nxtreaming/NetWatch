@@ -161,10 +161,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
-// 加载配置用于页面显示
-// 配置已在开头加载
-$mailerType = 'PHPMailer (SMTP)';
-?>
+ // 加载配置用于页面显示
+ // 配置已在开头加载
+ $mailerType = 'PHPMailer (SMTP)';
+ 
+function debug_test_email_mask(?string $value): string {
+    $value = (string) $value;
+    if ($value === '') {
+        return '未配置';
+    }
+
+    $length = strlen($value);
+    if ($length <= 4) {
+        return str_repeat('*', $length);
+    }
+
+    return substr($value, 0, 2) . str_repeat('*', max(2, $length - 4)) . substr($value, -2);
+}
+ ?>
 
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -276,9 +290,9 @@ $mailerType = 'PHPMailer (SMTP)';
         <div class="config-info">
             <h3>📋 当前配置信息</h3>
             <p><strong>邮件发送器:</strong> <?php echo $mailerType; ?></p>
-            <p><strong>SMTP服务器:</strong> <?php echo htmlspecialchars((string) config('mail.host', '未配置')); ?>:<?php echo htmlspecialchars((string) config('mail.port', '未配置')); ?></p>
-            <p><strong>发件人:</strong> <?php echo htmlspecialchars((string) config('mail.from', '未配置')); ?></p>
-            <p><strong>收件人:</strong> <?php echo htmlspecialchars((string) config('mail.to', '未配置')); ?></p>
+            <p><strong>SMTP服务器:</strong> <?php echo htmlspecialchars(debug_test_email_mask((string) config('mail.host', '')), ENT_QUOTES, 'UTF-8'); ?>:<?php echo htmlspecialchars((string) config('mail.port', '未配置'), ENT_QUOTES, 'UTF-8'); ?></p>
+            <p><strong>发件人:</strong> <?php echo htmlspecialchars(debug_test_email_mask((string) config('mail.from', '')), ENT_QUOTES, 'UTF-8'); ?></p>
+            <p><strong>收件人:</strong> <?php echo htmlspecialchars(debug_test_email_mask((string) config('mail.to', '')), ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
 
         <div class="test-section">

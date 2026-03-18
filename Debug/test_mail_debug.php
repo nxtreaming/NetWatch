@@ -16,6 +16,20 @@ function debug_mail_escape(?string $value): string {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+function debug_mail_mask(?string $value): string {
+    $value = (string) $value;
+    if ($value === '') {
+        return '未配置';
+    }
+
+    $length = strlen($value);
+    if ($length <= 4) {
+        return str_repeat('*', $length);
+    }
+
+    return substr($value, 0, 2) . str_repeat('*', max(2, $length - 4)) . substr($value, -2);
+}
+
 $debugMailAction = $_POST['action'] ?? '';
 $debugMailPostAllowed = $_SERVER['REQUEST_METHOD'] === 'POST'
     && Auth::validateCsrfToken($_POST['csrf_token'] ?? '');
@@ -66,7 +80,10 @@ $config = [
 echo "<table border='1' style='border-collapse: collapse; width: 100%;'>\n";
 foreach ($config as $key => $value) {
     $color = ($value === 'NOT_DEFINED' || $value === 'EMPTY') ? 'red' : 'green';
-    echo "<tr><td><strong>" . debug_mail_escape($key) . "</strong></td><td style='color: $color;'>" . debug_mail_escape((string) $value) . "</td></tr>\n";
+    $displayValue = in_array($key, ['SMTP_HOST', 'SMTP_USERNAME', 'SMTP_FROM_EMAIL', 'SMTP_FROM_NAME', 'SMTP_TO_EMAIL'], true)
+        ? debug_mail_mask((string) $value)
+        : (string) $value;
+    echo "<tr><td><strong>" . debug_mail_escape($key) . "</strong></td><td style='color: $color;'>" . debug_mail_escape($displayValue) . "</td></tr>\n";
 }
 echo "</table>\n";
 
@@ -84,7 +101,7 @@ $mailConfig = [
 echo "<table border='1' style='border-collapse: collapse; width: 100%;'>\n";
 foreach ($mailConfig as $key => $value) {
     $displayValue = empty($value) ? '(空)' : $value;
-    echo "<tr><td><strong>" . debug_mail_escape($key) . "</strong></td><td>" . debug_mail_escape((string) $displayValue) . "</td></tr>\n";
+    echo "<tr><td><strong>" . debug_mail_escape($key) . "</strong></td><td>" . debug_mail_escape(debug_mail_mask((string) $displayValue)) . "</td></tr>\n";
 }
 echo "</table>\n";
 
@@ -211,7 +228,7 @@ $logPaths = [
 $foundLog = false;
 foreach ($logPaths as $logPath) {
     if (file_exists($logPath)) {
-        echo "<p style='color: green;'>✅ 找到日志文件: " . debug_mail_escape($logPath) . "</p>\n";
+        echo "<p style='color: green;'>✅ 找到日志文件: " . debug_mail_escape(basename($logPath)) . "</p>\n";
         
         $logContent = file_get_contents($logPath);
         if (!empty($logContent)) {
@@ -233,12 +250,6 @@ foreach ($logPaths as $logPath) {
 
 if (!$foundLog) {
     echo "<p style='color: orange;'>⚠️ 未找到日志文件</p>\n";
-    echo "<p>尝试的路径:</p>\n";
-    echo "<ul>\n";
-    foreach ($logPaths as $path) {
-        echo "<li>" . debug_mail_escape($path) . "</li>\n";
-    }
-    echo "</ul>\n";
 }
 
 echo "<hr>\n";
@@ -248,7 +259,7 @@ echo "<h3>7. 网络连接测试</h3>\n";
 if (config('mail.host', '') !== '' && config('mail.port', '') !== '') {
     $smtpHost = (string) config('mail.host', '');
     $smtpPort = (int) config('mail.port', 587);
-    echo "<p>测试到 " . debug_mail_escape($smtpHost) . ":" . debug_mail_escape((string) $smtpPort) . " 的连接...</p>\n";
+    echo "<p>测试到 " . debug_mail_escape(debug_mail_mask($smtpHost)) . ":" . debug_mail_escape((string) $smtpPort) . " 的连接...</p>\n";
     
     $socket = @fsockopen($smtpHost, $smtpPort, $errno, $errstr, 10);
     if ($socket) {

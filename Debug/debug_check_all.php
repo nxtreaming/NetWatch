@@ -16,6 +16,10 @@ function debug_check_all_escape(?string $value): string {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+$runFullCheck = $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['run_full_check'])
+    && Auth::validateCsrfToken($_POST['csrf_token'] ?? '');
+
 echo "=== NetWatch checkAllProxies 调试 ===\n\n";
 
 try {
@@ -116,32 +120,40 @@ try {
     
     // 6. 模拟 AJAX 请求
     echo "6. 模拟 AJAX checkAll 请求:\n";
-    echo "   开始模拟完整的 checkAllProxies() 调用...\n";
-    
-    $startTime = microtime(true);
-    try {
-        $results = $monitor->checkAllProxies();
-        $duration = microtime(true) - $startTime;
+    if ($runFullCheck) {
+        echo "   开始模拟完整的 checkAllProxies() 调用...\n";
         
-        echo "   ✅ 检查完成！\n";
-        echo "   总耗时: " . round($duration, 2) . "秒\n";
-        echo "   检查结果数量: " . count($results) . "\n";
-        
-        // 统计结果
-        $online = 0;
-        $offline = 0;
-        foreach ($results as $result) {
-            if ($result['status'] === 'online') {
-                $online++;
-            } else {
-                $offline++;
+        $startTime = microtime(true);
+        try {
+            $results = $monitor->checkAllProxies();
+            $duration = microtime(true) - $startTime;
+            
+            echo "   ✅ 检查完成！\n";
+            echo "   总耗时: " . round($duration, 2) . "秒\n";
+            echo "   检查结果数量: " . count($results) . "\n";
+            
+            // 统计结果
+            $online = 0;
+            $offline = 0;
+            foreach ($results as $result) {
+                if ($result['status'] === 'online') {
+                    $online++;
+                } else {
+                    $offline++;
+                }
             }
+            
+            echo "   在线: $online, 离线: $offline\n";
+        } catch (Exception $e) {
+            echo "   ❌ 检查失败: " . debug_check_all_escape($e->getMessage()) . "\n";
         }
-        
-        echo "   在线: $online, 离线: $offline\n";
-        
-    } catch (Exception $e) {
-        echo "   ❌ 检查失败: " . debug_check_all_escape($e->getMessage()) . "\n";
+    } else {
+        echo "   默认不自动执行全量检测。\n";
+        echo "   如需执行，请使用下方表单显式触发。\n";
+        echo "   <form method='post'>\n";
+        echo "       <input type='hidden' name='csrf_token' value='" . debug_check_all_escape(Auth::getCsrfToken()) . "'>\n";
+        echo "       <button type='submit' name='run_full_check' value='1'>执行全量 checkAllProxies 调试</button>\n";
+        echo "   </form>\n";
     }
     
 } catch (Exception $e) {
