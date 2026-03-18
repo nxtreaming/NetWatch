@@ -61,7 +61,7 @@ function api_extract_token(): string {
         return $postToken;
     }
 
-    return trim((string) ($_GET['token'] ?? ''));
+    return '';
 }
 
 function api_build_rate_limit_key(string $token, string $clientIp): string {
@@ -462,7 +462,7 @@ try {
                 'authentication' => [
                     'recommended' => 'Authorization: Bearer YOUR_TOKEN',
                     'post_parameter' => 'token=YOUR_TOKEN',
-                    'legacy_query_parameter' => '?token=YOUR_TOKEN（兼容保留，不推荐）'
+                    'query_parameter' => '已禁用'
                 ],
                 'formats' => [
                     'json' => '默认JSON格式',

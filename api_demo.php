@@ -202,20 +202,15 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         <!-- 认证方式 -->
         <div class="section">
             <h3>🔐 认证方式</h3>
-            <p>API支持三种Token传递方式：</p>
+            <p>API支持两种Token传递方式，推荐使用 Authorization 请求头：</p>
             
             <div class="endpoint-box">
-                <strong>1. URL参数:</strong>
-                <div class="endpoint-url">GET /api.php?action=proxies&token=YOUR_TOKEN</div>
-            </div>
-            
-            <div class="endpoint-box">
-                <strong>2. POST参数:</strong>
+                <strong>1. POST参数:</strong>
                 <div class="code-block">curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"</div>
             </div>
             
             <div class="endpoint-box">
-                <strong>3. Authorization头:</strong>
+                <strong>2. Authorization头（推荐）:</strong>
                 <div class="code-block">curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"</div>
             </div>
         </div>
@@ -263,7 +258,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
             
             <div class="form-group">
                 <label>请求URL:</label>
-                <div class="endpoint-url" id="request-url">选择Token和操作后显示</div>
+                <div class="endpoint-url" id="request-url">选择Token和操作后显示（Token 将通过 Authorization 头发送）</div>
             </div>
             
             <div class="form-group">
@@ -280,9 +275,15 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
             <div class="code-block">
 <?php echo htmlspecialchars('<?php
 $token = "YOUR_TOKEN_HERE";
-$url = "' . $baseUrl . '/api.php?action=proxies&token=" . $token;
+$url = "' . $baseUrl . '/api.php?action=proxies";
+$opts = [
+    "http" => [
+        "method" => "GET",
+        "header" => "Authorization: Bearer {$token}\r\n"
+    ]
+];
 
-$response = file_get_contents($url);
+$response = file_get_contents($url, false, stream_context_create($opts));
 $data = json_decode($response, true);
 
 if ($data["success"]) {
@@ -303,10 +304,7 @@ import json
 token = "YOUR_TOKEN_HERE"
 url = "<?php echo $baseUrl; ?>/api.php"
 
-# 方式1: URL参数
-response = requests.get(url, params={"action": "proxies", "token": token})
-
-# 方式2: Authorization头
+# 推荐方式: Authorization头
 headers = {"Authorization": f"Bearer {token}"}
 response = requests.get(url, params={"action": "proxies"}, headers=headers)
 
@@ -326,8 +324,12 @@ else:
 const token = "YOUR_TOKEN_HERE";
 const url = "<?php echo $baseUrl; ?>/api.php";
 
-// 使用fetch API
-fetch(`${url}?action=proxies&token=${token}`)
+// 使用fetch API + Authorization头
+fetch(`${url}?action=proxies`, {
+    headers: {
+        "Authorization": `Bearer ${token}`
+    }
+})
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -343,14 +345,14 @@ fetch(`${url}?action=proxies&token=${token}`)
             
             <h4>curl示例:</h4>
             <div class="code-block">
-# JSON格式
-curl "<?php echo $baseUrl; ?>/api.php?action=proxies&token=YOUR_TOKEN"
-
-# 文本格式
-curl "<?php echo $baseUrl; ?>/api.php?action=proxies&token=YOUR_TOKEN&format=txt"
-
 # 使用Authorization头
 curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"
+
+# 文本格式
+curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies&format=txt"
+
+# POST参数
+curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"
             </div>
         </div>
 
@@ -360,9 +362,11 @@ curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?acti
             
             <div class="endpoint-box">
                 <h4>1. 获取代理列表</h4>
-                <div class="endpoint-url">GET /api.php?action=proxies&token=TOKEN[&format=FORMAT]</div>
+                <div class="endpoint-url">GET /api.php?action=proxies[&format=FORMAT]</div>
                 <p><strong>参数:</strong></p>
                 <ul>
+                    <li><code>Authorization</code> 请求头（推荐）: <code>Bearer TOKEN</code></li>
+                    <li><code>token</code> POST参数: 兼容支持</li>
                     <li><code>format</code> (可选): json(默认) | txt | list</li>
                 </ul>
                 <p><strong>返回:</strong> 授权的代理服务器列表</p>
@@ -370,15 +374,18 @@ curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?acti
             
             <div class="endpoint-box">
                 <h4>2. 获取Token信息</h4>
-                <div class="endpoint-url">GET /api.php?action=info&token=TOKEN</div>
+                <div class="endpoint-url">GET /api.php?action=info</div>
+                <p><strong>认证:</strong> <code>Authorization: Bearer TOKEN</code> 或 POST 参数 <code>token</code></p>
                 <p><strong>返回:</strong> Token的基本信息和统计数据</p>
             </div>
             
             <div class="endpoint-box">
                 <h4>3. 获取状态统计</h4>
-                <div class="endpoint-url">GET /api.php?action=status&token=TOKEN[&proxy_id=ID]</div>
+                <div class="endpoint-url">GET /api.php?action=status[&proxy_id=ID]</div>
                 <p><strong>参数:</strong></p>
                 <ul>
+                    <li><code>Authorization</code> 请求头（推荐）: <code>Bearer TOKEN</code></li>
+                    <li><code>token</code> POST参数: 兼容支持</li>
                     <li><code>proxy_id</code> (可选): 特定代理的ID</li>
                 </ul>
                 <p><strong>返回:</strong> 代理状态统计信息</p>
@@ -438,12 +445,12 @@ curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?acti
                 return;
             }
             
-            let url = `${baseUrl}?action=${currentAction}&token=${token}`;
+            let url = `${baseUrl}?action=${currentAction}`;
             if (currentAction === 'proxies' && currentFormat !== 'json') {
                 url += `&format=${currentFormat}`;
             }
             
-            document.getElementById('request-url').textContent = url;
+            document.getElementById('request-url').textContent = `${url} (Authorization: Bearer <selected-token>)`;
         }
         
         // 测试API
@@ -459,12 +466,16 @@ curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?acti
             responseArea.textContent = '正在请求...';
             
             try {
-                let url = `api.php?action=${currentAction}&token=${token}`;
+                let url = `api.php?action=${currentAction}`;
                 if (currentAction === 'proxies' && currentFormat !== 'json') {
                     url += `&format=${currentFormat}`;
                 }
                 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const contentType = response.headers.get('content-type');
                 
                 let result;
