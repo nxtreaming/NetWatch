@@ -11,9 +11,7 @@
     <title>动态IP池流量监控 - NetWatch</title>
     <link rel="stylesheet" href="<?php echo htmlspecialchars($appRootPath . 'includes/style-v2.css?v=' . filemtime(__DIR__ . '/../../includes/style-v2.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="<?php echo htmlspecialchars(($proxyStatusBasePath === '' ? '' : $proxyStatusBasePath . '/') . 'assets/css/proxy-status.css?v=' . filemtime(__DIR__ . '/../assets/css/proxy-status.css'), ENT_QUOTES, 'UTF-8'); ?>">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"
-            integrity="sha512-SIMGYRUjwY8+gKg7nn9EItdD8LCADSDfJNutF9TPrvEo86sQmFMh6MyralfIyhADlajSxqc7G0gs7+MwWF/ogQ=="
-            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="<?php echo htmlspecialchars(($proxyStatusBasePath === '' ? '' : $proxyStatusBasePath . '/') . 'assets/js/proxy-status.js?v=' . filemtime(__DIR__ . '/../assets/js/proxy-status.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
 <body>
