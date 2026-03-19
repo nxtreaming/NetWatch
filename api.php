@@ -360,10 +360,10 @@ class ProxyApi {
         
         $proxies = $this->db->getTokenProxies($tokenInfo['id']);
         
-        if ($proxyId) {
+        if ($proxyId !== null) {
             // 检查特定代理
             $proxy = array_filter($proxies, function($p) use ($proxyId) {
-                return $p['id'] == $proxyId;
+                return (int) $p['id'] === $proxyId;
             });
             
             if (empty($proxy)) {
@@ -404,7 +404,8 @@ class ProxyApi {
             ];
             
             foreach ($proxies as $proxy) {
-                $statusCount[$proxy['status']]++;
+                $key = $proxy['status'] ?? 'unknown';
+                $statusCount[$key] = ($statusCount[$key] ?? 0) + 1;
             }
             
             return [
@@ -433,7 +434,9 @@ try {
     switch ($action) {
         case 'proxies':
         case 'get_proxies':
-            $format = $_GET['format'] ?? 'json';
+            $allowedFormats = ['json', 'txt', 'list'];
+            $rawFormat = strtolower((string) ($_GET['format'] ?? 'json'));
+            $format = in_array($rawFormat, $allowedFormats, true) ? $rawFormat : 'json';
             api_send_response($api->getProxies($token, $format));
             break;
             
@@ -444,7 +447,8 @@ try {
             
         case 'status':
         case 'check_status':
-            $proxyId = $_GET['proxy_id'] ?? null;
+            $rawProxyId = $_GET['proxy_id'] ?? null;
+            $proxyId = ($rawProxyId === null || $rawProxyId === '') ? null : (int) $rawProxyId;
             api_send_response($api->checkProxyStatus($token, $proxyId));
             break;
             

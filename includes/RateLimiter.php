@@ -203,16 +203,22 @@ class RateLimiter {
         }
 
         [$network, $prefix] = explode('/', $value, 2);
-        if (filter_var($network, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+        $isIpv4 = filter_var($network, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+        $isIpv6 = filter_var($network, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+        if (!$isIpv4 && !$isIpv6) {
             return false;
         }
 
-        if (!is_numeric($prefix)) {
+        if (!preg_match('/^\d+$/', $prefix)) {
             return false;
         }
 
         $prefix = (int)$prefix;
-        return $prefix >= 0 && $prefix <= 32;
+        if ($isIpv4) {
+            return $prefix >= 0 && $prefix <= 32;
+        }
+
+        return $prefix >= 0 && $prefix <= 128;
     }
 
     /**
@@ -220,33 +226,56 @@ class RateLimiter {
      * 支持单个 IP（如 '127.0.0.1'）和 CIDR 表示法（如 '10.0.0.0/8'）
      */
     private static function isIpInCidrs(string $ip, array $cidrs): bool {
-        $ipLong = ip2long($ip);
-        if ($ipLong === false) {
+        $ipBin = inet_pton($ip);
+        if ($ipBin === false) {
             return false;
         }
+
         foreach ($cidrs as $cidr) {
             if (strpos($cidr, '/') === false) {
                 // 单个 IP 地址
-                if (ip2long($cidr) === $ipLong) {
+                $cidrIpBin = inet_pton($cidr);
+                if ($cidrIpBin !== false && $cidrIpBin === $ipBin) {
                     return true;
                 }
             } else {
-                [$network, $prefix] = explode('/', $cidr, 2);
-                $prefix = (int)$prefix;
-                if ($prefix < 0 || $prefix > 32) {
-                    continue;
-                }
-                $networkLong = ip2long($network);
-                if ($networkLong === false) {
-                    continue;
-                }
-                $mask = $prefix === 0 ? 0 : (~0 << (32 - $prefix));
-                if (($ipLong & $mask) === ($networkLong & $mask)) {
+                if (self::isIpInCidr($ipBin, $cidr)) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    /**
+     * 检查二进制 IP 是否命中 CIDR（同时支持 IPv4/IPv6）
+     */
+    private static function isIpInCidr(string $ipBin, string $cidr): bool {
+        [$network, $prefix] = explode('/', $cidr, 2);
+        $networkBin = inet_pton($network);
+        if ($networkBin === false || strlen($networkBin) !== strlen($ipBin)) {
+            return false;
+        }
+
+        $maxBits = strlen($networkBin) * 8;
+        $prefix = (int) $prefix;
+        if ($prefix < 0 || $prefix > $maxBits) {
+            return false;
+        }
+
+        $fullBytes = intdiv($prefix, 8);
+        $remainingBits = $prefix % 8;
+
+        if ($fullBytes > 0 && substr($ipBin, 0, $fullBytes) !== substr($networkBin, 0, $fullBytes)) {
+            return false;
+        }
+
+        if ($remainingBits === 0) {
+            return true;
+        }
+
+        $mask = (0xFF << (8 - $remainingBits)) & 0xFF;
+        return (ord($ipBin[$fullBytes]) & $mask) === (ord($networkBin[$fullBytes]) & $mask);
     }
     
     /**

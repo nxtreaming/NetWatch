@@ -545,9 +545,18 @@ class Database {
      * 清理代理数量缓存
      */
     private function clearProxyCountCache() {
-        $cacheFile = 'cache_proxy_count.txt';
+        $cacheFileName = defined('PROXY_COUNT_CACHE_FILE') ? (string) PROXY_COUNT_CACHE_FILE : 'cache_proxy_count.txt';
+        $cacheDir = defined('CACHE_DIR') ? rtrim((string) CACHE_DIR, '/\\') : (__DIR__ . '/cache');
+        $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . ltrim($cacheFileName, '/\\');
+
         if (file_exists($cacheFile)) {
-            unlink($cacheFile);
+            @unlink($cacheFile);
+            return;
+        }
+
+        // 兼容旧版本相对路径缓存文件
+        if (file_exists($cacheFileName)) {
+            @unlink($cacheFileName);
         }
     }
 
