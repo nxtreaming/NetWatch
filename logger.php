@@ -120,21 +120,25 @@ class Logger {
     public function setJsonFormat(bool $enabled): void {
         $this->jsonFormat = $enabled;
     }
+
+    private function getLogLevel(): string {
+        return defined('LOG_LEVEL') ? (string) LOG_LEVEL : 'INFO';
+    }
     
     public function debug($message, array $context = []): void {
-        if (LOG_LEVEL === 'DEBUG') {
+        if ($this->getLogLevel() === 'DEBUG') {
             $this->writeLog('DEBUG', $message, $context);
         }
     }
     
     public function info($message, array $context = []): void {
-        if (in_array(LOG_LEVEL, ['DEBUG', 'INFO'])) {
+        if (in_array($this->getLogLevel(), ['DEBUG', 'INFO'], true)) {
             $this->writeLog('INFO', $message, $context);
         }
     }
     
     public function warning($message, array $context = []): void {
-        if (in_array(LOG_LEVEL, ['DEBUG', 'INFO', 'WARNING'])) {
+        if (in_array($this->getLogLevel(), ['DEBUG', 'INFO', 'WARNING'], true)) {
             $this->writeLog('WARNING', $message, $context);
         }
     }

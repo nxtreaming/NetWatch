@@ -13,7 +13,7 @@ require_once 'includes/IndexPageController.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
 
- netwatch_enforce_entrypoint_paths('/index.php');
+netwatch_enforce_entrypoint_paths('/index.php');
 
 ensure_valid_config('web');
 

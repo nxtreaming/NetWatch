@@ -58,7 +58,11 @@ class ParallelMonitor {
      * 生成唯一会话ID
      */
     private function generateSessionId(): string {
-        return session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
+        $sid = session_id();
+        if ($sid === '') {
+            $sid = bin2hex(random_bytes(8));
+        }
+        return $sid . '_' . time() . '_' . mt_rand(1000, 9999);
     }
     
     /**

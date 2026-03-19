@@ -209,6 +209,6 @@ class Validator {
      * @return string 过滤后的字符串
      */
     public static function escapeLike(string $str): string {
-        return addcslashes($str, '%_\\');
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $str);
     }
 }

@@ -62,21 +62,31 @@ class NetworkMonitor {
      * @param int $connectTimeout 连接超时时间
      * @param string $logPrefix 日志前缀
      * @param bool $enableRetry 是否启用失败重试
-     * @param int $retryCount 当前重试次数（内部使用）
      * @return array 检查结果
      */
-    private function executeProxyCheck(array $proxy, int $timeout, int $connectTimeout, string $logPrefix, bool $enableRetry = false, int $retryCount = 0): array {
-        $result = $this->proxyChecker->check($proxy, $timeout, $connectTimeout);
+    private function executeProxyCheck(array $proxy, int $timeout, int $connectTimeout, string $logPrefix, bool $enableRetry = false): array {
+        $maxAttempts = $enableRetry ? max(1, (int) config('monitoring.max_retries', 3)) : 1;
+        $retryDelayUs = (int) config('monitoring.retry_delay_us', 200000);
+        $attempt = 1;
 
-        if (($result['status'] ?? 'offline') === 'online') {
-            $this->logSuccessfulCheck($proxy, $logPrefix, $result);
-        } elseif ($enableRetry && $retryCount === 0) {
-            $this->logRetryAttempt($proxy, $logPrefix, (bool) ($result['is_exception'] ?? false));
-            usleep((int) config('monitoring.retry_delay_us', 200000));
-            return $this->executeProxyCheck($proxy, $timeout, $connectTimeout, $logPrefix, $enableRetry, 1);
-        } else {
-            $this->logFailedCheck($proxy, $logPrefix, $result, $retryCount);
-        }
+        do {
+            $result = $this->proxyChecker->check($proxy, $timeout, $connectTimeout);
+
+            if (($result['status'] ?? 'offline') === 'online') {
+                $this->logSuccessfulCheck($proxy, $logPrefix, $result);
+                break;
+            }
+
+            if ($attempt < $maxAttempts) {
+                $this->logRetryAttempt($proxy, $logPrefix, (bool) ($result['is_exception'] ?? false), $attempt, $maxAttempts);
+                usleep($retryDelayUs);
+                $attempt++;
+                continue;
+            }
+
+            $this->logFailedCheck($proxy, $logPrefix, $result, $attempt - 1);
+            break;
+        } while (true);
 
         $this->persistProxyCheckResult($proxy, $result);
 
@@ -94,6 +104,26 @@ class NetworkMonitor {
             $result['response_time'] ?? 0,
             $result['error_message'] ?? null
         );
+    }
+
+    private function buildProxyCheckExceptionResult(Throwable $e): array {
+        return [
+            'status' => 'unknown',
+            'response_time' => 0,
+            'error_message' => $e->getMessage(),
+        ];
+    }
+
+    private function logProxyCheckException(array $proxy, Throwable $e, string $scope): void {
+        $this->logger->error('proxy_check_persist_error', [
+            'scope' => $scope,
+            'proxy_id' => $proxy['id'] ?? null,
+            'proxy_ip' => $proxy['ip'] ?? null,
+            'proxy_port' => $proxy['port'] ?? null,
+            'proxy_type' => $proxy['type'] ?? null,
+            'exception_class' => get_class($e),
+            'error_message' => $e->getMessage(),
+        ]);
     }
 
     private function logSuccessfulCheck(array $proxy, string $logPrefix, array $result): void {
@@ -117,7 +147,7 @@ class NetworkMonitor {
         $this->logger->info('proxy_check_success', $context);
     }
 
-    private function logRetryAttempt(array $proxy, string $logPrefix, bool $isException): void {
+    private function logRetryAttempt(array $proxy, string $logPrefix, bool $isException, int $attempt, int $maxAttempts): void {
         $reason = $isException ? '异常' : '失败';
         $this->logger->info('proxy_check_retry', [
             'proxy_id' => $proxy['id'] ?? null,
@@ -126,12 +156,13 @@ class NetworkMonitor {
             'proxy_type' => $proxy['type'] ?? null,
             'log_prefix' => $logPrefix,
             'reason' => $reason,
-            'retry_count' => 1,
+            'retry_count' => $attempt,
+            'max_retries' => max(0, $maxAttempts - 1),
         ]);
     }
 
     private function logFailedCheck(array $proxy, string $logPrefix, array $result, int $retryCount): void {
-        $retryInfo = $retryCount > 0 ? "(第二次检测)" : "";
+        $retryInfo = $retryCount > 0 ? "(重试{$retryCount}次后)" : "";
         $errorMessage = $result['error_message'] ?? '';
         $responseTime = $result['response_time'] ?? 0;
         $context = [
@@ -168,7 +199,12 @@ class NetworkMonitor {
         ]);
         
         foreach ($proxies as $proxy) {
-            $result = $this->checkProxy($proxy);
+            try {
+                $result = $this->checkProxy($proxy);
+            } catch (Throwable $e) {
+                $this->logProxyCheckException($proxy, $e, 'check_all');
+                $result = $this->buildProxyCheckExceptionResult($e);
+            }
             // 过滤敏感信息后再返回
             $filteredProxy = $this->filterSensitiveData($proxy);
             $results[] = array_merge($filteredProxy, $result);
@@ -406,7 +442,12 @@ class NetworkMonitor {
         ]);
         
         foreach ($proxies as $proxy) {
-            $result = $this->checkProxyFast($proxy);
+            try {
+                $result = $this->checkProxyFast($proxy);
+            } catch (Throwable $e) {
+                $this->logProxyCheckException($proxy, $e, 'check_batch');
+                $result = $this->buildProxyCheckExceptionResult($e);
+            }
             // 过滤敏感信息后再返回
             $filteredProxy = $this->filterSensitiveData($proxy);
             $results[] = array_merge($filteredProxy, $result);

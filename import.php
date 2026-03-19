@@ -4,8 +4,12 @@
  */
 
 require_once 'config.php';
+require_once 'includes/Config.php';
+ensure_valid_config('web');
+
 require_once 'auth.php';
 require_once 'monitor.php';
+require_once 'includes/Validator.php';
 require_once 'includes/functions.php';
 if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
     require_once __DIR__ . '/includes/AuditLogger.php';
@@ -58,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($port < 1 || $port > 65535) {
                     continue;
                 }
-                if (!in_array($type, ['socks5', 'http'], true)) {
+                if (!Validator::proxyType($type)) {
                     continue;
                 }
 
@@ -494,7 +498,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="section">
             <h2>导入说明</h2>
             <ul>
-                <li><strong>支持的代理类型:</strong> socks5, http</li>
+                <li><strong>支持的代理类型:</strong> http, https, socks4, socks5</li>
                 <li><strong>格式要求:</strong> 每行一个代理，使用冒号分隔各个字段</li>
                 <li><strong>必需字段:</strong> IP地址、端口、类型</li>
                 <li><strong>可选字段:</strong> 用户名、密码（用于需要认证的代理）</li>

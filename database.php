@@ -573,7 +573,15 @@ class Database {
         
         if ($result) {
             $tokenId = $this->pdo->lastInsertId();
-            $this->assignProxiesToToken($tokenId, $proxyCount);
+            $assignedCount = $this->assignProxiesToToken($tokenId, $proxyCount);
+            if ($assignedCount === 0) {
+                // 避免创建无可用代理的“空Token”
+                $sql = "DELETE FROM api_tokens WHERE id = ?";
+                $cleanupStmt = $this->pdo->prepare($sql);
+                $cleanupStmt->execute([$tokenId]);
+                error_log('create_api_token_no_available_proxies: token creation aborted due to no assignable proxies');
+                return false;
+            }
             return $token;
         }
         return false;
@@ -631,6 +639,8 @@ class Database {
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$tokenId, $proxy['id']]);
         }
+
+        return count($proxies);
     }
     
     /**
@@ -714,7 +724,12 @@ class Database {
             $stmt->execute([$tokenId]);
 
             // 重新分配
-            $this->assignProxiesToToken($tokenId, $proxyCount);
+            $assignedCount = $this->assignProxiesToToken($tokenId, $proxyCount);
+            if ($assignedCount === 0) {
+                $this->pdo->rollBack();
+                error_log('reassign_token_proxies_no_available_proxies: no assignable proxies for token_id=' . (int) $tokenId);
+                return false;
+            }
 
             // 更新Token信息
             $sql = "UPDATE api_tokens SET proxy_count = ?, updated_at = datetime('now') WHERE id = ?";

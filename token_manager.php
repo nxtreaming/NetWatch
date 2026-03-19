@@ -3,10 +3,13 @@ require_once 'auth.php';
 require_once 'config.php';
 require_once 'database.php';
 require_once 'includes/functions.php';
+require_once 'includes/Config.php';
 require_once 'includes/JsonResponse.php';
 if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
     require_once __DIR__ . '/includes/AuditLogger.php';
 }
+
+ensure_valid_config('web');
 
 // 强制登录检查
 Auth::requireLogin();

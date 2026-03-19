@@ -13,7 +13,11 @@ class ParallelCheckController {
     public function startParallelCheck(bool $offlineOnly = false): void {
         try {
             require_once 'parallel_monitor.php';
-            $sessionId = session_id() . '_' . time() . '_' . mt_rand(1000, 9999);
+            $sid = session_id();
+            if ($sid === '') {
+                $sid = bin2hex(random_bytes(8));
+            }
+            $sessionId = $sid . '_' . time() . '_' . mt_rand(1000, 9999);
 
             if (file_exists(__DIR__ . '/AuditLogger.php')) {
                 require_once __DIR__ . '/AuditLogger.php';

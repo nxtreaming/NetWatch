@@ -85,12 +85,31 @@ class IndexPageController {
             return;
         }
 
-        $redirectUrl = strtok($_SERVER['REQUEST_URI'], '?');
-        $params = $_GET;
-        unset($params['ajax']);
+        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/index.php');
+        $path = (string) (parse_url($requestUri, PHP_URL_PATH) ?? '/index.php');
+        if ($path === '' || $path[0] !== '/') {
+            $path = '/index.php';
+        }
+
+        $params = [];
+        foreach ($_GET as $key => $value) {
+            if ($key === 'ajax') {
+                continue;
+            }
+            if (!is_scalar($value)) {
+                continue;
+            }
+            $params[(string) $key] = (string) $value;
+        }
+
+        $redirectUrl = $path;
         if (!empty($params)) {
             $redirectUrl .= '?' . http_build_query($params);
         }
+        $redirectUrl = str_replace(["\r", "\n"], '', $redirectUrl);
+
+        $redirectUrlHtml = htmlspecialchars($redirectUrl, ENT_QUOTES, 'UTF-8');
+        $redirectUrlJs = json_encode($redirectUrl, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 
         if ($isMobile) {
             header('Location: ' . $redirectUrl, true, 302);
@@ -101,11 +120,11 @@ class IndexPageController {
 
         echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>重定向中...</title>';
         echo '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
-        echo '<meta http-equiv="refresh" content="0;url=' . htmlspecialchars($redirectUrl) . '">';
+        echo '<meta http-equiv="refresh" content="0;url=' . $redirectUrlHtml . '">';
         echo '</head><body>';
-        echo '<script>window.location.replace("' . htmlspecialchars($redirectUrl) . '");</script>';
+        echo '<script>window.location.replace(' . $redirectUrlJs . ');</script>';
         echo '<p>正在重定向到正确页面...</p>';
-        echo '<p><a href="' . htmlspecialchars($redirectUrl) . '">如果没有自动跳转，请点击这里</a></p>';
+        echo '<p><a href="' . $redirectUrlHtml . '">如果没有自动跳转，请点击这里</a></p>';
         echo '</body></html>';
     }
 }
