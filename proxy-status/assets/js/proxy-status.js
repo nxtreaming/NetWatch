@@ -15,9 +15,28 @@
   const data = getInitialData() || {};
   let currentSnapshotDate = data.currentSnapshotDate || '';
   let currentQueryDate = data.currentQueryDate || '';
+  const csrfToken = data.csrfToken || '';
   let autoRefreshTimer = null;
   const TODAY = data.today || '';
   const INTERVAL_MS = Number(data.intervalMs || 300000);
+
+  function buildFetchOptions() {
+    const headers = {};
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+    return {
+      headers,
+      credentials: 'same-origin'
+    };
+  }
+
+  function showRequestError(targetId, message) {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    target.textContent = `⚠️ ${message}`;
+    target.style.display = 'block';
+  }
 
   function startAutoRefresh() {
     if (autoRefreshTimer) {
@@ -30,15 +49,17 @@
 
   async function updateTrafficChart(date) {
     try {
-      const response = await fetch(`api.php?action=chart&date=${encodeURIComponent(date)}`);
+      const response = await fetch(`api.php?action=chart&date=${encodeURIComponent(date)}`, buildFetchOptions());
       const result = await response.json();
       if (result.success) {
         createTrafficChart(result.data, date === TODAY, result.chart_context || {});
       } else {
         console.error('图表更新失败:', result.message);
+        showRequestError('snapshot-info', `图表更新失败：${result.message || '请稍后重试'}`);
       }
     } catch (error) {
       console.error('图表请求失败:', error);
+      showRequestError('snapshot-info', '图表请求失败，请稍后重试');
     }
   }
 
@@ -225,7 +246,7 @@
       if (infoDiv) {
         if (isToday) infoDiv.style.display = 'none';
         else {
-          infoDiv.innerHTML = `<strong>📅 查询结果:</strong> 显示 ${newDate} 日流量数据`;
+          infoDiv.textContent = `📅 查询结果: 显示 ${newDate} 日流量数据`;
           infoDiv.style.display = 'block';
         }
       }
@@ -254,7 +275,7 @@
             startDate.setDate(startDate.getDate() - 7);
             const endDate = new Date(newDate);
             endDate.setDate(endDate.getDate() + 7);
-            infoDiv.innerHTML = `<strong>📅 查询结果:</strong> 显示 ${newDate} 前后7天的流量数据（${startDate.toISOString().split('T')[0]} 至 ${endDate.toISOString().split('T')[0]}）`;
+            infoDiv.textContent = `📅 查询结果: 显示 ${newDate} 前后7天的流量数据（${startDate.toISOString().split('T')[0]} 至 ${endDate.toISOString().split('T')[0]}）`;
             infoDiv.style.display = 'block';
           } else {
             infoDiv.style.display = 'none';
@@ -267,15 +288,17 @@
   async function updateStatsTable(centerDate) {
     try {
       const url = centerDate ? `api.php?action=stats&date=${encodeURIComponent(centerDate)}` : 'api.php?action=stats';
-      const response = await fetch(url);
+      const response = await fetch(url, buildFetchOptions());
       const result = await response.json();
       if (result.success) {
         renderStatsTable(result.data, centerDate);
       } else {
         console.error('统计表格更新失败:', result.message);
+        showRequestError('stats-info', `统计数据更新失败：${result.message || '请稍后重试'}`);
       }
     } catch (error) {
       console.error('统计表格请求失败:', error);
+      showRequestError('stats-info', '统计数据请求失败，请稍后重试');
     }
   }
 

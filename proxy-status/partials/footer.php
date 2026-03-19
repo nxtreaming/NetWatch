@@ -9,14 +9,15 @@
     <?php 
       $bootstrap = [
         'currentSnapshotDate' => $snapshotDate,
-        'currentQueryDate' => $queryDate ? htmlspecialchars($queryDate) : '',
+        'currentQueryDate' => $queryDate ?? '',
+        'csrfToken' => Auth::getCsrfToken(),
         'today' => date('Y-m-d'),
         'intervalMs' => defined('TRAFFIC_UPDATE_INTERVAL') ? TRAFFIC_UPDATE_INTERVAL * 1000 : 300000,
         'todaySnapshots' => !empty($todaySnapshots) ? array_values($todaySnapshots) : [],
         'chartDisplayContext' => $chartDisplayContext ?? ['initial_interval_mb' => 0],
         'isViewingToday' => $isViewingToday,
       ];
-      echo json_encode($bootstrap, JSON_UNESCAPED_UNICODE);
+      echo json_encode($bootstrap, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
     ?>
     </script>
     <!-- 新模块化JS -->

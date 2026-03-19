@@ -6,6 +6,8 @@
 
 require_once '../config.php';
 require_once '../includes/JsonResponse.php';
+require_once '../includes/RateLimiter.php';
+require_once __DIR__ . '/includes/helpers.php';
 
 // CORS: 仅允许同源请求，不对外暴露通配符
 $allowedOrigin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
@@ -25,6 +27,19 @@ if (!Auth::isLoggedIn()) {
     exit;
 }
 
+$csrfToken = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_GET['csrf_token'] ?? ''));
+if (!Auth::validateCsrfToken($csrfToken)) {
+    JsonResponse::error('csrf_invalid', 'CSRF 验证失败', 403);
+    exit;
+}
+
+$rateLimiter = RateLimitPresets::api();
+$rateLimitKey = 'proxy-status-api:' . RateLimiter::getClientIp();
+if (!$rateLimiter->attempt($rateLimitKey)) {
+    JsonResponse::error('rate_limited', '请求过于频繁，请稍后再试', 429);
+    exit;
+}
+
 $action = $_GET['action'] ?? '';
 
 try {
@@ -33,7 +48,8 @@ try {
     switch ($action) {
         case 'chart':
             // 获取流量图表数据
-            $date = $_GET['date'] ?? date('Y-m-d');
+            $normalizedDate = proxyStatusNormalizeDateParam($_GET['date'] ?? null);
+            $date = $normalizedDate ?? date('Y-m-d');
             
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
                 throw new Exception('无效的日期格式');
@@ -60,7 +76,7 @@ try {
             
         case 'stats':
             // 获取统计数据
-            $centerDate = $_GET['date'] ?? null;
+            $centerDate = proxyStatusNormalizeDateParam($_GET['date'] ?? null);
             
             if ($centerDate && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $centerDate)) {
                 throw new Exception('无效的日期格式');
