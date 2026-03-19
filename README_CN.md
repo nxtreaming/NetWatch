@@ -232,6 +232,11 @@ NetWatch/
 - `GET /?ajax=1&action=check&proxy_id=1` - 检查指定代理
 - `GET /?ajax=1&action=logs` - 获取最近日志
 
+## 安全审计说明
+
+- `proxy-status/` 子应用采用独立审计跟踪，避免遗漏独立入口风险。
+- 审计范围与检查清单：`Docs/PROXY_STATUS_AUDIT.md`
+
 ## 故障排除
 
 ### 常见问题

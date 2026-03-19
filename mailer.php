@@ -69,7 +69,11 @@ class Mailer implements MailerInterface {
             return true;
             
         } catch (Exception $e) {
-            $this->logger->error("邮件发送失败: " . $mail->ErrorInfo);
+            $errorInfo = $e->getMessage();
+            if (isset($mail) && $mail instanceof PHPMailer && !empty($mail->ErrorInfo)) {
+                $errorInfo = $mail->ErrorInfo;
+            }
+            $this->logger->error("邮件发送失败: " . $errorInfo);
             return false;
         }
     }

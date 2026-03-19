@@ -235,6 +235,11 @@ The system provides simple AJAX APIs:
 - `GET /?ajax=1&action=check&proxy_id=1` - Check specified proxy
 - `GET /?ajax=1&action=logs` - Get recent logs
 
+## Security Audit Notes
+
+- The `proxy-status/` sub-application is tracked separately for security/code-quality review.
+- Audit checklist and scope: `Docs/PROXY_STATUS_AUDIT.md`
+
 ## Troubleshooting
 
 ### Common Issues

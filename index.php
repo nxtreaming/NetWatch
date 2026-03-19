@@ -10,6 +10,7 @@ require_once 'database.php';
 require_once 'monitor.php';
 require_once 'includes/JsonResponse.php';
 require_once 'includes/IndexPageController.php';
+require_once 'includes/Container.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
 
@@ -20,8 +21,7 @@ ensure_valid_config('web');
 // 检查登录状态
 Auth::requireLogin();
 
-$monitor = new NetworkMonitor();
-$pageController = new IndexPageController($monitor);
+$pageController = app(IndexPageController::class);
 $action = $_GET['action'] ?? 'dashboard';
 
 // 处理登出请求（仅接受 POST + CSRF，防止 CSRF 强制登出）

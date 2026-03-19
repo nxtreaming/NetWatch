@@ -190,7 +190,19 @@ class ExceptionHandler {
         } else {
             // 否则显示错误页面
             http_response_code($code >= 400 && $code < 600 ? $code : 500);
-            echo "<h1>错误</h1><p>" . htmlspecialchars($message) . "</p>";
+            $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+            echo '<!DOCTYPE html>';
+            echo '<html lang="zh-CN">';
+            echo '<head>';
+            echo '<meta charset="UTF-8">';
+            echo '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
+            echo '<title>系统错误 - NetWatch</title>';
+            echo '</head>';
+            echo '<body>';
+            echo '<h1>错误</h1>';
+            echo '<p>' . $safeMessage . '</p>';
+            echo '</body>';
+            echo '</html>';
         }
         
         exit(1);

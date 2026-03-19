@@ -8,12 +8,14 @@ require_once __DIR__ . '/includes/Exceptions.php';
 class Database {
     private $pdo;
     private static $tablesCreated = false;
+    private int $busyTimeoutMs = 15000;
     
     public function __construct() {
         $this->connect();
     }
 
     public function initializeSchema(): void {
+        $this->ensureConnection();
         if (self::$tablesCreated) {
             return;
         }
@@ -37,13 +39,39 @@ class Database {
             
             $this->pdo = new PDO('sqlite:' . DB_PATH);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->pdo->exec('PRAGMA journal_mode=WAL');
-            $this->pdo->exec('PRAGMA busy_timeout=5000');
-            $this->pdo->exec('PRAGMA synchronous=NORMAL');
+            $this->applyConnectionPragmas();
         } catch (PDOException $e) {
             throw new DatabaseException('数据库连接失败', 500, $e, [
                 'db_path' => DB_PATH
             ]);
+        }
+    }
+
+    private function applyConnectionPragmas(): void {
+        $this->busyTimeoutMs = $this->resolveBusyTimeoutMs();
+
+        // SQLite 连接与锁等待窗口（秒）
+        $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, max(1, (int) ceil($this->busyTimeoutMs / 1000)));
+        $this->pdo->exec('PRAGMA journal_mode=WAL');
+        $this->pdo->exec('PRAGMA busy_timeout=' . $this->busyTimeoutMs);
+        $this->pdo->exec('PRAGMA synchronous=NORMAL');
+    }
+
+    private function resolveBusyTimeoutMs(): int {
+        $timeout = defined('DB_BUSY_TIMEOUT_MS') ? (int) DB_BUSY_TIMEOUT_MS : 15000;
+        return max(1000, $timeout);
+    }
+
+    private function ensureConnection(): void {
+        if (!($this->pdo instanceof PDO)) {
+            $this->connect();
+            return;
+        }
+
+        try {
+            $this->pdo->query('SELECT 1');
+        } catch (PDOException $e) {
+            $this->connect();
         }
     }
     
@@ -181,7 +209,26 @@ class Database {
         CREATE INDEX IF NOT EXISTS idx_traffic_snapshots_date ON traffic_snapshots(snapshot_date);
         ";
         
-        $this->pdo->exec($sql);
+        $statements = preg_split('/;\s*(?:\R|$)/', $sql);
+
+        foreach ($statements as $index => $statement) {
+            $statement = trim((string) $statement);
+            if ($statement === '') {
+                continue;
+            }
+
+            try {
+                $this->pdo->exec($statement);
+            } catch (PDOException $e) {
+                $preview = preg_replace('/\s+/', ' ', $statement);
+                $preview = $preview === null ? '' : substr($preview, 0, 120);
+
+                throw new DatabaseException('数据库表结构初始化失败', 500, $e, [
+                    'statement_index' => $index + 1,
+                    'statement_preview' => $preview
+                ]);
+            }
+        }
     }
 
     public function addAuditLog($username, $action, $targetType = null, $targetId = null, $details = null, $ipAddress = null, $userAgent = null) {
@@ -211,6 +258,7 @@ class Database {
     }
     
     public function getAllProxies() {
+        $this->ensureConnection();
         $sql = "SELECT * FROM proxies ORDER BY id";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
@@ -239,6 +287,7 @@ class Database {
     }
     
     public function updateProxyStatus($id, $status, $responseTime = 0, $errorMessage = null) {
+        $this->ensureConnection();
         $failureCount = $status === 'online' ? 0 : null;
         
         if ($status === 'offline') {
@@ -271,6 +320,7 @@ class Database {
     }
     
     public function addCheckLog($proxyId, $status, $responseTime, $errorMessage = null) {
+        $this->ensureConnection();
         $sql = "INSERT INTO check_logs (proxy_id, status, response_time, error_message) VALUES (?, ?, ?, ?)";
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute([$proxyId, $status, $responseTime, $errorMessage]);
@@ -383,6 +433,7 @@ class Database {
      * 获取代理总数
      */
     public function getProxyCount() {
+        $this->ensureConnection();
         $sql = "SELECT COUNT(*) as count FROM proxies";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
@@ -395,6 +446,7 @@ class Database {
      * 分批获取代理列表
      */
     public function getProxiesBatch($offset = 0, $limit = 20) {
+        $this->ensureConnection();
         $sql = "SELECT * FROM proxies ORDER BY id LIMIT ? OFFSET ?";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$limit, $offset]);
@@ -510,6 +562,7 @@ class Database {
      * @return array 离线代理列表
      */
     public function getOfflineProxies() {
+        $this->ensureConnection();
         $sql = "SELECT * FROM proxies WHERE status = 'offline' ORDER BY failure_count DESC, last_check ASC";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
@@ -521,6 +574,7 @@ class Database {
      * @return int 离线代理数量
      */
     public function getOfflineProxyCount() {
+        $this->ensureConnection();
         $sql = "SELECT COUNT(*) as count FROM proxies WHERE status = 'offline'";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
@@ -535,6 +589,7 @@ class Database {
      * @return array 离线代理列表
      */
     public function getOfflineProxiesBatch($offset = 0, $limit = 20) {
+        $this->ensureConnection();
         $sql = "SELECT * FROM proxies WHERE status = 'offline' ORDER BY failure_count DESC, last_check ASC LIMIT ? OFFSET ?";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$limit, $offset]);
@@ -750,6 +805,7 @@ class Database {
      * 保存实时流量数据
      */
     public function saveRealtimeTraffic($totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes = 0, $txBytes = 0, $port = 0) {
+        $this->ensureConnection();
         // 确保表中只有一条记录（兼容旧版本可能残留的多条数据）
         $countStmt = $this->pdo->query("SELECT COUNT(*) FROM traffic_realtime");
         $count = (int)$countStmt->fetchColumn();
@@ -781,6 +837,7 @@ class Database {
      * 获取最新的实时流量数据
      */
     public function getRealtimeTraffic() {
+        $this->ensureConnection();
         $sql = "SELECT * FROM traffic_realtime ORDER BY updated_at DESC LIMIT 1";
         $stmt = $this->pdo->query($sql);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -791,6 +848,7 @@ class Database {
      * 注意：只更新指定日期的数据，不影响其他日期
      */
     public function saveDailyTrafficStats($date, $totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage) {
+        $this->ensureConnection();
         // 检查是否已存在该日期的记录
         $existing = $this->getDailyTrafficStats($date);
         
@@ -818,6 +876,7 @@ class Database {
      * 获取指定日期的流量统计
      */
     public function getDailyTrafficStats($date) {
+        $this->ensureConnection();
         $sql = "SELECT * FROM traffic_stats WHERE usage_date = ?";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$date]);
@@ -892,6 +951,7 @@ class Database {
      * 只在当前分钟是5的倍数时保存，避免产生非5分钟间隔的数据
      */
     public function saveTrafficSnapshot($rxBytes, $txBytes) {
+        $this->ensureConnection();
         $date = date('Y-m-d');
         $currentMinute = intval(date('i'));
         
@@ -915,6 +975,7 @@ class Database {
      * 获取指定日期的流量快照数据（只返回5分钟倍数的时间点）
      */
     public function getTrafficSnapshotsByDate($date) {
+        $this->ensureConnection();
         $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
                 FROM traffic_snapshots 
                 WHERE snapshot_date = ? 
@@ -940,6 +1001,7 @@ class Database {
      * 用于计算跨日流量时的基准点
      */
     public function getLastSnapshotOfDay($date) {
+        $this->ensureConnection();
         $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
                 FROM traffic_snapshots 
                 WHERE snapshot_date = ? 
@@ -955,6 +1017,7 @@ class Database {
      * 用于计算当日使用量的基准点
      */
     public function getFirstSnapshotOfDay($date) {
+        $this->ensureConnection();
         $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
                 FROM traffic_snapshots 
                 WHERE snapshot_date = ? 
@@ -981,6 +1044,7 @@ class Database {
      * @param int $daysToKeep 最少保留天数（默认35天，覆盖当月+上月末）
      */
     public function cleanOldTrafficSnapshots($daysToKeep = 35) {
+        $this->ensureConnection();
         // 取"上月最后一天"和"N天前"中更早的那个作为截止日期
         $firstDayOfMonth = date('Y-m-01');
         $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));

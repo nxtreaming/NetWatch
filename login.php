@@ -65,8 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($loginResult === true) {
                     $loginLimiter->clear($loginKey);
                     $success = '登录成功，正在跳转...';
-                    $redirectUrl = Auth::getRedirectUrl();
-                    header("refresh:1;url=$redirectUrl");
                 } elseif ($loginResult === 'session_write_failed') {
                     $error = '登录验证成功，但由于服务器存储空间不足，无法保存登录状态。请联系系统管理员清理磁盘空间后重试。';
                     // 重新检查存储空间状态

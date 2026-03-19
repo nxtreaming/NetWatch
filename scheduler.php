@@ -3,18 +3,18 @@
  * 定时任务调度器
  */
 
-require_once 'config.php';
-require_once 'includes/Config.php';
-require_once 'monitor.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/Config.php';
+require_once __DIR__ . '/monitor.php';
 
 ensure_valid_config('cli');
 
 // 选择邮件发送方式
-if (file_exists('vendor/autoload.php')) {
-    require_once 'mailer.php';
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/mailer.php';
     define('USE_PHPMAILER', true);
 } else {
-    require_once 'mailer_simple.php';
+    require_once __DIR__ . '/mailer_simple.php';
     define('USE_PHPMAILER', false);
 }
 

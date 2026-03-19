@@ -111,9 +111,13 @@ function formatTime($timeString, $format = 'm-d H:i', $isUtc = true) {
     
     try {
         if ($isUtc) {
-            // 数据库中的时间是UTC，转换为北京时间
+            // 数据库中的时间是UTC，转换为当前系统配置时区
             $dt = new DateTime($timeString, new DateTimeZone('UTC'));
-            $dt->setTimezone(new DateTimeZone('Asia/Shanghai'));
+            $timezoneName = date_default_timezone_get();
+            if (!is_string($timezoneName) || $timezoneName === '') {
+                $timezoneName = 'UTC';
+            }
+            $dt->setTimezone(new DateTimeZone($timezoneName));
         } else {
             // 直接格式化本地时间
             $dt = new DateTime($timeString);

@@ -3,11 +3,11 @@
  * 网络监控核心类
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'includes/Config.php';
-require_once 'logger.php';
-require_once 'proxy_checker.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/includes/Config.php';
+require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/proxy_checker.php';
 
 class NetworkMonitor {
     protected Database $db;
