@@ -12,15 +12,37 @@ if (!function_exists('netwatch_is_https_request')) {
     }
 }
 
+if (!function_exists('netwatch_get_csp_nonce')) {
+    function netwatch_get_csp_nonce(): string {
+        static $nonce = null;
+        if (is_string($nonce) && $nonce !== '') {
+            return $nonce;
+        }
+
+        try {
+            $nonce = rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
+        } catch (Throwable $e) {
+            $nonce = bin2hex(random_bytes(8));
+        }
+
+        return $nonce;
+    }
+}
+
 if (!function_exists('netwatch_send_security_headers')) {
     function netwatch_send_security_headers(): void {
         if (PHP_SAPI === 'cli' || headers_sent()) {
             return;
         }
 
+        $nonce = netwatch_get_csp_nonce();
         $csp = "default-src 'self'; "
-            . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
-            . "style-src 'self' 'unsafe-inline'; "
+            . "script-src 'self' 'nonce-" . $nonce . "' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
+            . "script-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
+            . "script-src-attr 'unsafe-inline'; "
+            . "style-src 'self' 'nonce-" . $nonce . "'; "
+            . "style-src-elem 'self' 'unsafe-inline'; "
+            . "style-src-attr 'unsafe-inline'; "
             . "img-src 'self' data: https://cloudflareinsights.com; "
             . "font-src 'self' data:; "
             . "connect-src 'self' https://cdn.jsdelivr.net https://cloudflareinsights.com https://static.cloudflareinsights.com; "

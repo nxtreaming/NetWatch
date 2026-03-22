@@ -80,7 +80,7 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>清空代理列表 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
-    <style>
+    <style nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         .section {
             padding: 25px;
         }
@@ -442,7 +442,7 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
     </form>
 
-    <script>
+    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
     function submitLogout() {
         document.getElementById('logout-form').submit();
     }

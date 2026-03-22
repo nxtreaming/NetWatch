@@ -5,7 +5,7 @@
     </div>
     
     <!-- Bootstrap JSON data for external JS -->
-    <script type="application/json" id="proxy-status-data">
+    <script type="application/json" id="proxy-status-data" nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
     <?php 
       $bootstrap = [
         'currentSnapshotDate' => $snapshotDate,

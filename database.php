@@ -36,10 +36,21 @@ class Database {
                     ]);
                 }
             }
+
+            if (!is_readable($dataDir) || !is_writable($dataDir)) {
+                throw new DatabaseException('数据库目录权限不足（需可读可写）', 500, null, [
+                    'dir' => $dataDir,
+                ]);
+            }
+            $this->warnIfWorldWritablePath($dataDir, 'database_dir');
             
             $this->pdo = new PDO('sqlite:' . DB_PATH);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->applyConnectionPragmas();
+
+            if (is_file(DB_PATH)) {
+                $this->warnIfWorldWritablePath(DB_PATH, 'database_file');
+            }
         } catch (PDOException $e) {
             throw new DatabaseException('数据库连接失败', 500, $e, [
                 'db_path' => DB_PATH
@@ -605,13 +616,32 @@ class Database {
         $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . ltrim($cacheFileName, '/\\');
 
         if (file_exists($cacheFile)) {
-            @unlink($cacheFile);
+            if (!unlink($cacheFile)) {
+                error_log('[NetWatch][Database] Failed to remove cache file: ' . $cacheFile);
+            }
             return;
         }
 
         // 兼容旧版本相对路径缓存文件
         if (file_exists($cacheFileName)) {
-            @unlink($cacheFileName);
+            if (!unlink($cacheFileName)) {
+                error_log('[NetWatch][Database] Failed to remove legacy cache file: ' . $cacheFileName);
+            }
+        }
+    }
+
+    private function warnIfWorldWritablePath(string $path, string $type): void {
+        if (DIRECTORY_SEPARATOR !== '/') {
+            return;
+        }
+
+        $perms = @fileperms($path);
+        if ($perms === false) {
+            return;
+        }
+
+        if (($perms & 0x0002) === 0x0002) {
+            error_log('[NetWatch][SECURITY] ' . $type . ' is world-writable: ' . $path);
         }
     }
 

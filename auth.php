@@ -391,9 +391,21 @@ class Auth {
      * 检测存储空间是否足够
      */
     public static function checkStorageSpace(): array {
-        $sessionPath = session_save_path();
-        if (empty($sessionPath)) {
-            $sessionPath = sys_get_temp_dir();
+        $sessionPath = self::resolveSessionStoragePath();
+
+        if (!is_dir($sessionPath) || !is_readable($sessionPath) || !is_writable($sessionPath)) {
+            return [
+                'status' => 'warning',
+                'message' => 'Session 存储目录不可读或不可写：' . $sessionPath
+            ];
+        }
+
+        $worldWritable = self::isWorldWritablePath($sessionPath);
+        if ($worldWritable === true) {
+            return [
+                'status' => 'warning',
+                'message' => 'Session 存储目录权限过宽（对所有用户可写），建议收紧目录权限：' . $sessionPath
+            ];
         }
         
         // 检查磁盘空间
@@ -431,5 +443,35 @@ class Auth {
             'free_percent' => $freePercent,
             'free_mb' => round($freeBytes / 1024 / 1024, 2)
         ];
+    }
+
+    private static function resolveSessionStoragePath(): string {
+        $sessionPath = trim((string) session_save_path());
+        if ($sessionPath === '') {
+            return sys_get_temp_dir();
+        }
+
+        if (strpos($sessionPath, ';') !== false) {
+            $parts = explode(';', $sessionPath);
+            $last = trim((string) end($parts));
+            if ($last !== '') {
+                return $last;
+            }
+        }
+
+        return $sessionPath;
+    }
+
+    private static function isWorldWritablePath(string $path): ?bool {
+        if (DIRECTORY_SEPARATOR !== '/') {
+            return null;
+        }
+
+        $perms = @fileperms($path);
+        if ($perms === false) {
+            return null;
+        }
+
+        return (($perms & 0x0002) === 0x0002);
     }
 }

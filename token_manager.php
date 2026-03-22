@@ -150,10 +150,10 @@ $tokens = $db->getAllTokens();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Token 管理 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
-    <script>
+    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         window.csrfToken = <?php echo json_encode(Auth::getCsrfToken(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
     </script>
-    <style>
+    <style nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         .section {
             margin-bottom: 30px;
             background: var(--color-panel);
@@ -623,7 +623,7 @@ $tokens = $db->getAllTokens();
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         // 创建Token
         document.getElementById('create-token-form').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -816,7 +816,7 @@ $tokens = $db->getAllTokens();
     <form id="logout-form" method="POST" action="index.php?action=logout" style="display:none;">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
     </form>
-    <script>
+    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         function submitLogout() {
             document.getElementById('logout-form').submit();
         }

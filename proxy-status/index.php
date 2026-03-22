@@ -369,7 +369,7 @@ $usageClass = ($percentage >= 90) ? 'danger' : (($percentage >= 75) ? 'warning' 
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
         </form>
 
-        <script>
+        <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
             function submitLogout() {
                 document.getElementById('logout-form').submit();
             }

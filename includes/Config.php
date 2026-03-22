@@ -102,6 +102,7 @@ class Config {
                 'allow_origin' => defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : '',
                 'require_https' => defined('API_REQUIRE_HTTPS') ? API_REQUIRE_HTTPS : false,
                 'ip_whitelist' => defined('API_IP_WHITELIST') ? API_IP_WHITELIST : '',
+                'allow_post_token' => defined('API_ALLOW_POST_TOKEN') ? API_ALLOW_POST_TOKEN : false,
             ],
         ];
 

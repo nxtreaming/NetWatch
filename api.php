@@ -56,6 +56,11 @@ function api_extract_token(): string {
         }
     }
 
+    $allowPostToken = (bool) config('api.allow_post_token', false);
+    if (!$allowPostToken) {
+        return '';
+    }
+
     $postToken = trim((string) ($_POST['token'] ?? ''));
     if ($postToken !== '') {
         return $postToken;
@@ -454,6 +459,7 @@ try {
             
         case 'help':
             $authEnabled = defined('API_EXPOSE_PROXY_AUTH') && API_EXPOSE_PROXY_AUTH === true;
+            $allowPostToken = (bool) config('api.allow_post_token', false);
             JsonResponse::success([
                 'endpoints' => [
                     'GET /api.php?action=proxies' => '获取授权的代理列表（推荐使用 Authorization: Bearer YOUR_TOKEN）',
@@ -465,7 +471,7 @@ try {
                 ],
                 'authentication' => [
                     'recommended' => 'Authorization: Bearer YOUR_TOKEN',
-                    'post_parameter' => 'token=YOUR_TOKEN',
+                    'post_parameter' => $allowPostToken ? 'token=YOUR_TOKEN（已启用）' : '默认禁用（可通过 API_ALLOW_POST_TOKEN 启用）',
                     'query_parameter' => '已禁用'
                 ],
                 'formats' => [

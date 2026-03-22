@@ -20,7 +20,7 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API 使用示例 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
-    <style>
+    <style nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         /* 使用全局section样式，只定义页面特有的样式 */
         .section {
             padding: 25px;
@@ -202,10 +202,10 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
         <!-- 认证方式 -->
         <div class="section">
             <h3>🔐 认证方式</h3>
-            <p>API支持两种Token传递方式，推荐使用 Authorization 请求头：</p>
+            <p>API推荐使用 Authorization 请求头；POST token 仅兼容旧客户端且通常默认关闭：</p>
             
             <div class="endpoint-box">
-                <strong>1. POST参数:</strong>
+                <strong>1. POST参数（兼容模式，可关闭）:</strong>
                 <div class="code-block">curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"</div>
             </div>
             
@@ -352,6 +352,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?acti
 curl -H "Authorization: Bearer YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies&format=txt"
 
 # POST参数
+# 仅在服务端启用 API_ALLOW_POST_TOKEN 时可用
 curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxies"
             </div>
         </div>
@@ -366,7 +367,7 @@ curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxi
                 <p><strong>参数:</strong></p>
                 <ul>
                     <li><code>Authorization</code> 请求头（推荐）: <code>Bearer TOKEN</code></li>
-                    <li><code>token</code> POST参数: 兼容支持</li>
+                    <li><code>token</code> POST参数: 兼容支持（可能默认关闭）</li>
                     <li><code>format</code> (可选): json(默认) | txt | list</li>
                 </ul>
                 <p><strong>返回:</strong> 授权的代理服务器列表</p>
@@ -385,7 +386,7 @@ curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxi
                 <p><strong>参数:</strong></p>
                 <ul>
                     <li><code>Authorization</code> 请求头（推荐）: <code>Bearer TOKEN</code></li>
-                    <li><code>token</code> POST参数: 兼容支持</li>
+                    <li><code>token</code> POST参数: 兼容支持（可能默认关闭）</li>
                     <li><code>proxy_id</code> (可选): 特定代理的ID</li>
                 </ul>
                 <p><strong>返回:</strong> 代理状态统计信息</p>
@@ -399,7 +400,7 @@ curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxi
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         let currentAction = 'proxies';
         let currentFormat = 'json';
         
@@ -505,7 +506,7 @@ curl -X POST -d "token=YOUR_TOKEN" "<?php echo $baseUrl; ?>/api.php?action=proxi
     <form id="logout-form" method="POST" action="index.php?action=logout" style="display:none;">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
     </form>
-    <script>
+    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         function submitLogout() {
             document.getElementById('logout-form').submit();
         }

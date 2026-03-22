@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代理导入 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
-    <style>
+    <style nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         /* 页面特有样式 */
         .section {
             background: var(--color-panel);
@@ -513,7 +513,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
     </form>
     
-    <script>
+    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         function submitLogout() {
             document.getElementById('logout-form').submit();
         }

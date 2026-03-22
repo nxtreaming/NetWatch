@@ -92,7 +92,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NetWatch - 用户登录</title>
-    <style>
+    <style nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         :root {
             --color-bg: #0f172a;
             --color-panel: #111c32;
@@ -283,7 +283,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         </div>
     </div>
     
-    <script>
+    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         // 自动聚焦到用户名输入框
         document.getElementById('username').focus();
         

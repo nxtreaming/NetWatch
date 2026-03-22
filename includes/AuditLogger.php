@@ -48,6 +48,7 @@ class AuditLogger {
             $db->initializeSchema();
             $db->addAuditLog($username, $action, $targetType, $targetId, $details, $ip, $ua);
         } catch (Throwable $e) {
+            error_log('[NetWatch][AuditLogger] Failed to write audit log: ' . $e->getMessage());
         }
     }
 }
