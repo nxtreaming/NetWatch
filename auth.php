@@ -400,12 +400,14 @@ class Auth {
             ];
         }
 
-        $worldWritable = self::isWorldWritablePath($sessionPath);
-        if ($worldWritable === true) {
-            return [
-                'status' => 'warning',
-                'message' => 'Session 存储目录权限过宽（对所有用户可写），建议收紧目录权限：' . $sessionPath
-            ];
+        if (self::isSessionPathStrictCheckEnabled()) {
+            $worldWritable = self::isWorldWritablePath($sessionPath);
+            if ($worldWritable === true) {
+                return [
+                    'status' => 'warning',
+                    'message' => 'Session 存储目录权限过宽（对所有用户可写），建议收紧目录权限：' . $sessionPath
+                ];
+            }
         }
         
         // 检查磁盘空间
@@ -462,6 +464,14 @@ class Auth {
         return $sessionPath;
     }
 
+    private static function isSessionPathStrictCheckEnabled(): bool {
+        if (defined('SESSION_PATH_STRICT_CHECK')) {
+            return (bool) SESSION_PATH_STRICT_CHECK;
+        }
+
+        return true;
+    }
+
     private static function isWorldWritablePath(string $path): ?bool {
         if (DIRECTORY_SEPARATOR !== '/') {
             return null;
@@ -472,6 +482,16 @@ class Auth {
             return null;
         }
 
-        return (($perms & 0x0002) === 0x0002);
+        $worldWritable = (($perms & 0x0002) === 0x0002);
+        if (!$worldWritable) {
+            return false;
+        }
+
+        $stickyBitSet = (($perms & 0x0200) === 0x0200);
+        if ($stickyBitSet) {
+            return false;
+        }
+
+        return true;
     }
 }

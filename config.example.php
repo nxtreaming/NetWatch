@@ -72,6 +72,7 @@ define('LOGIN_USERNAME', 'admin');  // 登录用户名
 define('LOGIN_PASSWORD_HASH', '$2y$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
 define('SESSION_TIMEOUT', 3600);  // 会话超时时间（秒），默认1小时
 define('ENABLE_LOGIN', true);  // 是否启用登录功能
+// define('SESSION_PATH_STRICT_CHECK', true); // 是否严格检查 Session 目录权限（生产建议 true）
 
 // 流量监控API配置
 // 示例: curl -s -x http://Admin:Passwd@api.example.com:12323 http://api.example.com:12323/stats

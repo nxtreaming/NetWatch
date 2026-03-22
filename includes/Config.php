@@ -104,6 +104,9 @@ class Config {
                 'ip_whitelist' => defined('API_IP_WHITELIST') ? API_IP_WHITELIST : '',
                 'allow_post_token' => defined('API_ALLOW_POST_TOKEN') ? API_ALLOW_POST_TOKEN : false,
             ],
+            'auth' => [
+                'session_path_strict_check' => defined('SESSION_PATH_STRICT_CHECK') ? SESSION_PATH_STRICT_CHECK : true,
+            ],
         ];
 
         $this->warnOnDeprecatedMailConstants();
