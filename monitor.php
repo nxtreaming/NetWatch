@@ -275,6 +275,7 @@ class NetworkMonitor {
         
         $lines = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         $proxyList = [];
+        $parseErrors = [];
         
         foreach ($lines as $lineNum => $line) {
             $line = trim($line);
@@ -282,8 +283,9 @@ class NetworkMonitor {
                 continue; // 跳过空行和注释
             }
             
-            $parts = explode(':', $line);
+            $parts = explode(':', $line, 5);
             if (count($parts) < 3) {
+                $parseErrors[] = '第 ' . ($lineNum + 1) . ' 行格式无效';
                 $this->logger->warning('proxy_import_line_invalid_format', [
                     'line_number' => $lineNum + 1,
                     'line_content' => $line,
@@ -297,6 +299,7 @@ class NetworkMonitor {
             
             // 校验IP地址合法性
             if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+                $parseErrors[] = '第 ' . ($lineNum + 1) . ' 行 IP 地址无效';
                 $this->logger->warning('proxy_import_invalid_ip', [
                     'line_number' => $lineNum + 1,
                     'proxy_ip' => $ip,
@@ -306,6 +309,7 @@ class NetworkMonitor {
             
             // 校验端口范围
             if ($port < 1 || $port > 65535) {
+                $parseErrors[] = '第 ' . ($lineNum + 1) . ' 行端口无效';
                 $this->logger->warning('proxy_import_invalid_port', [
                     'line_number' => $lineNum + 1,
                     'proxy_port' => $port,
@@ -316,6 +320,7 @@ class NetworkMonitor {
             // 校验代理类型白名单
             $allowedTypes = ['http', 'https', 'socks5', 'socks4'];
             if (!in_array($type, $allowedTypes, true)) {
+                $parseErrors[] = '第 ' . ($lineNum + 1) . ' 行代理类型无效';
                 $this->logger->warning('proxy_import_invalid_type', [
                     'line_number' => $lineNum + 1,
                     'proxy_type' => $type,
@@ -328,12 +333,15 @@ class NetworkMonitor {
                 'ip' => $ip,
                 'port' => $port,
                 'type' => $type,
-                'username' => isset($parts[3]) ? trim($parts[3]) : null,
-                'password' => isset($parts[4]) ? trim($parts[4]) : null
+                'username' => isset($parts[3]) && trim((string) $parts[3]) !== '' ? trim((string) $parts[3]) : null,
+                'password' => isset($parts[4]) && trim((string) $parts[4]) !== '' ? trim((string) $parts[4]) : null
             ];
         }
         
-        return $this->importProxies($proxyList, 'add');
+        $result = $this->importProxies($proxyList, 'add');
+        $result['parse_errors'] = $parseErrors;
+
+        return $result;
     }
     
     /**

@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/includes/Exceptions.php';
+require_once __DIR__ . '/includes/Migration.php';
 
 class Database {
     private $pdo;
@@ -21,6 +22,7 @@ class Database {
         }
 
         $this->createTables();
+        $this->runPendingMigrations();
         self::$tablesCreated = true;
     }
     
@@ -239,6 +241,22 @@ class Database {
                     'statement_preview' => $preview
                 ]);
             }
+        }
+    }
+
+    private function runPendingMigrations(): void {
+        $migrationsDir = __DIR__ . '/migrations';
+        if (!is_dir($migrationsDir)) {
+            return;
+        }
+
+        try {
+            $migration = new Migration($this->pdo, $migrationsDir);
+            $migration->migrate();
+        } catch (Throwable $e) {
+            throw new DatabaseException('数据库迁移执行失败', 500, $e, [
+                'migrations_dir' => $migrationsDir
+            ]);
         }
     }
 

@@ -162,7 +162,7 @@ class Validator {
             return false;
         }
         
-        $parts = explode(':', $proxyString);
+        $parts = explode(':', $proxyString, 5);
         $count = count($parts);
         
         if ($count < 2) {
@@ -172,8 +172,8 @@ class Validator {
         $ip = $parts[0];
         $port = $parts[1];
         $type = $count >= 3 ? $parts[2] : 'http';
-        $username = $count >= 4 ? $parts[3] : null;
-        $password = $count >= 5 ? $parts[4] : null;
+        $username = $count >= 4 && trim((string) $parts[3]) !== '' ? trim((string) $parts[3]) : null;
+        $password = $count >= 5 && trim((string) $parts[4]) !== '' ? trim((string) $parts[4]) : null;
         
         // 验证IP和端口
         if (!self::ip($ip) || !self::port($port)) {

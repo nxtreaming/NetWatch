@@ -20,10 +20,49 @@ Auth::requireLogin();
 
 $monitor = new NetworkMonitor();
 
+function parseImportOptionalField(array $parts, int $index): ?string {
+    if (!isset($parts[$index])) {
+        return null;
+    }
+
+    $value = trim((string) $parts[$index]);
+    return $value !== '' ? $value : null;
+}
+
+function validateImportUploadFile(string $tempFile): void {
+    if ($tempFile === '' || !is_uploaded_file($tempFile)) {
+        throw new Exception('上传文件无效，请重新选择文件后重试');
+    }
+
+    if (!function_exists('finfo_open')) {
+        return;
+    }
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    if ($finfo === false) {
+        throw new Exception('无法验证上传文件类型');
+    }
+
+    $mimeType = finfo_file($finfo, $tempFile);
+    finfo_close($finfo);
+
+    $allowedMimes = [
+        'text/plain',
+        'text/csv',
+        'application/csv',
+        'application/vnd.ms-excel'
+    ];
+
+    if (!is_string($mimeType) || !in_array($mimeType, $allowedMimes, true)) {
+        throw new Exception('上传文件类型无效，仅支持文本或CSV文件');
+    }
+}
+
 // 处理表单提交
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = null;
     $error = null;
+    $parseErrors = [];
     
     try {
         $csrfToken = $_POST['csrf_token'] ?? '';
@@ -48,8 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     continue;
                 }
                 
-                $parts = explode(':', $line);
+                $parts = explode(':', $line, 5);
                 if (count($parts) < 3) {
+                    $parseErrors[] = '第 ' . ($lineNum + 1) . ' 行格式无效';
                     continue;
                 }
 
@@ -57,12 +97,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $port = (int)trim($parts[1]);
                 $type = strtolower(trim($parts[2]));
                 if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+                    $parseErrors[] = '第 ' . ($lineNum + 1) . ' 行 IP 地址无效';
                     continue;
                 }
                 if ($port < 1 || $port > 65535) {
+                    $parseErrors[] = '第 ' . ($lineNum + 1) . ' 行端口无效';
                     continue;
                 }
                 if (!Validator::proxyType($type)) {
+                    $parseErrors[] = '第 ' . ($lineNum + 1) . ' 行代理类型无效';
                     continue;
                 }
 
@@ -74,8 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'ip' => $ip,
                     'port' => $port,
                     'type' => $type,
-                    'username' => isset($parts[3]) ? (trim($parts[3]) !== '' ? trim($parts[3]) : null) : null,
-                    'password' => isset($parts[4]) ? (trim($parts[4]) !== '' ? trim($parts[4]) : null) : null
+                    'username' => parseImportOptionalField($parts, 3),
+                    'password' => parseImportOptionalField($parts, 4)
                 ];
             }
 
@@ -103,7 +146,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('导入文件过大，请分批导入');
             }
             $tempFile = $_FILES['import_file']['tmp_name'];
+            validateImportUploadFile($tempFile);
             $result = $monitor->importFromFile($tempFile);
+            if (!empty($result['parse_errors']) && is_array($result['parse_errors'])) {
+                $parseErrors = array_merge($parseErrors, $result['parse_errors']);
+            }
 
             if ($result && class_exists('AuditLogger')) {
                 AuditLogger::log('proxy_import', 'proxy', null, [
@@ -116,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
         } else {
-            $error = '请提供要导入的代理数据';
+            throw new Exception('请提供要导入的代理数据');
         }
         
     } catch (Exception $e) {
@@ -424,11 +471,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h3>导入完成</h3>
             <div class="stats">
                 <div class="stat-item">
-                    <div class="stat-number"><?php echo $result['imported']; ?></div>
+                    <div class="stat-number"><?php echo (int) ($result['imported'] ?? 0); ?></div>
                     <div class="stat-label">成功导入</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number"><?php echo count($result['errors']); ?></div>
+                    <div class="stat-number"><?php echo count($result['errors'] ?? []); ?></div>
                     <div class="stat-label">导入失败</div>
                 </div>
             </div>
@@ -438,6 +485,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="error-list">
                 <?php foreach ($result['errors'] as $error): ?>
                 <div class="error-item"><?php echo htmlspecialchars($error); ?></div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($parseErrors)): ?>
+            <h4>解析跳过:</h4>
+            <div class="error-list">
+                <?php foreach ($parseErrors as $parseError): ?>
+                <div class="error-item"><?php echo htmlspecialchars($parseError, ENT_QUOTES, 'UTF-8'); ?></div>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
