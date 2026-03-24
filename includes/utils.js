@@ -144,6 +144,7 @@ function getApiUrl(params) {
 function fetchApi(params, options = {}) {
     // 添加特殊标记参数，让服务器识别这是真正的AJAX请求
     const ajaxToken = Date.now(); // 使用时间戳作为防伪标记
+    const csrfToken = window.csrfToken || '';
     
     // 使用当前页面的origin和路径来构建完整URL
     // 如果当前页面是 /index.php，则使用 /index.php
@@ -163,13 +164,16 @@ function fetchApi(params, options = {}) {
         indexPath = currentPath.substring(0, lastSlash + 1) + 'index.php';
     }
     
-    const url = `${indexPath}?${params}&_ajax_token=${ajaxToken}`;
+    let url = `${indexPath}?${params}&_ajax_token=${ajaxToken}`;
+    if (csrfToken && !/[?&]csrf_token=/.test(url)) {
+        url += `&csrf_token=${encodeURIComponent(csrfToken)}`;
+    }
     
     const defaultOptions = {
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json, */*',
-            'X-CSRF-Token': window.csrfToken || '',  // 添加CSRF Token
+            'X-CSRF-Token': csrfToken,  // 添加CSRF Token
             ...options.headers
         },
         credentials: 'same-origin', // 确保发送cookies

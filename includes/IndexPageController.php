@@ -29,7 +29,16 @@ class IndexPageController {
         }
 
         if (!netwatch_is_csrf_exempt_ajax_action($action)) {
-            $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+            $csrfToken = '';
+            $headerToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+            if (is_string($headerToken) && $headerToken !== '') {
+                $csrfToken = $headerToken;
+            } else {
+                $requestToken = $_REQUEST['csrf_token'] ?? '';
+                if (is_string($requestToken)) {
+                    $csrfToken = $requestToken;
+                }
+            }
             if (!Auth::validateCsrfToken($csrfToken)) {
                 JsonResponse::error('csrf_validation_failed', 'CSRF验证失败，请刷新页面后重试', 403);
                 return;

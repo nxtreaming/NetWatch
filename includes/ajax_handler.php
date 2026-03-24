@@ -428,18 +428,42 @@ class AjaxHandler {
     }
     
     private function handleStartParallelCheck($offlineOnly = false) {
-        $controller = new ParallelCheckController($this->logger);
-        $controller->startParallelCheck((bool)$offlineOnly);
+        try {
+            $controller = new ParallelCheckController($this->logger);
+            $controller->startParallelCheck((bool)$offlineOnly);
+        } catch (Throwable $e) {
+            $this->logger->error('ajax_start_parallel_check_failed', [
+                'offline_only' => (bool) $offlineOnly,
+                'exception' => $e->getMessage(),
+            ]);
+            JsonResponse::error('parallel_check_start_failed', '启动并行检测失败，请稍后重试', 500);
+        }
     }
     
     private function handleGetParallelProgress() {
-        $controller = new ParallelCheckController($this->logger);
-        $controller->getParallelProgress();
+        try {
+            $controller = new ParallelCheckController($this->logger);
+            $controller->getParallelProgress();
+        } catch (Throwable $e) {
+            $this->logger->error('ajax_get_parallel_progress_failed', [
+                'session_id' => $_GET['session_id'] ?? null,
+                'exception' => $e->getMessage(),
+            ]);
+            JsonResponse::error('parallel_check_progress_failed', '获取并行检测进度失败，请稍后重试', 500);
+        }
     }
     
     private function handleCancelParallelCheck() {
-        $controller = new ParallelCheckController($this->logger);
-        $controller->cancelParallelCheck();
+        try {
+            $controller = new ParallelCheckController($this->logger);
+            $controller->cancelParallelCheck();
+        } catch (Throwable $e) {
+            $this->logger->error('ajax_cancel_parallel_check_failed', [
+                'session_id' => $_GET['session_id'] ?? null,
+                'exception' => $e->getMessage(),
+            ]);
+            JsonResponse::error('parallel_check_cancel_failed', '取消并行检测失败，请稍后重试', 500);
+        }
     }
     
     private function handleSessionCheck() {

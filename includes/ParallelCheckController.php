@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/Config.php';
 require_once __DIR__ . '/JsonResponse.php';
+require_once __DIR__ . '/../logger.php';
 
 class ParallelCheckController {
     private Logger $logger;
@@ -12,7 +13,7 @@ class ParallelCheckController {
 
     public function startParallelCheck(bool $offlineOnly = false): void {
         try {
-            require_once 'parallel_monitor.php';
+            require_once __DIR__ . '/../parallel_monitor.php';
             $sid = session_id();
             if ($sid === '') {
                 $sid = bin2hex(random_bytes(8));
@@ -38,7 +39,7 @@ class ParallelCheckController {
             $result = $parallelMonitor->startParallelCheck();
 
             JsonResponse::send($result);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $checkType = $offlineOnly ? '离线代理' : '并行';
             $this->logger->error('parallel_check_controller_start_failed', [
                 'offline_only' => $offlineOnly,
@@ -51,7 +52,7 @@ class ParallelCheckController {
 
     public function getParallelProgress(): void {
         try {
-            require_once 'parallel_monitor.php';
+            require_once __DIR__ . '/../parallel_monitor.php';
             $sessionId = $_GET['session_id'] ?? null;
             if (!$sessionId) {
                 JsonResponse::error('missing_session_id', '缺少会话ID参数', 400);
@@ -76,7 +77,7 @@ class ParallelCheckController {
 
             $progress = $parallelMonitor->getParallelProgress();
             JsonResponse::send($progress);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->logger->error('parallel_check_controller_progress_failed', [
                 'session_id' => $sessionId ?? null,
                 'exception' => $e->getMessage(),
@@ -87,7 +88,7 @@ class ParallelCheckController {
 
     public function cancelParallelCheck(): void {
         try {
-            require_once 'parallel_monitor.php';
+            require_once __DIR__ . '/../parallel_monitor.php';
             $sessionId = $_GET['session_id'] ?? null;
             if (!$sessionId) {
                 JsonResponse::error('missing_session_id', '缺少会话ID参数', 400);
@@ -117,7 +118,7 @@ class ParallelCheckController {
 
             $result = $parallelMonitor->cancelParallelCheck();
             JsonResponse::send($result);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->logger->error('parallel_check_controller_cancel_failed', [
                 'session_id' => $sessionId ?? null,
                 'exception' => $e->getMessage(),
