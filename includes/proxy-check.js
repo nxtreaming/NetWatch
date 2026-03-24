@@ -357,6 +357,28 @@ async function checkAllProxiesParallel() {
     let cancelled = false;
     let progressInterval = null;
     let currentSessionId = null; // 存储当前检测任务的会话ID
+
+    const parseApiResponse = async (response, stage) => {
+        const rawText = await response.text();
+        if (rawText.trim() === '') {
+            throw new Error(`${stage}失败 (HTTP ${response.status})：服务端返回空响应`);
+        }
+
+        let payload;
+        try {
+            payload = JSON.parse(rawText);
+        } catch (e) {
+            const preview = rawText.slice(0, 200);
+            throw new Error(`${stage}失败 (HTTP ${response.status})：服务端返回了非JSON响应：${preview}`);
+        }
+
+        if (!response.ok && payload && typeof payload === 'object') {
+            const errMsg = payload.message || payload.error || `${stage}失败`;
+            throw new Error(`${errMsg} (HTTP ${response.status})`);
+        }
+
+        return payload;
+    };
     
     document.getElementById('cancel-parallel-check').onclick = async () => {
         cancelled = true;
@@ -385,7 +407,7 @@ async function checkAllProxiesParallel() {
         document.getElementById('parallel-progress-info').textContent = '正在启动并行检测引擎...';
         
         const startResponse = await fetchApi('ajax=1&action=startParallelCheck');
-        const startData = await startResponse.json();
+        const startData = await parseApiResponse(startResponse, '并行检测启动');
         
         if (!startData.success) {
             // 检查是否是登录过期
@@ -423,7 +445,7 @@ async function checkAllProxiesParallel() {
             try {
                 // 传递会话ID查询对应的检测进度
                 const progressResponse = await fetchApi(`ajax=1&action=getParallelProgress&session_id=${encodeURIComponent(currentSessionId)}`);
-                const progressData = await progressResponse.json();
+                const progressData = await parseApiResponse(progressResponse, '并行检测进度查询');
                 
                 // 检查是否是登录过期
                 if (!progressData.success && progressData.error === 'unauthorized') {
