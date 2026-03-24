@@ -50,6 +50,9 @@ class Auth {
     
     /**
      * 验证用户凭据
+     * @param string $username 用户名
+     * @param string $password 明文密码
+     * @return bool 凭据是否合法
      */
     public static function validateCredentials(string $username, string $password): bool {
         if (
@@ -82,6 +85,10 @@ class Auth {
         return false;
     }
 
+    /**
+     * 是否启用登录密码强度校验
+     * @return bool true=启用，false=关闭
+     */
     private static function isPasswordStrengthEnforced(): bool {
         if (defined('ENFORCE_LOGIN_PASSWORD_STRENGTH')) {
             return ENFORCE_LOGIN_PASSWORD_STRENGTH === true;
@@ -90,6 +97,11 @@ class Auth {
         return true;
     }
 
+    /**
+     * 校验密码复杂度是否满足策略要求
+     * @param string $password 明文密码
+     * @return bool 是否满足最小长度和复杂度要求
+     */
     private static function isStrongPassword(string $password): bool {
         if (strlen($password) < self::MIN_PASSWORD_LENGTH) {
             return false;
@@ -105,6 +117,9 @@ class Auth {
     
     /**
      * 用户登录
+     * @param string $username 用户名
+     * @param string $password 明文密码
+     * @return bool|string 成功返回 true，失败返回 false，Session 写入异常时返回错误码字符串
      */
     public static function login(string $username, string $password): bool|string {
         self::startSession();
@@ -212,7 +227,7 @@ class Auth {
         
         // 检查会话是否超时
         if (self::isSessionExpired()) {
-            self::logout();
+            self::logout(false);
             return false;
         }
         
@@ -224,6 +239,7 @@ class Auth {
     
     /**
      * 检查会话是否过期
+     * @return bool true=已过期，false=未过期
      */
     public static function isSessionExpired(): bool {
         if (!isset($_SESSION['last_activity'])) {
@@ -252,6 +268,7 @@ class Auth {
     
     /**
      * 获取剩余会话时间（秒）
+     * @return int 剩余秒数；未登录或无活动记录时返回 0
      */
     public static function getRemainingSessionTime(): int {
         if (!isset($_SESSION['last_activity'])) {
@@ -266,6 +283,8 @@ class Auth {
     
     /**
      * 生成CSRF Token
+     * @return string CSRF Token
+     * @throws \Exception random_bytes 失败时抛出异常
      */
     public static function generateCsrfToken(): string {
         self::startSession();
@@ -285,6 +304,8 @@ class Auth {
     
     /**
      * 验证CSRF Token
+     * @param string $token 前端提交的 CSRF Token
+     * @return bool 是否校验通过
      */
     public static function validateCsrfToken(string $token): bool {
         self::startSession();
@@ -306,6 +327,7 @@ class Auth {
     
     /**
      * 要求用户登录（重定向到登录页面）
+     * @return void
      */
     public static function requireLogin(): void {
         if (self::isDebugRequestPath()) {
@@ -313,6 +335,13 @@ class Auth {
             $allowInProduction = defined('ALLOW_DEBUG_TOOLS_IN_PRODUCTION') && ALLOW_DEBUG_TOOLS_IN_PRODUCTION === true;
 
             if (!$debugEnabled || (self::isProductionEnvironment() && !$allowInProduction)) {
+                http_response_code(404);
+                header('Content-Type: text/plain; charset=utf-8');
+                echo 'Not Found';
+                exit;
+            }
+
+            if (!self::isLoginEnabled()) {
                 http_response_code(404);
                 header('Content-Type: text/plain; charset=utf-8');
                 echo 'Not Found';
@@ -348,6 +377,7 @@ class Auth {
 
     /**
      * 是否是 Debug 目录请求
+     * @return bool 当前请求是否指向 Debug 目录
      */
     private static function isDebugRequestPath(): bool {
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
@@ -356,6 +386,7 @@ class Auth {
 
     /**
      * 是否为生产环境（默认按生产环境处理，避免误暴露调试工具）
+     * @return bool true=生产环境，false=开发/测试环境
      */
     private static function isProductionEnvironment(): bool {
         $appEnv = defined('APP_ENV') ? strtolower((string)APP_ENV) : 'production';
@@ -364,6 +395,7 @@ class Auth {
     
     /**
      * 获取登录页面路径（支持从子目录调用）
+     * @return string 登录页相对路径
      */
     private static function getLoginPath(): string {
         // 获取当前脚本相对于网站根目录的路径
@@ -384,6 +416,7 @@ class Auth {
     
     /**
      * 获取登录后重定向URL
+     * @return string 安全的站内重定向路径
      */
     public static function getRedirectUrl(): string {
         self::startSession();
@@ -415,6 +448,7 @@ class Auth {
     
     /**
      * 检测存储空间是否足够
+     * @return array{status:string,message:string,free_percent?:float,free_mb?:float} 存储空间检查结果
      */
     public static function checkStorageSpace(): array {
         $sessionPath = self::resolveSessionStoragePath();
@@ -473,6 +507,10 @@ class Auth {
         ];
     }
 
+    /**
+     * 解析 Session 存储目录路径
+     * @return string Session 目录绝对路径
+     */
     private static function resolveSessionStoragePath(): string {
         $sessionPath = trim((string) session_save_path());
         if ($sessionPath === '') {
@@ -490,6 +528,10 @@ class Auth {
         return $sessionPath;
     }
 
+    /**
+     * 是否启用 Session 目录严格权限检查
+     * @return bool true=启用，false=关闭
+     */
     private static function isSessionPathStrictCheckEnabled(): bool {
         if (defined('SESSION_PATH_STRICT_CHECK')) {
             return (bool) SESSION_PATH_STRICT_CHECK;
@@ -498,6 +540,11 @@ class Auth {
         return true;
     }
 
+    /**
+     * 判断目录是否对所有用户可写且无 sticky bit 保护
+     * @param string $path 待检查目录路径
+     * @return bool|null true=存在风险，false=安全，null=当前平台或权限信息不可判定
+     */
     private static function isWorldWritablePath(string $path): ?bool {
         if (DIRECTORY_SEPARATOR !== '/') {
             return null;

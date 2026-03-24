@@ -9,7 +9,7 @@ NetWatch API授权系统允许管理员为特定用户创建Token，授权访问
 - ✅ **基于Token的授权机制** - 安全的API访问控制
 - ✅ **固定代理分配** - 同一Token始终返回相同的代理列表
 - ✅ **多种输出格式** - 支持JSON、文本、列表格式
-- ✅ **灵活的认证方式** - Authorization头（推荐）、POST参数
+- ✅ **灵活的认证方式** - Authorization 头（推荐），可选启用 POST 参数
 - ✅ **完整的管理界面** - 可视化Token管理和API测试
 - ✅ **智能代理分配** - 优先分配在线且响应快的代理
 
@@ -63,7 +63,10 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
      "https://your-domain.com/api.php?action=proxies&format=list"
 ```
 
-#### 使用POST参数
+#### 使用POST参数（需显式启用）
+
+仅当配置 `api.allow_post_token = true`（或兼容常量配置）时，才允许通过 `POST token` 传递令牌。
+
 ```bash
 curl -X POST -d "token=YOUR_TOKEN" \
      "https://your-domain.com/api.php?action=proxies"
@@ -73,9 +76,10 @@ curl -X POST -d "token=YOUR_TOKEN" \
 
 ### 1. 获取代理列表
 - **端点**: `GET /api.php?action=proxies`
+- **兼容别名**: `GET /api.php?action=get_proxies`
 - **参数**: 
   - `Authorization` 请求头（推荐）: `Bearer YOUR_TOKEN`
-  - `token` (POST参数，兼容支持): API Token
+  - `token` (POST参数，可选): 仅在启用 `api.allow_post_token` 时支持
   - `format` (可选): 输出格式 `json|txt|list`
 - **返回**: 授权的代理服务器列表
 
@@ -115,20 +119,109 @@ http://9.10.11.12:3128
 
 ### 2. 获取Token信息
 - **端点**: `GET /api.php?action=info`
-- **认证**: `Authorization: Bearer YOUR_TOKEN` 或 POST参数 `token`
+- **兼容别名**: `GET /api.php?action=token_info`
+- **认证**: `Authorization: Bearer YOUR_TOKEN`（推荐）或启用后的 POST 参数 `token`
 - **返回**: Token的基本信息和统计数据
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "data": {
+    "name": "客户A的代理授权",
+    "proxy_count": 10,
+    "assigned_count": 10,
+    "online_count": 8,
+    "expires_at": "2026-04-01 00:00:00",
+    "created_at": "2026-03-20 12:00:00"
+  },
+  "message": "",
+  "timestamp": 1710000000
+}
+```
 
 ### 3. 获取状态统计
 - **端点**: `GET /api.php?action=status`
+- **兼容别名**: `GET /api.php?action=check_status`
 - **参数**: 
   - `Authorization` 请求头（推荐）: `Bearer YOUR_TOKEN`
-  - `token` (POST参数，兼容支持)
+  - `token` (POST参数，可选): 仅在启用 `api.allow_post_token` 时支持
   - `proxy_id` (可选): 特定代理的ID
 - **返回**: 代理状态统计信息
+
+**统计响应示例**（不传 `proxy_id`）:
+```json
+{
+  "success": true,
+  "data": {
+    "total": 10,
+    "status_breakdown": {
+      "online": 8,
+      "offline": 1,
+      "unknown": 1
+    },
+    "last_updated": "2026-03-24 15:30:00"
+  },
+  "message": "",
+  "timestamp": 1710000000
+}
+```
+
+**单代理响应示例**（传 `proxy_id`）:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "host": "1.2.3.4",
+    "port": 8080,
+    "status": "online",
+    "response_time": 120.5,
+    "last_check": "2026-03-24 15:29:00",
+    "failure_count": 0
+  },
+  "message": "",
+  "timestamp": 1710000000
+}
+```
 
 ### 4. 帮助信息
 - **端点**: `GET /api.php?action=help`
 - **返回**: API使用说明和端点列表
+
+## 认证与安全策略
+
+- **推荐认证方式**: `Authorization: Bearer YOUR_TOKEN`
+- **POST Token 开关**: 默认关闭；启用 `api.allow_post_token` 后可使用 `POST token`
+- **Query Token**: 不支持（`?token=...` 不参与认证）
+- **可选 HTTPS 强制**: `api.require_https = true` 时，非 HTTPS 请求返回 `403 https_required`
+- **可选 IP 白名单**: 配置 `api.ip_whitelist` 后，仅白名单 IP 可访问
+- **限流**: 使用 `RateLimitPresets::api()`，按 Token（优先）或客户端 IP 限流
+
+## 统一错误响应与HTTP状态码
+
+所有 JSON 错误响应遵循统一结构：
+
+```json
+{
+  "success": false,
+  "error": "error_code_or_message",
+  "message": "human readable message",
+  "timestamp": 1710000000
+}
+```
+
+常见错误映射：
+
+| HTTP状态码 | error | 触发场景 |
+|---|---|---|
+| 400 | `invalid_action` | 未知 `action` |
+| 401 | `Invalid or expired token` | Token 不存在、过期或失效 |
+| 403 | `https_required` | 开启 HTTPS 强制但请求为 HTTP |
+| 403 | `access_denied` | 命中 IP 白名单限制 |
+| 404 | `Proxy not found or not authorized` | 查询未授权或不存在的 `proxy_id` |
+| 429 | 限流错误响应 | 超出 API 限流阈值 |
+| 500 | `internal_server_error` | 服务端异常 |
 
 ## 代理分配算法
 
@@ -169,9 +262,16 @@ http://9.10.11.12:3128
 ```php
 <?php
 $token = "YOUR_TOKEN_HERE";
-$url = "https://your-domain.com/api.php?action=proxies&token=" . $token;
+$url = "https://your-domain.com/api.php?action=proxies";
 
-$response = file_get_contents($url);
+$opts = [
+    'http' => [
+        'method' => 'GET',
+        'header' => "Authorization: Bearer {$token}\r\n"
+    ]
+];
+$context = stream_context_create($opts);
+$response = file_get_contents($url, false, $context);
 $data = json_decode($response, true);
 
 if ($data["success"]) {
@@ -189,7 +289,11 @@ import requests
 token = "YOUR_TOKEN_HERE"
 url = "https://your-domain.com/api.php"
 
-response = requests.get(url, params={"action": "proxies", "token": token})
+response = requests.get(
+    url,
+    params={"action": "proxies"},
+    headers={"Authorization": f"Bearer {token}"}
+)
 data = response.json()
 
 if data["success"]:
@@ -202,7 +306,11 @@ if data["success"]:
 const token = "YOUR_TOKEN_HERE";
 const url = "https://your-domain.com/api.php";
 
-fetch(`${url}?action=proxies&token=${token}`)
+fetch(`${url}?action=proxies`, {
+    headers: {
+        Authorization: `Bearer ${token}`
+    }
+})
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -222,14 +330,22 @@ fetch(`${url}?action=proxies&token=${token}`)
    - 确认Token未过期
    - 验证Token是否被删除
 
-2. **"No proxies available"**
+2. **"https_required" / HTTP 403**
+   - 检查是否在启用 `api.require_https` 的环境下使用了 HTTP
+   - 改用 HTTPS 访问
+
+3. **"access_denied" / HTTP 403**
+   - 检查客户端 IP 是否在 `api.ip_whitelist`
+   - 确认反向代理场景下客户端 IP 识别配置正确
+
+4. **HTTP 429 限流**
+   - 降低请求频率
+   - 使用不同 Token 时确认是否共享同一来源限流策略
+
+5. **"No proxies available"（业务侧现象）**
    - 检查系统中是否有可用代理
    - 确认代理状态是否正常
    - 考虑重新分配代理
-
-3. **HTTP 404错误**
-   - 确认API端点URL正确
-   - 检查服务器配置
 
 ### 调试技巧
 

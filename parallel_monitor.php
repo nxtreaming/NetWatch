@@ -56,6 +56,8 @@ class ParallelMonitor {
     
     /**
      * 生成唯一会话ID
+     * @return string 会话唯一标识
+     * @throws \Exception random_bytes 生成失败时抛出
      */
     private function generateSessionId(): string {
         $sid = session_id();
@@ -67,6 +69,7 @@ class ParallelMonitor {
     
     /**
      * 获取当前会话ID
+     * @return string 当前会话ID
      */
     public function getSessionId(): string {
         return $this->sessionId;
@@ -74,7 +77,7 @@ class ParallelMonitor {
     
     /**
      * 获取会话独立的临时目录路径
-     * @return string 临时目录路径
+     * @return string 临时目录绝对路径
      */
     private function getSessionTempDir() {
         return sys_get_temp_dir() . '/netwatch_parallel_' . $this->sessionId;
@@ -82,7 +85,7 @@ class ParallelMonitor {
     
     /**
      * 启动并行检查所有代理（异步）
-     * @return array 启动结果
+     * @return array{success:bool,error?:string,total_proxies?:int,total_batches?:float|int,batch_size?:int,max_processes?:int,session_id?:string,message?:string} 启动结果
      */
     public function startParallelCheck() {
         $startTime = microtime(true);
@@ -166,6 +169,8 @@ class ParallelMonitor {
     
     /**
      * 异步启动所有批次
+     * @param int $totalProxies 代理总数
+     * @param string $tempDir 会话临时目录
      * @return bool 启动是否成功
      */
     private function startBatchesAsync($totalProxies, $tempDir): bool {
@@ -242,7 +247,7 @@ class ParallelMonitor {
     
     /**
      * 并行检查所有代理（同步版本，用于测试）
-     * @return array 检查结果统计
+     * @return array<string,mixed> 检查结果统计
      */
     public function checkAllProxiesParallel() {
         $startTime = microtime(true);
@@ -327,21 +332,67 @@ class ParallelMonitor {
     
     /**
      * 启动单个批次检测进程
+     * @param string $batchId 批次ID（batch_x）
+     * @param int $offset 代理偏移量
+     * @param int $limit 本批次数量
+     * @param string $statusFile 批次状态文件路径
+     * @return string|false 成功返回状态文件路径，失败返回 false
      */
     private function startBatchProcess($batchId, $offset, $limit, $statusFile) {
+        $batchId = (string) $batchId;
+        $offset = (int) $offset;
+        $limit = (int) $limit;
+        $statusFile = (string) $statusFile;
+
+        if (preg_match('/^batch_\d+$/', $batchId) !== 1 || $offset < 0 || $limit < 1) {
+            $this->logger->error('parallel_batch_process_invalid_arguments', [
+                'session_id' => $this->sessionId,
+                'batch_id' => $batchId,
+                'offset' => $offset,
+                'limit' => $limit,
+            ]);
+            return false;
+        }
+
+        $statusDir = realpath(dirname($statusFile));
+        $resolvedSysTemp = realpath(sys_get_temp_dir());
+        if (
+            $statusDir === false
+            || $resolvedSysTemp === false
+            || strpos($statusDir, $resolvedSysTemp) !== 0
+            || basename($statusFile) !== ($batchId . '.json')
+        ) {
+            $this->logger->error('parallel_batch_process_invalid_status_file', [
+                'session_id' => $this->sessionId,
+                'batch_id' => $batchId,
+                'status_file' => $statusFile,
+                'status_dir' => $statusDir,
+            ]);
+            return false;
+        }
+
         $scriptPath = __DIR__ . '/parallel_worker.php';
+        if (!file_exists($scriptPath)) {
+            $this->logger->error('parallel_worker_script_missing', [
+                'session_id' => $this->sessionId,
+                'script_path' => $scriptPath,
+            ]);
+            return false;
+        }
+
+        $phpBinary = escapeshellcmd(PHP_BINARY ?: 'php');
         $args = implode(' ', [
             escapeshellarg($scriptPath),
-            escapeshellarg((string) $batchId),
-            (int) $offset,
-            (int) $limit,
-            escapeshellarg((string) $statusFile),
+            escapeshellarg($batchId),
+            $offset,
+            $limit,
+            escapeshellarg($statusFile),
         ]);
-        $command = 'php ' . $args;
+        $command = $phpBinary . ' ' . $args;
         
         // 在Windows系统上使用不同的命令
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $command = 'start /B ' . $command;
+            $command = 'start /B "" ' . $command;
         } else {
             $command .= ' > /dev/null 2>&1 &';
         }
@@ -371,6 +422,9 @@ class ParallelMonitor {
     
     /**
      * 等待指定数量的进程完成
+     * @param array<int,string> $processes 进程状态文件列表（引用传递）
+     * @param int $maxRemaining 允许保留的最大活动进程数
+     * @return void
      */
     private function waitForProcesses(&$processes, $maxRemaining) {
         while (count($processes) > $maxRemaining) {
@@ -392,6 +446,8 @@ class ParallelMonitor {
     
     /**
      * 等待所有进程完成
+     * @param array<int,string> $processes 进程状态文件列表
+     * @return void
      */
     private function waitForAllProcesses($processes) {
         while (!empty($processes)) {
@@ -416,6 +472,9 @@ class ParallelMonitor {
     
     /**
      * 收集所有批次的结果
+     * @param string $tempDir 会话临时目录
+     * @param int $totalBatches 批次数量
+     * @return array{total_checked:int,total_online:int,total_offline:int,batches:array<int,array<string,mixed>>}
      */
     private function collectResults($tempDir, $totalBatches) {
         $totalChecked = 0;
@@ -448,6 +507,7 @@ class ParallelMonitor {
     
     /**
      * 获取并行检测进度
+     * @return array<string,mixed> 进度与统计信息
      */
     public function getParallelProgress() {
         $tempDir = $this->getSessionTempDir();
@@ -554,6 +614,10 @@ class ParallelMonitor {
         ];
     }
 
+    /**
+     * 发送离线代理告警邮件并记录告警结果
+     * @return array{email_sent:bool,failed_proxy_count:int,email_error:?string}
+     */
     private function sendFailedProxyAlerts(): array {
         $failedProxies = $this->monitor->getFailedProxies();
         $failedProxyCount = count($failedProxies);
@@ -621,6 +685,8 @@ class ParallelMonitor {
     
     /**
      * 清理临时文件
+     * @param string $tempDir 临时目录
+     * @return void
      */
     private function cleanupTempFiles($tempDir) {
         if (is_dir($tempDir)) {
@@ -635,6 +701,7 @@ class ParallelMonitor {
     
     /**
      * 取消并行检测
+     * @return array{success:bool,message:string,session_id:string}
      */
     public function cancelParallelCheck() {
         $tempDir = $this->getSessionTempDir();
@@ -653,6 +720,7 @@ class ParallelMonitor {
     
     /**
      * 检查是否被取消
+     * @return bool true=已取消，false=未取消
      */
     public function isCancelled() {
         $tempDir = $this->getSessionTempDir();
@@ -669,6 +737,8 @@ class ParallelMonitor {
     
     /**
      * 计划延迟清理（取消时使用，给工作进程响应时间）
+     * @param string $tempDir 会话临时目录
+     * @return void
      */
     private function scheduleCleanup(string $tempDir): void {
         // 写入清理标记文件，包含预定清理时间（当前时间 + 30秒）
@@ -681,6 +751,8 @@ class ParallelMonitor {
     
     /**
      * 递归删除临时目录
+     * @param string $tempDir 会话临时目录
+     * @return void
      */
     private function removeTempDir(string $tempDir): void {
         if (!is_dir($tempDir)) {
