@@ -12,6 +12,9 @@ if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
     require_once __DIR__ . '/includes/AuditLogger.php';
 }
 
+const MIN_SUBNET_INDEX = 1;
+const MAX_SUBNET_INDEX = 20;
+
 // 检查登录状态
 Auth::requireLogin();
 
@@ -52,7 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $maxProxies = defined('MAX_SUBNET_IMPORT_PROXIES') ? (int)MAX_SUBNET_IMPORT_PROXIES : 50000;
         
         // 处理每个子网
-        for ($i = 1; $i <= 20; $i++) {
+        for ($i = MIN_SUBNET_INDEX; $i <= MAX_SUBNET_INDEX; $i++) {
+            if (!is_int($i) || $i < MIN_SUBNET_INDEX || $i > MAX_SUBNET_INDEX) {
+                continue;
+            }
+
             $startIp = trim($_POST["start_ip_$i"] ?? '');
             $endIp = trim($_POST["end_ip_$i"] ?? '');
             

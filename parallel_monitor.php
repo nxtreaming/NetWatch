@@ -178,20 +178,48 @@ class ParallelMonitor {
             ]);
             return false;
         }
+
+        $totalProxies = (int) $totalProxies;
+        $batchSize = (int) $this->batchSize;
+        if ($totalProxies < 1 || $batchSize < 1) {
+            $this->logger->error('parallel_batch_manager_invalid_arguments', [
+                'session_id' => $this->sessionId,
+                'total_proxies' => $totalProxies,
+                'batch_size' => $batchSize,
+            ]);
+            return false;
+        }
+
+        $resolvedTempDir = realpath((string) $tempDir);
+        $resolvedSysTemp = realpath(sys_get_temp_dir());
+        if (
+            $resolvedTempDir === false
+            || $resolvedSysTemp === false
+            || strpos($resolvedTempDir, $resolvedSysTemp) !== 0
+            || !is_dir($resolvedTempDir)
+        ) {
+            $this->logger->error('parallel_batch_manager_invalid_temp_dir', [
+                'session_id' => $this->sessionId,
+                'temp_dir' => $tempDir,
+                'resolved_temp_dir' => $resolvedTempDir,
+            ]);
+            return false;
+        }
         
         $offlineFlag = $this->offlineOnly ? 1 : 0;
-        $command = 'php ' . escapeshellarg($managerScript) . ' ' .
-            (int)$totalProxies . ' ' .
-            (int)$this->batchSize . ' ' .
-            escapeshellarg($tempDir) . ' ' .
+        $phpBinary = escapeshellcmd(PHP_BINARY ?: 'php');
+        $command = $phpBinary . ' ' . escapeshellarg($managerScript) . ' ' .
+            $totalProxies . ' ' .
+            $batchSize . ' ' .
+            escapeshellarg($resolvedTempDir) . ' ' .
             (int)$offlineFlag . ' > /dev/null 2>&1 &';
         
         // 在Windows系统上使用不同的命令
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $command = 'start /B "" php ' . escapeshellarg($managerScript) . ' ' .
-                (int)$totalProxies . ' ' .
-                (int)$this->batchSize . ' ' .
-                escapeshellarg($tempDir) . ' ' .
+            $command = 'start /B "" ' . $phpBinary . ' ' . escapeshellarg($managerScript) . ' ' .
+                $totalProxies . ' ' .
+                $batchSize . ' ' .
+                escapeshellarg($resolvedTempDir) . ' ' .
                 (int)$offlineFlag;
         }
         
@@ -662,11 +690,21 @@ class ParallelMonitor {
         if ($files !== false) {
             foreach ($files as $file) {
                 if (is_file($file)) {
-                    @unlink($file);
+                    if (!unlink($file)) {
+                        $this->logger->warning('parallel_temp_file_remove_failed', [
+                            'session_id' => $this->sessionId,
+                            'file' => $file,
+                        ]);
+                    }
                 }
             }
         }
-        @rmdir($tempDir);
+        if (!rmdir($tempDir) && is_dir($tempDir)) {
+            $this->logger->warning('parallel_temp_dir_remove_failed', [
+                'session_id' => $this->sessionId,
+                'dir' => $tempDir,
+            ]);
+        }
         $this->logger->info("已清理临时目录: {$tempDir}");
     }
     
@@ -685,18 +723,23 @@ class ParallelMonitor {
         $cleaned = 0;
         $now = time();
         foreach ($dirs as $dir) {
-            $mtime = @filemtime($dir);
+            $mtime = filemtime($dir);
             if ($mtime === false || ($now - $mtime) > $maxAgeSeconds) {
                 // 删除目录内所有文件
                 $files = glob($dir . '/*');
                 if ($files !== false) {
                     foreach ($files as $file) {
                         if (is_file($file)) {
-                            @unlink($file);
+                            if (!unlink($file)) {
+                                error_log('[NetWatch][ParallelMonitor] Failed to remove stale temp file: ' . $file);
+                            }
                         }
                     }
                 }
-                @rmdir($dir);
+                if (!rmdir($dir) && is_dir($dir)) {
+                    error_log('[NetWatch][ParallelMonitor] Failed to remove stale temp dir: ' . $dir);
+                    continue;
+                }
                 $cleaned++;
             }
         }

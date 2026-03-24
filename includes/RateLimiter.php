@@ -22,7 +22,9 @@ class RateLimiter {
         $this->storageDir = $storageDir ?? sys_get_temp_dir() . '/netwatch_ratelimit';
         
         if (!is_dir($this->storageDir)) {
-            @mkdir($this->storageDir, 0700, true);
+            if (!mkdir($this->storageDir, 0700, true) && !is_dir($this->storageDir)) {
+                error_log('[NetWatch][RateLimiter] Failed to create storage directory: ' . $this->storageDir);
+            }
         }
     }
     
@@ -102,8 +104,8 @@ class RateLimiter {
      */
     public function clear(string $key): void {
         $file = $this->getFilePath($key);
-        if (file_exists($file)) {
-            @unlink($file);
+        if (file_exists($file) && !unlink($file)) {
+            error_log('[NetWatch][RateLimiter] Failed to remove rate limit file: ' . $file);
         }
     }
     
@@ -317,8 +319,9 @@ class RateLimiter {
             return ['requests' => []];
         }
         
-        $content = @file_get_contents($file);
+        $content = file_get_contents($file);
         if ($content === false) {
+            error_log('[NetWatch][RateLimiter] Failed to read rate limit file: ' . $file);
             return ['requests' => []];
         }
         
@@ -328,13 +331,15 @@ class RateLimiter {
     
     private function saveData(string $key, array $data): void {
         $file = $this->getFilePath($key);
-        @file_put_contents($file, json_encode($data), LOCK_EX);
+        if (file_put_contents($file, json_encode($data), LOCK_EX) === false) {
+            error_log('[NetWatch][RateLimiter] Failed to write rate limit file: ' . $file);
+        }
     }
     
     private function isJsonRequest(): bool {
         return (isset($_SERVER['HTTP_ACCEPT']) && 
                 strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
-               (isset($_GET['ajax']) && $_GET['ajax'] == '1');
+               (isset($_GET['ajax']) && (string) $_GET['ajax'] === '1');
     }
 }
 

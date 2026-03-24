@@ -64,11 +64,17 @@ class TrafficMonitor {
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifySsl);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $verifySsl ? 2 : 0);
                 
-                // 如果配置了代理认证，使用HTTP代理
-                if (!empty($this->proxyHost) && !empty($this->proxyUsername) && !empty($this->proxyPassword)) {
-                    $proxyUrl = "http://{$this->proxyUsername}:{$this->proxyPassword}@{$this->proxyHost}:{$this->proxyPort}";
-                    curl_setopt($ch, CURLOPT_PROXY, $proxyUrl);
+                // 如果配置了代理，优先使用独立的认证参数，避免凭据出现在 URL
+                if (!empty($this->proxyHost)) {
+                    curl_setopt($ch, CURLOPT_PROXY, $this->proxyHost);
+                    if ($this->proxyPort > 0) {
+                        curl_setopt($ch, CURLOPT_PROXYPORT, $this->proxyPort);
+                    }
                     curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+
+                    if (!empty($this->proxyUsername) && !empty($this->proxyPassword)) {
+                        curl_setopt($ch, CURLOPT_PROXYUSERPWD, $this->proxyUsername . ':' . $this->proxyPassword);
+                    }
                     
                     if ($attempt === 1) {
                         $this->logger->info('traffic_api_proxy_enabled', [

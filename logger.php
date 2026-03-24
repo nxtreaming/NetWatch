@@ -29,7 +29,9 @@ class Logger {
         if ($dir !== '') {
             $dir = rtrim($dir, "\\/ ") . DIRECTORY_SEPARATOR;
             if (!is_dir($dir)) {
-                @mkdir($dir, 0755, true);
+                if (!mkdir($dir, 0755, true) && !is_dir($dir)) {
+                    error_log('[NetWatch][Logger] Failed to create log directory: ' . $dir);
+                }
             }
             if (is_dir($dir) && is_writable($dir)) {
                 return $dir;
@@ -38,7 +40,9 @@ class Logger {
 
         $fallback = rtrim(sys_get_temp_dir(), "\\/ ") . DIRECTORY_SEPARATOR . 'netwatch_logs' . DIRECTORY_SEPARATOR;
         if (!is_dir($fallback)) {
-            @mkdir($fallback, 0755, true);
+            if (!mkdir($fallback, 0755, true) && !is_dir($fallback)) {
+                error_log('[NetWatch][Logger] Failed to create fallback log directory: ' . $fallback);
+            }
         }
         if (is_dir($fallback) && is_writable($fallback)) {
             return $fallback;
@@ -52,7 +56,7 @@ class Logger {
             return false;
         }
 
-        $result = @file_put_contents($filePath, $content, FILE_APPEND | LOCK_EX);
+        $result = file_put_contents($filePath, $content, FILE_APPEND | LOCK_EX);
         return $result !== false;
     }
     

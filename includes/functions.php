@@ -7,7 +7,6 @@ function netwatch_is_ajax_mode_request(): bool {
     return isset($_GET['ajax']) && (
         $_GET['ajax'] === '1'
         || $_GET['ajax'] === 'true'
-        || $_GET['ajax'] === 1
     );
 }
 
@@ -104,7 +103,7 @@ function isValidAjaxRequest(): bool {
  * @param bool $isUtc 是否为UTC时间，默认false（本地时间）
  * @return string 格式化后的时间字符串
  */
-function formatTime($timeString, $format = 'm-d H:i', $isUtc = true) {
+function formatTime($timeString, $format = 'm-d H:i', $isUtc = true): string {
     if (!$timeString) {
         return 'N/A';
     }

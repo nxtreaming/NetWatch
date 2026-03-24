@@ -72,6 +72,7 @@ define('LOGIN_USERNAME', 'admin');  // 登录用户名
 define('LOGIN_PASSWORD_HASH', '$2y$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
 define('SESSION_TIMEOUT', 3600);  // 会话超时时间（秒），默认1小时
 define('ENABLE_LOGIN', true);  // 是否启用登录功能
+define('ENFORCE_LOGIN_PASSWORD_STRENGTH', true);  // 是否启用登录密码复杂度校验（长度>=12，含大小写字母/数字/特殊字符）
 // define('SESSION_PATH_STRICT_CHECK', true); // 是否严格检查 Session 目录权限（生产建议 true）
 
 // 流量监控API配置

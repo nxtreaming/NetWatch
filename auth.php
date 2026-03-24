@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/functions.php';
 class Auth {
     private const MAX_USERNAME_LENGTH = 64;
     private const MAX_PASSWORD_LENGTH = 1024;
+    private const MIN_PASSWORD_LENGTH = 12;
     
     /**
      * 启动会话
@@ -60,6 +61,10 @@ class Auth {
             return false;
         }
 
+        if (self::isPasswordStrengthEnforced() && !self::isStrongPassword($password)) {
+            return false;
+        }
+
         if (!defined('LOGIN_USERNAME')) {
             return false;
         }
@@ -75,6 +80,27 @@ class Auth {
 
         error_log('[NetWatch][SECURITY] LOGIN_PASSWORD_HASH is required. Plaintext LOGIN_PASSWORD is no longer supported.');
         return false;
+    }
+
+    private static function isPasswordStrengthEnforced(): bool {
+        if (defined('ENFORCE_LOGIN_PASSWORD_STRENGTH')) {
+            return ENFORCE_LOGIN_PASSWORD_STRENGTH === true;
+        }
+
+        return true;
+    }
+
+    private static function isStrongPassword(string $password): bool {
+        if (strlen($password) < self::MIN_PASSWORD_LENGTH) {
+            return false;
+        }
+
+        $hasUpper = preg_match('/[A-Z]/', $password) === 1;
+        $hasLower = preg_match('/[a-z]/', $password) === 1;
+        $hasNumber = preg_match('/\d/', $password) === 1;
+        $hasSpecial = preg_match('/[^a-zA-Z\d]/', $password) === 1;
+
+        return $hasUpper && $hasLower && $hasNumber && $hasSpecial;
     }
     
     /**

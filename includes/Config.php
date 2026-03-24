@@ -13,6 +13,9 @@ class Config {
     private array $envCache = [];
     private bool $validated = false;
     private array $deprecatedWarnings = [];
+
+    private const DEFAULT_RATE_LIMIT_MAX_REQUESTS = 60;
+    private const DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60;
     
     private function __construct() {
         $this->loadDefaults();
@@ -67,8 +70,8 @@ class Config {
                 'csrf_enabled' => true,
                 'rate_limit' => [
                     'enabled' => true,
-                    'max_requests' => 60,
-                    'window_seconds' => 60,
+                    'max_requests' => self::DEFAULT_RATE_LIMIT_MAX_REQUESTS,
+                    'window_seconds' => self::DEFAULT_RATE_LIMIT_WINDOW_SECONDS,
                 ],
             ],
             'mail' => [

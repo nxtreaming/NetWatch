@@ -42,6 +42,14 @@ class AjaxHandler {
     private function emitStreamingJsonPayload(array $payload): void {
         echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
+
+    private function emitStreamingErrorPayload(string $errorCode, string $message): void {
+        $this->emitStreamingJsonPayload([
+            'success' => false,
+            'error' => $message,
+            'error_code' => $errorCode,
+        ]);
+    }
     
     /**
      * 处理AJAX请求
@@ -229,12 +237,26 @@ class AjaxHandler {
                     'timestamp' => time()
                 ]);
                 $tmpFile = $cacheFile . '.tmp.' . getmypid();
-                $written = @file_put_contents($tmpFile, $cacheData, LOCK_EX);
+                $written = file_put_contents($tmpFile, $cacheData, LOCK_EX);
                 if ($written !== false) {
-                    @rename($tmpFile, $cacheFile);
+                    if (!rename($tmpFile, $cacheFile)) {
+                        if (file_exists($tmpFile) && !unlink($tmpFile)) {
+                            $this->logger->warning('ajax_proxy_count_cache_tmp_cleanup_failed', [
+                                'tmp_file' => $tmpFile,
+                            ]);
+                        }
+                        $this->logger->warning('ajax_proxy_count_cache_rename_failed', [
+                            'tmp_file' => $tmpFile,
+                            'cache_file' => $cacheFile,
+                        ]);
+                    }
                 } else {
                     // 写入失败，记录日志并继续（降级为无缓存模式）
-                    @unlink($tmpFile);
+                    if (file_exists($tmpFile) && !unlink($tmpFile)) {
+                        $this->logger->warning('ajax_proxy_count_cache_tmp_cleanup_failed', [
+                            'tmp_file' => $tmpFile,
+                        ]);
+                    }
                     $this->logger->warning('ajax_proxy_count_cache_write_failed', [
                         'cache_file' => $cacheFile,
                     ]);
@@ -343,20 +365,14 @@ class AjaxHandler {
                 'limit' => $limit ?? null,
                 'exception' => $e->getMessage(),
             ]);
-            $this->emitStreamingJsonPayload([
-                'success' => false,
-                'error' => '批量检查失败，请稍后重试'
-            ]);
+            $this->emitStreamingErrorPayload('batch_check_failed', '批量检查失败，请稍后重试');
         } catch (Error $e) {
             $this->logger->error('ajax_check_batch_fatal', [
                 'offset' => $offset ?? null,
                 'limit' => $limit ?? null,
                 'exception' => $e->getMessage(),
             ]);
-            $this->emitStreamingJsonPayload([
-                'success' => false,
-                'error' => '服务器内部错误，请稍后重试'
-            ]);
+            $this->emitStreamingErrorPayload('internal_server_error', '服务器内部错误，请稍后重试');
         }
     }
     

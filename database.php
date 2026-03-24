@@ -31,10 +31,11 @@ class Database {
             // 确保数据目录存在
             $dataDir = dirname(DB_PATH);
             if (!is_dir($dataDir)) {
-                if (!@mkdir($dataDir, 0755, true)) {
+                if (!mkdir($dataDir, 0755, true) && !is_dir($dataDir)) {
+                    $lastError = error_get_last();
                     throw new DatabaseException('无法创建数据库目录', 500, null, [
                         'dir' => $dataDir,
-                        'error' => error_get_last()['message'] ?? '未知错误'
+                        'error' => is_array($lastError) ? ($lastError['message'] ?? '未知错误') : '未知错误'
                     ]);
                 }
             }
@@ -279,14 +280,14 @@ class Database {
         return $result;
     }
     
-    public function proxyExists($ip, $port) {
+    public function proxyExists($ip, $port): bool {
         $sql = "SELECT COUNT(*) FROM proxies WHERE ip = ? AND port = ?";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$ip, $port]);
         return $stmt->fetchColumn() > 0;
     }
     
-    public function getAllProxies() {
+    public function getAllProxies(): array {
         $this->ensureConnection();
         $sql = "SELECT * FROM proxies ORDER BY id";
         $stmt = $this->pdo->prepare($sql);
@@ -653,7 +654,7 @@ class Database {
             return;
         }
 
-        $perms = @fileperms($path);
+        $perms = fileperms($path);
         if ($perms === false) {
             return;
         }
