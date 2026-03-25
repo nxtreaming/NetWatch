@@ -32,6 +32,9 @@ $offlineOnly = isset($argv[4]) && $argv[4] === '1';
 // 初始化组件
 $logger = new Logger();
 $maxProcesses = (int) config('monitoring.parallel_max_processes', 24);
+$managerStartTime = time();
+$managerMaxRuntimeSeconds = max(60, (int) config('monitoring.parallel_manager_max_runtime_seconds', 1800));
+$batchMaxRuntimeSeconds = max(60, (int) config('monitoring.parallel_batch_max_runtime_seconds', 900));
 
 $logger->info('parallel_batch_manager_started', [
     'total_proxies' => $totalProxies,
@@ -92,7 +95,15 @@ try {
         
         // 如果达到最大进程数，等待一些进程完成
         if (count($processes) >= $maxProcesses) {
-            waitForProcesses($processes, $maxProcesses - 1, $logger);
+            waitForProcesses(
+                $processes,
+                $maxProcesses - 1,
+                $logger,
+                $tempDir,
+                $managerStartTime,
+                $managerMaxRuntimeSeconds,
+                $batchMaxRuntimeSeconds
+            );
         }
         
         // 启动新的检测进程
@@ -119,7 +130,14 @@ try {
         'active_batch_count' => count($processes),
         'temp_dir' => $tempDir,
     ]);
-    waitForAllProcesses($processes, $logger);
+    waitForAllProcesses(
+        $processes,
+        $logger,
+        $tempDir,
+        $managerStartTime,
+        $managerMaxRuntimeSeconds,
+        $batchMaxRuntimeSeconds
+    );
     
     // 更新主状态为完成
     if (file_exists($mainStatusFile)) {
@@ -137,7 +155,7 @@ try {
         'offline_only' => $offlineOnly,
     ]);
     
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $logger->error('parallel_batch_manager_failed', [
         'temp_dir' => $tempDir,
         'total_proxies' => $totalProxies,
@@ -203,12 +221,28 @@ function startBatchProcess(string $batchId, int $offset, int $limit, string $sta
  * @param int $maxRemaining 最大剩余进程数
  * @param Logger $logger 日志对象
  */
-function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger): void {
+function waitForProcesses(
+    array &$processes,
+    int $maxRemaining,
+    Logger $logger,
+    string $tempDir,
+    int $managerStartTime,
+    int $managerMaxRuntimeSeconds,
+    int $batchMaxRuntimeSeconds
+): void {
     while (count($processes) > $maxRemaining) {
+        if ((time() - $managerStartTime) > $managerMaxRuntimeSeconds) {
+            forceCompleteRemainingBatches($processes, 'manager_timeout', $logger);
+            break;
+        }
+
         $completedBatchId = null;
 
         foreach ($processes as $batchId => $statusFile) {
-            if (netwatch_is_batch_finished($statusFile)) {
+            if (
+                netwatch_is_batch_finished($statusFile)
+                || finalizeStalledBatchIfNeeded($statusFile, $batchId, $batchMaxRuntimeSeconds, $logger)
+            ) {
                 $completedBatchId = $batchId;
                 break;
             }
@@ -226,15 +260,92 @@ function waitForProcesses(array &$processes, int $maxRemaining, Logger $logger):
     }
 }
 
+function finalizeStalledBatchIfNeeded(string $statusFile, string $batchId, int $batchMaxRuntimeSeconds, Logger $logger): bool {
+    $status = netwatch_read_json_file($statusFile);
+    if (!is_array($status)) {
+        return false;
+    }
+
+    $currentStatus = (string) ($status['status'] ?? '');
+    if (in_array($currentStatus, ['completed', 'cancelled', 'error'], true)) {
+        return true;
+    }
+
+    $startTime = (int) ($status['start_time'] ?? 0);
+    if ($startTime <= 0 || (time() - $startTime) <= $batchMaxRuntimeSeconds) {
+        return false;
+    }
+
+    $status['status'] = 'error';
+    $status['error'] = 'batch_timeout';
+    $status['end_time'] = time();
+    netwatch_write_json_file($statusFile, $status);
+
+    $logger->warning('parallel_batch_stalled_timeout', [
+        'batch_id' => $batchId,
+        'status_file' => $statusFile,
+        'batch_max_runtime_seconds' => $batchMaxRuntimeSeconds,
+    ]);
+
+    return true;
+}
+
+function forceCompleteRemainingBatches(array &$processes, string $reason, Logger $logger): void {
+    foreach ($processes as $batchId => $statusFile) {
+        $status = netwatch_read_json_file($statusFile);
+        if (!is_array($status)) {
+            continue;
+        }
+
+        $currentStatus = (string) ($status['status'] ?? '');
+        if (in_array($currentStatus, ['completed', 'cancelled', 'error'], true)) {
+            continue;
+        }
+
+        $status['status'] = $reason === 'cancelled' ? 'cancelled' : 'error';
+        $status['error'] = $reason === 'cancelled' ? null : $reason;
+        $status['end_time'] = time();
+        netwatch_write_json_file($statusFile, $status);
+
+        $logger->warning('parallel_batch_forced_completion', [
+            'batch_id' => $batchId,
+            'reason' => $reason,
+            'status_file' => $statusFile,
+        ]);
+    }
+
+    $processes = [];
+}
+
 /**
  * 等待所有进程完成
  * @param array $processes 进程列表
  * @param Logger $logger 日志对象
  */
-function waitForAllProcesses(array $processes, Logger $logger): void {
+function waitForAllProcesses(
+    array $processes,
+    Logger $logger,
+    string $tempDir,
+    int $managerStartTime,
+    int $managerMaxRuntimeSeconds,
+    int $batchMaxRuntimeSeconds
+): void {
     while (!empty($processes)) {
+        if (netwatch_is_cancelled_dir($tempDir)) {
+            forceCompleteRemainingBatches($processes, 'cancelled', $logger);
+            break;
+        }
+
+        if ((time() - $managerStartTime) > $managerMaxRuntimeSeconds) {
+            forceCompleteRemainingBatches($processes, 'manager_timeout', $logger);
+            break;
+        }
+
         foreach ($processes as $batchId => $statusFile) {
-            if (netwatch_is_batch_finished($statusFile)) {
+            if (
+                netwatch_is_batch_finished($statusFile)
+                || finalizeStalledBatchIfNeeded($statusFile, $batchId, $batchMaxRuntimeSeconds, $logger)
+            ) {
                 unset($processes[$batchId]);
                 $logger->info('parallel_batch_finished', [
                     'batch_id' => $batchId,

@@ -521,7 +521,28 @@ class ParallelMonitor {
         
         $statusFiles = glob($tempDir . '/batch_*.json');
         if (empty($statusFiles)) {
-            return ['success' => false, 'error' => '没有找到批次状态文件'];
+            if (!is_array($mainStatus)) {
+                return ['success' => false, 'error' => '没有找到批次状态文件'];
+            }
+
+            return [
+                'success' => true,
+                'overall_progress' => 0.0,
+                'completed_batches' => 0,
+                'total_batches' => (int) ($mainStatus['total_batches'] ?? 0),
+                'total_proxies' => (int) ($mainStatus['total_proxies'] ?? 0),
+                'total_checked' => 0,
+                'total_online' => 0,
+                'total_offline' => 0,
+                'failed_proxies' => 0,
+                'email_attempted' => false,
+                'email_sent' => false,
+                'email_error' => null,
+                'batch_statuses' => [],
+                'session_id' => $this->sessionId,
+                'status' => (string) ($mainStatus['status'] ?? 'starting'),
+                'message' => '并行检测初始化中，请稍候...'
+            ];
         }
         
         $totalChecked = 0;
