@@ -56,8 +56,13 @@ class Logger {
             return false;
         }
 
-        $result = file_put_contents($filePath, $content, FILE_APPEND | LOCK_EX);
-        return $result !== false;
+        try {
+            $result = file_put_contents($filePath, $content, FILE_APPEND | LOCK_EX);
+            return $result !== false;
+        } catch (Throwable $e) {
+            error_log('[NetWatch][Logger] Failed to append log file: ' . $e->getMessage());
+            return false;
+        }
     }
     
     /**

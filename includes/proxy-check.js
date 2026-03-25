@@ -374,7 +374,18 @@ async function checkAllProxiesParallel() {
 
         if (!response.ok && payload && typeof payload === 'object') {
             const errMsg = payload.message || payload.error || `${stage}失败`;
-            throw new Error(`${errMsg} (HTTP ${response.status})`);
+            const details = [];
+            if (payload.detail) {
+                details.push(String(payload.detail));
+            }
+            if (payload.exception) {
+                details.push(`异常: ${payload.exception}`);
+            }
+            if (payload.file && payload.line) {
+                details.push(`位置: ${payload.file}:${payload.line}`);
+            }
+            const detailSuffix = details.length > 0 ? ` | ${details.join(' | ')}` : '';
+            throw new Error(`${errMsg} (HTTP ${response.status})${detailSuffix}`);
         }
 
         return payload;
