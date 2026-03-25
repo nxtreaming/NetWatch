@@ -231,6 +231,15 @@ function waitForProcesses(
     int $batchMaxRuntimeSeconds
 ): void {
     while (count($processes) > $maxRemaining) {
+        if (!is_dir($tempDir)) {
+            $logger->warning('parallel_batch_manager_temp_dir_missing', [
+                'temp_dir' => $tempDir,
+                'remaining_process_count' => count($processes),
+            ]);
+            $processes = [];
+            break;
+        }
+
         if ((time() - $managerStartTime) > $managerMaxRuntimeSeconds) {
             forceCompleteRemainingBatches($processes, 'manager_timeout', $logger);
             break;
@@ -261,6 +270,14 @@ function waitForProcesses(
 }
 
 function finalizeStalledBatchIfNeeded(string $statusFile, string $batchId, int $batchMaxRuntimeSeconds, Logger $logger): bool {
+    if (!file_exists($statusFile)) {
+        $logger->info('parallel_batch_status_file_missing', [
+            'batch_id' => $batchId,
+            'status_file' => $statusFile,
+        ]);
+        return true;
+    }
+
     $status = netwatch_read_json_file($statusFile);
     if (!is_array($status)) {
         return false;
@@ -331,6 +348,15 @@ function waitForAllProcesses(
     int $batchMaxRuntimeSeconds
 ): void {
     while (!empty($processes)) {
+        if (!is_dir($tempDir)) {
+            $logger->warning('parallel_batch_manager_temp_dir_missing', [
+                'temp_dir' => $tempDir,
+                'remaining_process_count' => count($processes),
+            ]);
+            $processes = [];
+            break;
+        }
+
         if (netwatch_is_cancelled_dir($tempDir)) {
             forceCompleteRemainingBatches($processes, 'cancelled', $logger);
             break;
