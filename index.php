@@ -41,7 +41,48 @@ if ($action === 'logout') {
 }
 
 if (netwatch_is_ajax_mode_request()) {
-    $pageController->handleAjaxRequest($action);
+    register_shutdown_function(static function (): void {
+        $lastError = error_get_last();
+        if (!is_array($lastError)) {
+            return;
+        }
+
+        $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR];
+        if (!in_array((int) ($lastError['type'] ?? 0), $fatalTypes, true)) {
+            return;
+        }
+
+        if (headers_sent()) {
+            return;
+        }
+
+        $isDebug = (bool) config('app.debug', false);
+        $payload = [
+            'success' => false,
+            'error' => 'internal_server_error',
+            'message' => '服务器内部错误',
+            'timestamp' => time(),
+        ];
+
+        if ($isDebug) {
+            $payload['detail'] = (string) ($lastError['message'] ?? 'unknown fatal error');
+            $payload['file'] = (string) ($lastError['file'] ?? '');
+            $payload['line'] = (int) ($lastError['line'] ?? 0);
+        }
+
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    });
+
+    try {
+        $pageController->handleAjaxRequest($action);
+    } catch (Throwable $e) {
+        error_log('[NetWatch][AJAX] Unhandled exception: ' . $e->getMessage());
+        JsonResponse::error('ajax_unhandled_exception', '请求处理失败，请稍后重试', 500, [
+            'timestamp' => time(),
+        ]);
+    }
     exit;
 }
 
