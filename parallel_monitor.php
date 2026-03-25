@@ -212,7 +212,16 @@ class ParallelMonitor {
         }
         
         $offlineFlag = $this->offlineOnly ? 1 : 0;
-        $phpBinary = escapeshellcmd(PHP_BINARY ?: 'php');
+        $phpBinary = (string) (PHP_BINARY ?: 'php');
+        $phpBinaryBasename = strtolower(basename($phpBinary));
+        if (
+            $phpBinary === ''
+            || strpos($phpBinaryBasename, 'php-fpm') !== false
+            || strpos($phpBinaryBasename, 'php-cgi') !== false
+        ) {
+            $phpBinary = 'php';
+        }
+        $phpBinary = escapeshellcmd($phpBinary);
         $command = $phpBinary . ' ' . escapeshellarg($managerScript) . ' ' .
             $totalProxies . ' ' .
             $batchSize . ' ' .
@@ -523,6 +532,28 @@ class ParallelMonitor {
         if (empty($statusFiles)) {
             if (!is_array($mainStatus)) {
                 return ['success' => false, 'error' => '没有找到批次状态文件'];
+            }
+
+            $startupTimeoutSeconds = max(5, (int) config('monitoring.parallel_startup_timeout_seconds', 30));
+            $startTime = (int) ($mainStatus['start_time'] ?? 0);
+            $elapsed = $startTime > 0 ? (time() - $startTime) : 0;
+            if ($elapsed > $startupTimeoutSeconds) {
+                $mainStatus['status'] = 'error';
+                $mainStatus['error'] = 'parallel_startup_timeout';
+                $mainStatus['end_time'] = time();
+                netwatch_write_json_file($mainStatusFile, $mainStatus);
+
+                $this->logger->error('parallel_check_startup_timeout', [
+                    'session_id' => $this->sessionId,
+                    'temp_dir' => $tempDir,
+                    'elapsed_seconds' => $elapsed,
+                    'startup_timeout_seconds' => $startupTimeoutSeconds,
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => '并行检测启动超时，后台批次进程未成功启动，请检查 PHP CLI 可执行文件与进程权限',
+                ];
             }
 
             return [

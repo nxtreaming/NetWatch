@@ -11,10 +11,10 @@ ini_set('display_errors', 1);
 // 设置执行时间限制
 set_time_limit(600); // 10分钟
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'monitor.php';
-require_once 'logger.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/monitor.php';
+require_once __DIR__ . '/logger.php';
 
 // 检查命令行参数
 if ($argc < 5) {

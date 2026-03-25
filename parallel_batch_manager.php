@@ -12,11 +12,11 @@ ini_set('log_errors', 1);
 // 设置执行时间限制
 set_time_limit(0); // 无限制
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'includes/Config.php';
-require_once 'includes/ParallelStatusUtils.php';
-require_once 'logger.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/includes/Config.php';
+require_once __DIR__ . '/includes/ParallelStatusUtils.php';
+require_once __DIR__ . '/logger.php';
 
 // 检查命令行参数
 if ($argc < 4) {
