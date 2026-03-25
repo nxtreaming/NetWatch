@@ -81,10 +81,6 @@ if (netwatch_is_ajax_mode_request()) {
         error_log('[NetWatch][AJAX] Unhandled exception: ' . $e->getMessage());
         JsonResponse::error('ajax_unhandled_exception', '请求处理失败，请稍后重试', 500, [
             'timestamp' => time(),
-            'detail' => $e->getMessage(),
-            'exception' => get_class($e),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
         ]);
     }
     exit;
