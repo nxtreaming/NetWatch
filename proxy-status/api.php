@@ -9,19 +9,46 @@ require_once __DIR__ . '/../includes/JsonResponse.php';
 require_once __DIR__ . '/../includes/RateLimiter.php';
 require_once __DIR__ . '/includes/helpers.php';
 
-// CORS: 仅允许同源请求，不对外暴露通配符
-$allowedOrigin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
-if (!empty($_SERVER['HTTP_ORIGIN'])) {
-    if ($_SERVER['HTTP_ORIGIN'] === $allowedOrigin) {
-        header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-        header('Vary: Origin');
+function proxyStatusIsSameOrigin(string $origin): bool {
+    $originParts = parse_url($origin);
+    if (!is_array($originParts)) {
+        return false;
     }
-    // 非同源请求不添加 CORS 头，浏览器将拒绝跨域访问
+
+    $originScheme = strtolower((string) ($originParts['scheme'] ?? ''));
+    $originHost = strtolower((string) ($originParts['host'] ?? ''));
+    $originPort = (int) ($originParts['port'] ?? ($originScheme === 'https' ? 443 : 80));
+
+    $requestScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $requestHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+    $requestHost = preg_replace('/:\\d+$/', '', $requestHost);
+    $requestPort = (int) ($_SERVER['SERVER_PORT'] ?? ($requestScheme === 'https' ? 443 : 80));
+
+    return $originScheme === $requestScheme
+        && $originHost !== ''
+        && $requestHost !== ''
+        && $originHost === $requestHost
+        && $originPort === $requestPort;
+}
+
+if (!empty($_SERVER['HTTP_ORIGIN'])) {
+    $requestOrigin = (string) $_SERVER['HTTP_ORIGIN'];
+    if (!proxyStatusIsSameOrigin($requestOrigin)) {
+        JsonResponse::error('forbidden_origin', '不允许的请求来源', 403);
+        exit;
+    }
+
+    header('Access-Control-Allow-Origin: ' . $requestOrigin);
+    header('Vary: Origin');
 }
 require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../traffic_monitor.php';
 
 header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: same-origin');
+header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+header('Cross-Origin-Resource-Policy: same-origin');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
@@ -36,7 +63,7 @@ if (!Auth::isLoggedIn()) {
     exit;
 }
 
-$csrfToken = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_GET['csrf_token'] ?? ''));
+$csrfToken = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
 if (!Auth::validateCsrfToken($csrfToken)) {
     JsonResponse::error('csrf_invalid', 'CSRF 验证失败', 403);
     exit;

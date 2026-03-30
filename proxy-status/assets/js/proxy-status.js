@@ -59,17 +59,12 @@
     return payload;
   }
 
-  function escapeHtml(value) {
-    const map = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    };
-    return String(value).replace(/[&<>"']/g, function (char) {
-      return map[char];
-    });
+  function toFixedSafe(value, digits) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return Number(0).toFixed(digits);
+    }
+    return parsed.toFixed(digits);
   }
 
   function startAutoRefresh() {
@@ -241,7 +236,7 @@
     const infoDiv = document.getElementById('snapshot-info');
     if (infoDiv) infoDiv.style.display = 'none';
     const tipText = document.getElementById('snapshot-tip');
-    if (tipText) tipText.innerHTML = '💡 提示：显示当日连续采样增量（00:00点已包含昨日23:55~00:00）';
+    if (tipText) tipText.textContent = '💡 提示：显示当日连续采样增量（00:00点已包含昨日23:55~00:00）';
   };
 
   window.resetQueryToRecent = function resetQueryToRecent() {
@@ -280,7 +275,7 @@
         }
       }
       const tipText = document.getElementById('snapshot-tip');
-      if (tipText) tipText.innerHTML = '💡 提示：' + (isToday ? '显示当日连续采样增量（00:00点已包含昨日23:55~00:00）' : '显示当日全天流量数据');
+      if (tipText) tipText.textContent = '💡 提示：' + (isToday ? '显示当日连续采样增量（00:00点已包含昨日23:55~00:00）' : '显示当日全天流量数据');
     }
   };
 
@@ -333,55 +328,73 @@
     const tbody = statsSection ? statsSection.querySelector('tbody') : null;
     if (!tbody) return;
 
+    tbody.replaceChildren();
+
     if (!stats || stats.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="table-empty">暂无数据</td></tr>';
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = 5;
+      emptyCell.className = 'table-empty';
+      emptyCell.textContent = '暂无数据';
+      emptyRow.appendChild(emptyCell);
+      tbody.appendChild(emptyRow);
       return;
     }
 
-    const statsByDate = {};
-    stats.forEach(s => { statsByDate[s.usage_date] = s; });
-    
     // 获取今日日期，用于判断是否显示绿色点
     const today = TODAY || new Date().toISOString().split('T')[0];
 
-    let html = '';
     stats.forEach(stat => {
       const currentDate = stat.usage_date;
 
       // 直接使用后端返回的 daily_usage（已包含实时计算的今日数据）
       let calculatedDailyUsage = stat.daily_usage !== undefined ? stat.daily_usage : stat.used_bandwidth;
 
-      const totalBandwidth = parseFloat(stat.total_bandwidth).toFixed(2);
-      const usedBandwidth = parseFloat(stat.used_bandwidth).toFixed(2);
-      const remainingBandwidth = parseFloat(stat.remaining_bandwidth).toFixed(2);
-      const dailyUsage = parseFloat(calculatedDailyUsage).toFixed(2);
+      const totalBandwidth = toFixedSafe(stat.total_bandwidth, 2);
+      const usedBandwidth = toFixedSafe(stat.used_bandwidth, 2);
+      const remainingBandwidth = toFixedSafe(stat.remaining_bandwidth, 2);
+      const dailyUsage = toFixedSafe(calculatedDailyUsage, 2);
 
       const isHighlighted = !!centerDate && stat.usage_date === centerDate;
       const rowClass = isHighlighted ? 'row-highlight' : '';
       
       // 判断是否为今日数据，添加绿色点标识
       const isToday = currentDate === today;
-      const todayIndicator = isToday ? ' <span class="dot-green">●</span>' : '';
 
-      const safeDate = escapeHtml(stat.usage_date);
-      const safeDailyUsage = escapeHtml(`${dailyUsage} GB`);
-      const safeUsedBandwidth = escapeHtml(`${usedBandwidth} GB`);
-      const safeTotalBandwidth = escapeHtml(`${totalBandwidth} GB`);
-      const safeRemainingBandwidth = escapeHtml(`${remainingBandwidth} GB`);
-      const safeRowClass = escapeHtml(rowClass);
+      const row = document.createElement('tr');
+      if (rowClass) {
+        row.className = rowClass;
+      }
 
-      html += `
-        <tr class="${safeRowClass}">
-          <td>${safeDate}${todayIndicator}</td>
-          <td>${safeDailyUsage}</td>
-          <td>${safeUsedBandwidth}</td>
-          <td>${safeTotalBandwidth}</td>
-          <td>${safeRemainingBandwidth}</td>
-        </tr>
-      `;
+      const dateCell = document.createElement('td');
+      dateCell.textContent = String(stat.usage_date || '');
+      if (isToday) {
+        dateCell.appendChild(document.createTextNode(' '));
+        const dot = document.createElement('span');
+        dot.className = 'dot-green';
+        dot.textContent = '●';
+        dateCell.appendChild(dot);
+      }
+
+      const dailyCell = document.createElement('td');
+      dailyCell.textContent = `${dailyUsage} GB`;
+
+      const usedCell = document.createElement('td');
+      usedCell.textContent = `${usedBandwidth} GB`;
+
+      const totalCell = document.createElement('td');
+      totalCell.textContent = `${totalBandwidth} GB`;
+
+      const remainingCell = document.createElement('td');
+      remainingCell.textContent = `${remainingBandwidth} GB`;
+
+      row.appendChild(dateCell);
+      row.appendChild(dailyCell);
+      row.appendChild(usedCell);
+      row.appendChild(totalCell);
+      row.appendChild(remainingCell);
+      tbody.appendChild(row);
     });
-
-    tbody.innerHTML = html;
   }
 
   document.addEventListener('DOMContentLoaded', function () {
