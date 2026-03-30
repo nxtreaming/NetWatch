@@ -38,6 +38,40 @@
     target.style.display = 'block';
   }
 
+  async function parseApiResponse(response, stage) {
+    const rawText = await response.text();
+    if (rawText.trim() === '') {
+      throw new Error(`${stage}失败：服务端返回空响应`);
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(rawText);
+    } catch (error) {
+      throw new Error(`${stage}失败：服务端返回了非JSON响应`);
+    }
+
+    if (!response.ok || !payload || payload.success !== true) {
+      const message = (payload && (payload.message || payload.error)) || `${stage}失败`;
+      throw new Error(`${message}${response.status ? ` (HTTP ${response.status})` : ''}`);
+    }
+
+    return payload;
+  }
+
+  function escapeHtml(value) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return String(value).replace(/[&<>"']/g, function (char) {
+      return map[char];
+    });
+  }
+
   function startAutoRefresh() {
     if (autoRefreshTimer) {
       clearInterval(autoRefreshTimer);
@@ -50,16 +84,11 @@
   async function updateTrafficChart(date) {
     try {
       const response = await fetch(`api.php?action=chart&date=${encodeURIComponent(date)}`, buildFetchOptions());
-      const result = await response.json();
-      if (result.success) {
-        createTrafficChart(result.data, date === TODAY, result.chart_context || {});
-      } else {
-        console.error('图表更新失败:', result.message);
-        showRequestError('snapshot-info', `图表更新失败：${result.message || '请稍后重试'}`);
-      }
+      const result = await parseApiResponse(response, '图表更新');
+      createTrafficChart(result.data, date === TODAY, result.chart_context || {});
     } catch (error) {
       console.error('图表请求失败:', error);
-      showRequestError('snapshot-info', '图表请求失败，请稍后重试');
+      showRequestError('snapshot-info', error instanceof Error ? error.message : '图表请求失败，请稍后重试');
     }
   }
 
@@ -289,16 +318,11 @@
     try {
       const url = centerDate ? `api.php?action=stats&date=${encodeURIComponent(centerDate)}` : 'api.php?action=stats';
       const response = await fetch(url, buildFetchOptions());
-      const result = await response.json();
-      if (result.success) {
-        renderStatsTable(result.data, centerDate);
-      } else {
-        console.error('统计表格更新失败:', result.message);
-        showRequestError('stats-info', `统计数据更新失败：${result.message || '请稍后重试'}`);
-      }
+      const result = await parseApiResponse(response, '统计数据更新');
+      renderStatsTable(result.data, centerDate);
     } catch (error) {
       console.error('统计表格请求失败:', error);
-      showRequestError('stats-info', '统计数据请求失败，请稍后重试');
+      showRequestError('stats-info', error instanceof Error ? error.message : '统计数据请求失败，请稍后重试');
     }
   }
 
@@ -339,13 +363,20 @@
       const isToday = currentDate === today;
       const todayIndicator = isToday ? ' <span class="dot-green">●</span>' : '';
 
+      const safeDate = escapeHtml(stat.usage_date);
+      const safeDailyUsage = escapeHtml(`${dailyUsage} GB`);
+      const safeUsedBandwidth = escapeHtml(`${usedBandwidth} GB`);
+      const safeTotalBandwidth = escapeHtml(`${totalBandwidth} GB`);
+      const safeRemainingBandwidth = escapeHtml(`${remainingBandwidth} GB`);
+      const safeRowClass = escapeHtml(rowClass);
+
       html += `
-        <tr class="${rowClass}">
-          <td>${stat.usage_date}${todayIndicator}</td>
-          <td>${dailyUsage} GB</td>
-          <td>${usedBandwidth} GB</td>
-          <td>${totalBandwidth} GB</td>
-          <td>${remainingBandwidth} GB</td>
+        <tr class="${safeRowClass}">
+          <td>${safeDate}${todayIndicator}</td>
+          <td>${safeDailyUsage}</td>
+          <td>${safeUsedBandwidth}</td>
+          <td>${safeTotalBandwidth}</td>
+          <td>${safeRemainingBandwidth}</td>
         </tr>
       `;
     });

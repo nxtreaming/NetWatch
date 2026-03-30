@@ -10,10 +10,32 @@ function proxyStatusNormalizeDateParam($value): ?string {
 
     $value = trim($value);
     if ($value === '') {
-        return '';
+        return null;
     }
 
     return substr($value, 0, 10);
+}
+
+function proxyStatusIsValidDate(?string $date): bool {
+    if (!is_string($date) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        return false;
+    }
+
+    $dateTime = DateTime::createFromFormat('Y-m-d', $date);
+    if (!$dateTime) {
+        return false;
+    }
+
+    return $dateTime->format('Y-m-d') === $date;
+}
+
+function proxyStatusNormalizeAndClampDate($value): ?string {
+    $date = proxyStatusNormalizeDateParam($value);
+    if ($date === null || !proxyStatusIsValidDate($date)) {
+        return null;
+    }
+
+    return clampToToday($date);
 }
 
 function clampToToday(?string $date): ?string {

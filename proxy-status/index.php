@@ -3,14 +3,14 @@
  * 代理流量监控页面
  */
 
-require_once '../config.php';
-require_once '../auth.php';
-require_once '../traffic_monitor.php';
-require_once '../includes/functions.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/../traffic_monitor.php';
+require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/partials/banner.php';
 require_once __DIR__ . '/includes/helpers.php';
 
- netwatch_enforce_entrypoint_paths('/proxy-status/index.php');
+netwatch_enforce_entrypoint_paths('/proxy-status/index.php');
 
 // 强制要求登录
 Auth::requireLogin();
@@ -38,11 +38,11 @@ $trafficMonitor = new TrafficMonitor();
 $realtimeData = $trafficMonitor->getRealtimeTraffic();
 
 // 处理实时流量图表的日期查询
-$snapshotDate = proxyStatusNormalizeDateParam($_GET['snapshot_date'] ?? null);
+$snapshotDate = proxyStatusNormalizeAndClampDate($_GET['snapshot_date'] ?? null);
 $todaySnapshots = [];
 $isViewingToday = false; // 标识是否正在查看今日数据
 
-if ($snapshotDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $snapshotDate)) {
+if ($snapshotDate !== null) {
     // 获取指定日期的流量快照
     $todaySnapshots = $trafficMonitor->getSnapshotsByDate($snapshotDate);
     $isViewingToday = ($snapshotDate === date('Y-m-d'));
@@ -111,10 +111,10 @@ if ($isDebugViewAllowed && isset($_GET['debug']) && !empty($todaySnapshots)) {
 }
 
 // 处理每日统计的日期查询（使用 helper 进行未来日期夹取）
-$queryDate = clampToToday(proxyStatusNormalizeDateParam($_GET['date'] ?? null));
+$queryDate = proxyStatusNormalizeAndClampDate($_GET['date'] ?? null);
 $recentStats = [];
 
-if ($queryDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $queryDate)) {
+if ($queryDate !== null) {
     // 如果指定了日期，获取该日期前后7天的数据
     $recentStats = $trafficMonitor->getStatsAroundDate($queryDate, 7, 7);
 } else {

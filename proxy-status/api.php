@@ -4,9 +4,9 @@
  * 支持局部刷新功能
  */
 
-require_once '../config.php';
-require_once '../includes/JsonResponse.php';
-require_once '../includes/RateLimiter.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/JsonResponse.php';
+require_once __DIR__ . '/../includes/RateLimiter.php';
 require_once __DIR__ . '/includes/helpers.php';
 
 // CORS: 仅允许同源请求，不对外暴露通配符
@@ -18,8 +18,17 @@ if (!empty($_SERVER['HTTP_ORIGIN'])) {
     }
     // 非同源请求不添加 CORS 头，浏览器将拒绝跨域访问
 }
-require_once '../auth.php';
-require_once '../traffic_monitor.php';
+require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/../traffic_monitor.php';
+
+header('X-Content-Type-Options: nosniff');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+    JsonResponse::error('method_not_allowed', '不支持的请求方法', 405);
+    exit;
+}
 
 // 检查登录状态
 if (!Auth::isLoggedIn()) {
@@ -40,7 +49,12 @@ if (!$rateLimiter->attempt($rateLimitKey)) {
     exit;
 }
 
-$action = $_GET['action'] ?? '';
+$action = (string) ($_GET['action'] ?? '');
+
+if (!in_array($action, ['chart', 'stats'], true)) {
+    JsonResponse::error('invalid_action', '不支持的操作', 400);
+    exit;
+}
 
 try {
     $trafficMonitor = new TrafficMonitor();
@@ -48,11 +62,12 @@ try {
     switch ($action) {
         case 'chart':
             // 获取流量图表数据
-            $normalizedDate = proxyStatusNormalizeDateParam($_GET['date'] ?? null);
+            $normalizedDate = proxyStatusNormalizeAndClampDate($_GET['date'] ?? null);
             $date = $normalizedDate ?? date('Y-m-d');
-            
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-                throw new Exception('无效的日期格式');
+
+            if (!proxyStatusIsValidDate($date)) {
+                JsonResponse::error('invalid_date', '无效的日期格式', 400);
+                exit;
             }
             
             if ($date === date('Y-m-d')) {
@@ -76,10 +91,11 @@ try {
             
         case 'stats':
             // 获取统计数据
-            $centerDate = proxyStatusNormalizeDateParam($_GET['date'] ?? null);
-            
-            if ($centerDate && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $centerDate)) {
-                throw new Exception('无效的日期格式');
+            $centerDate = proxyStatusNormalizeAndClampDate($_GET['date'] ?? null);
+
+            if (isset($_GET['date']) && $centerDate === null && trim((string) $_GET['date']) !== '') {
+                JsonResponse::error('invalid_date', '无效的日期格式', 400);
+                exit;
             }
             
             if ($centerDate) {
@@ -119,10 +135,11 @@ try {
             break;
             
         default:
-            throw new Exception('不支持的操作');
+            JsonResponse::error('invalid_action', '不支持的操作', 400);
+            exit;
     }
     
-} catch (Exception $e) {
+} catch (Throwable $e) {
     // 记录详细错误到服务器日志，不向客户端暴露内部信息
     error_log('[NetWatch][proxy-status/api] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     JsonResponse::error('request_failed', '请求处理失败，请稍后重试', 500);
