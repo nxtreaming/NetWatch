@@ -1,6 +1,8 @@
 <?php
 
 class AuditLogger {
+    private static ?Database $db = null;
+
     private static function getClientIp(): string {
         if (!class_exists('RateLimiter')) {
             require_once __DIR__ . '/RateLimiter.php';
@@ -11,6 +13,27 @@ class AuditLogger {
         }
 
         return (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    }
+
+    private static function getDb(): ?Database {
+        if (!defined('DB_PATH')) {
+            return null;
+        }
+
+        if (!class_exists('Database')) {
+            require_once __DIR__ . '/../database.php';
+        }
+
+        if (!class_exists('Database')) {
+            return null;
+        }
+
+        if (self::$db === null) {
+            self::$db = new Database();
+            self::$db->initializeSchema();
+        }
+
+        return self::$db;
     }
 
     public static function log(string $action, ?string $targetType = null, $targetId = null, $details = null, ?string $username = null): void {
@@ -32,20 +55,11 @@ class AuditLogger {
                 $targetId = (string)$targetId;
             }
 
-            if (!defined('DB_PATH')) {
+            $db = self::getDb();
+            if ($db === null) {
                 return;
             }
 
-            if (!class_exists('Database')) {
-                require_once __DIR__ . '/../database.php';
-            }
-
-            if (!class_exists('Database')) {
-                return;
-            }
-
-            $db = new Database();
-            $db->initializeSchema();
             $db->addAuditLog($username, $action, $targetType, $targetId, $details, $ip, $ua);
         } catch (Throwable $e) {
             error_log('[NetWatch][AuditLogger] Failed to write audit log: ' . $e->getMessage());

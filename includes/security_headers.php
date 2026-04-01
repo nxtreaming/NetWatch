@@ -38,7 +38,7 @@ if (!function_exists('netwatch_send_security_headers')) {
         $nonce = netwatch_get_csp_nonce();
         $csp = "default-src 'self'; "
             . "script-src 'self' 'nonce-" . $nonce . "' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
-            . "script-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
+            . "script-src-elem 'self' 'nonce-" . $nonce . "' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
             . "script-src-attr 'unsafe-inline'; "
             . "style-src 'self' 'nonce-" . $nonce . "'; "
             . "style-src-elem 'self' 'unsafe-inline'; "

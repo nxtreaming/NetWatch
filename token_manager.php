@@ -1,10 +1,10 @@
 <?php
-require_once 'auth.php';
-require_once 'config.php';
-require_once 'database.php';
-require_once 'includes/functions.php';
-require_once 'includes/Config.php';
-require_once 'includes/JsonResponse.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/Config.php';
+require_once __DIR__ . '/includes/JsonResponse.php';
 if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
     require_once __DIR__ . '/includes/AuditLogger.php';
 }
@@ -148,11 +148,9 @@ $tokens = $db->getAllTokens();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
     <title>API Token 管理 - NetWatch</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
-    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
-        window.csrfToken = <?php echo json_encode(Auth::getCsrfToken(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
-    </script>
     <style nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
         .section {
             margin-bottom: 30px;
@@ -574,15 +572,15 @@ $tokens = $db->getAllTokens();
                         </thead>
                         <tbody id="token-list">
                             <?php foreach ($tokens as $token): ?>
-                            <tr data-token-id="<?php echo $token['id']; ?>">
+                            <tr data-token-id="<?php echo (int) $token['id']; ?>">
                                 <td><?php echo htmlspecialchars($token['name'], ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td>
-                                    <div class="token-value" title="<?php echo htmlspecialchars($token['token'], ENT_QUOTES, 'UTF-8'); ?>">
-                                        <?php echo htmlspecialchars(substr($token['token'], 0, 16) . '...', ENT_QUOTES, 'UTF-8'); ?>
+                                    <div class="token-value">
+                                        <?php echo htmlspecialchars((string) ($token['token_preview'] ?? '******'), ENT_QUOTES, 'UTF-8'); ?>
                                     </div>
                                 </td>
-                                <td><?php echo $token['proxy_count']; ?></td>
-                                <td><?php echo $token['assigned_count']; ?></td>
+                                <td><?php echo (int) $token['proxy_count']; ?></td>
+                                <td><?php echo (int) $token['assigned_count']; ?></td>
                                 <td>
                                     <span class="status-badge <?php echo $token['is_valid'] ? 'status-valid' : 'status-expired'; ?>">
                                         <?php echo $token['is_valid'] ? '有效' : '已过期'; ?>
@@ -592,10 +590,9 @@ $tokens = $db->getAllTokens();
                                 <td><?php echo formatTime($token['expires_at']); ?></td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="btn-small btn-primary" onclick="copyToken('<?php echo htmlspecialchars($token['token'], ENT_QUOTES, 'UTF-8'); ?>')">复制</button>
-                                        <button class="btn-small btn-warning" onclick="refreshToken(<?php echo $token['id']; ?>)">刷新</button>
-                                        <button class="btn-small btn-success" onclick="reassignProxies(<?php echo $token['id']; ?>, <?php echo $token['proxy_count']; ?>)">重分配</button>
-                                        <button class="btn-small btn-danger" onclick="deleteToken(<?php echo $token['id']; ?>)">删除</button>
+                                        <button class="btn-small btn-warning" onclick="refreshToken(<?php echo (int) $token['id']; ?>)">刷新</button>
+                                        <button class="btn-small btn-success" onclick="reassignProxies(<?php echo (int) $token['id']; ?>, <?php echo (int) $token['proxy_count']; ?>)">重分配</button>
+                                        <button class="btn-small btn-danger" onclick="deleteToken(<?php echo (int) $token['id']; ?>)">删除</button>
                                     </div>
                                 </td>
                             </tr>
@@ -624,6 +621,11 @@ $tokens = $db->getAllTokens();
     </div>
 
     <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
+        function getCsrfToken() {
+            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+            return tokenMeta ? tokenMeta.getAttribute('content') || '' : '';
+        }
+
         // 创建Token
         document.getElementById('create-token-form').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -634,7 +636,7 @@ $tokens = $db->getAllTokens();
                 const response = await fetch('?ajax=1&action=create', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-Token': window.csrfToken
+                        'X-CSRF-Token': getCsrfToken()
                     },
                     body: formData
                 });
@@ -680,7 +682,7 @@ $tokens = $db->getAllTokens();
                 const response = await fetch('?ajax=1&action=refresh', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-Token': window.csrfToken
+                        'X-CSRF-Token': getCsrfToken()
                     },
                     body: formData
                 });
@@ -713,7 +715,7 @@ $tokens = $db->getAllTokens();
                 const response = await fetch('?ajax=1&action=reassign', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-Token': window.csrfToken
+                        'X-CSRF-Token': getCsrfToken()
                     },
                     body: formData
                 });
@@ -742,7 +744,7 @@ $tokens = $db->getAllTokens();
                 const response = await fetch('?ajax=1&action=delete', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-Token': window.csrfToken
+                        'X-CSRF-Token': getCsrfToken()
                     },
                     body: formData
                 });

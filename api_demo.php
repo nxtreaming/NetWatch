@@ -1,16 +1,14 @@
 <?php
-require_once 'auth.php';
-require_once 'config.php';
-require_once 'database.php';
-require_once 'includes/functions.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/includes/functions.php';
 
 // 强制登录检查
 Auth::requireLogin();
 
 $db = new Database();
 $db->initializeSchema();
-$tokens = $db->getAllTokens();
-
 $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
 ?>
 <!DOCTYPE html>
@@ -221,17 +219,8 @@ $baseUrl = $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['REQUEST_URI']), '/');
             
             <div class="test-form">
                 <div class="form-group">
-                    <label for="test-token">选择Token:</label>
-                    <select id="test-token">
-                        <option value="">请选择一个Token</option>
-                        <?php foreach ($tokens as $token): ?>
-                            <?php if ($token['is_valid']): ?>
-                                <option value="<?php echo htmlspecialchars($token['token']); ?>">
-                                    <?php echo htmlspecialchars($token['name']); ?> (<?php echo $token['proxy_count']; ?>个代理)
-                                </option>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </select>
+                    <label for="test-token">输入Token:</label>
+                    <input type="text" id="test-token" placeholder="粘贴完整 Token 值进行测试">
                 </div>
                 
                 <div class="form-group">

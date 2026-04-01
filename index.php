@@ -106,12 +106,9 @@ $recentLogs = $dashboardData['recentLogs'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(Auth::getCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
     <title>NetWatch - 网络监控系统</title>
     <link rel="stylesheet" href="includes/style-v2.css?v=<?php echo filemtime(__DIR__ . '/includes/style-v2.css'); ?>">
-    <script nonce="<?php echo htmlspecialchars(netwatch_get_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
-        // 将CSRF Token注入到全局变量
-        window.csrfToken = <?php echo json_encode(Auth::getCsrfToken(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
-    </script>
 </head>
 <body>
     <div class="header">
@@ -148,16 +145,16 @@ $recentLogs = $dashboardData['recentLogs'];
         <!-- 统计信息 -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-inline total">代理总数: <?php echo $stats['total']; ?></div>
+                <div class="stat-inline total">代理总数: <?php echo (int) $stats['total']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-inline online">在线数量: <?php echo $stats['online']; ?></div>
+                <div class="stat-inline online">在线数量: <?php echo (int) $stats['online']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-inline offline">离线数量: <?php echo $stats['offline']; ?></div>
+                <div class="stat-inline offline">离线数量: <?php echo (int) $stats['offline']; ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-inline unknown">未知数量: <?php echo $stats['unknown']; ?></div>
+                <div class="stat-inline unknown">未知数量: <?php echo (int) $stats['unknown']; ?></div>
             </div>
             <div class="stat-card">
                 <div class="stat-inline total">平均时间: <?php echo number_format($stats['avg_response_time'], 0); ?>ms</div>
@@ -194,11 +191,11 @@ $recentLogs = $dashboardData['recentLogs'];
             <div class="search-info">
                 <span class="search-results">
                     <?php if (!empty($searchTerm) && !empty($statusFilter)): ?>
-                        搜索 "<?php echo htmlspecialchars($searchTerm); ?>" 并筛选 "<?php echo $statusFilter; ?>" 状态，找到 <?php echo $totalProxies; ?> 个结果
+                        搜索 "<?php echo htmlspecialchars($searchTerm, ENT_QUOTES, 'UTF-8'); ?>" 并筛选 "<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>" 状态，找到 <?php echo (int) $totalProxies; ?> 个结果
                     <?php elseif (!empty($searchTerm)): ?>
-                        搜索 "<?php echo htmlspecialchars($searchTerm); ?>" 找到 <?php echo $totalProxies; ?> 个结果
+                        搜索 "<?php echo htmlspecialchars($searchTerm, ENT_QUOTES, 'UTF-8'); ?>" 找到 <?php echo (int) $totalProxies; ?> 个结果
                     <?php elseif (!empty($statusFilter)): ?>
-                        筛选 "<?php echo $statusFilter; ?>" 状态，找到 <?php echo $totalProxies; ?> 个结果
+                        筛选 "<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>" 状态，找到 <?php echo (int) $totalProxies; ?> 个结果
                     <?php endif; ?>
                 </span>
             </div>
@@ -227,19 +224,19 @@ $recentLogs = $dashboardData['recentLogs'];
                     <tbody>
                         <?php foreach ($proxies as $proxy): ?>
                         <tr>
-                            <td data-label="ID"><?php echo $proxy['id']; ?></td>
-                            <td data-label="IP"><?php echo htmlspecialchars($proxy['ip']); ?></td>
-                            <td data-label="类型"><?php echo strtoupper($proxy['type']); ?></td>
+                            <td data-label="ID"><?php echo (int) $proxy['id']; ?></td>
+                            <td data-label="IP"><?php echo htmlspecialchars($proxy['ip'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td data-label="类型"><?php echo htmlspecialchars(strtoupper((string) $proxy['type']), ENT_QUOTES, 'UTF-8'); ?></td>
                             <td data-label="状态">
-                                <span class="status-badge status-<?php echo $proxy['status']; ?>">
-                                    <?php echo $proxy['status']; ?>
+                                <span class="status-badge status-<?php echo htmlspecialchars((string) $proxy['status'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?php echo htmlspecialchars((string) $proxy['status'], ENT_QUOTES, 'UTF-8'); ?>
                                 </span>
                             </td>
                             <td data-label="响应时间"><?php echo number_format($proxy['response_time'], 2); ?>ms</td>
-                            <td data-label="失败次数"><?php echo $proxy['failure_count']; ?></td>
+                            <td data-label="失败次数"><?php echo (int) $proxy['failure_count']; ?></td>
                             <td data-label="最后检查"><?php echo formatTime($proxy['last_check'], 'm-d H:i'); // 自动从UTC转换为北京时间 ?></td>
                             <td data-label="操作">
-                                <button class="btn btn-small" onclick="checkProxy(<?php echo $proxy['id']; ?>, this)">检查</button>
+                                <button class="btn btn-small" onclick="checkProxy(<?php echo (int) $proxy['id']; ?>, this)">检查</button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -262,7 +259,7 @@ $recentLogs = $dashboardData['recentLogs'];
             ?>
             <div class="pagination-container" style="padding: 0 20px;">
                 <div class="pagination-info">
-                    显示第 <?php echo (($page - 1) * $perPage + 1); ?> - <?php echo min($page * $perPage, $totalProxies); ?> 条，共 <?php echo $totalProxies; ?> 条
+                    显示第 <?php echo (int) (($page - 1) * $perPage + 1); ?> - <?php echo (int) min($page * $perPage, $totalProxies); ?> 条，共 <?php echo (int) $totalProxies; ?> 条
                     <?php 
                     if (!empty($searchTerm) && !empty($statusFilter)) {
                         echo '搜索和筛选结果';

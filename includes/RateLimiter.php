@@ -10,6 +10,7 @@ class RateLimiter {
     private string $storageDir;
     private int $maxRequests;
     private int $windowSeconds;
+    private int $cleanupProbabilityPercent = 1;
     
     /**
      * @param int $maxRequests 时间窗口内最大请求数
@@ -34,6 +35,7 @@ class RateLimiter {
      * @return bool
      */
     public function attempt(string $key): bool {
+        $this->maybeCleanupStaleFiles();
         $data = $this->getData($key);
         $now = time();
         
@@ -309,7 +311,35 @@ class RateLimiter {
     }
     
     private function getFilePath(string $key): string {
-        return $this->storageDir . '/' . md5($key) . '.json';
+        return $this->storageDir . '/' . hash('sha256', $key) . '.json';
+    }
+
+    private function maybeCleanupStaleFiles(): void {
+        if (random_int(1, 100) > $this->cleanupProbabilityPercent) {
+            return;
+        }
+
+        $pattern = $this->storageDir . '/*.json';
+        $files = glob($pattern);
+        if (!is_array($files)) {
+            return;
+        }
+
+        $threshold = time() - ($this->windowSeconds * 2);
+        foreach ($files as $file) {
+            if (!is_string($file) || !is_file($file)) {
+                continue;
+            }
+
+            $modifiedAt = filemtime($file);
+            if ($modifiedAt === false || $modifiedAt >= $threshold) {
+                continue;
+            }
+
+            if (!@unlink($file)) {
+                error_log('[NetWatch][RateLimiter] Failed to cleanup stale rate limit file: ' . $file);
+            }
+        }
     }
     
     private function getData(string $key): array {

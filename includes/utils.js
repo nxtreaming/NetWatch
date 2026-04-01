@@ -144,7 +144,8 @@ function getApiUrl(params) {
 function fetchApi(params, options = {}) {
     // 添加特殊标记参数，让服务器识别这是真正的AJAX请求
     const ajaxToken = Date.now(); // 使用时间戳作为防伪标记
-    const csrfToken = window.csrfToken || '';
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = tokenMeta ? tokenMeta.getAttribute('content') || '' : '';
     
     // 使用当前页面的origin和路径来构建完整URL
     // 如果当前页面是 /index.php，则使用 /index.php

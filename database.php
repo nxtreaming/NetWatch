@@ -751,7 +751,15 @@ class Database {
      * 获取所有Token列表
      */
     public function getAllTokens() {
-        $sql = "SELECT t.*, 
+        $sql = "SELECT t.id,
+                       t.name,
+                       t.proxy_count,
+                       t.created_at,
+                       t.expires_at,
+                       CASE 
+                           WHEN LENGTH(t.token) > 10 THEN SUBSTR(t.token, 1, 6) || '...' || SUBSTR(t.token, -4)
+                           ELSE '******'
+                       END as token_preview,
                        COUNT(a.proxy_id) as assigned_count,
                        CASE WHEN t.expires_at > datetime('now') THEN 1 ELSE 0 END as is_valid
                 FROM api_tokens t 
