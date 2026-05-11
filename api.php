@@ -4,11 +4,11 @@
  * 基于Token的代理授权API
  */
 
-require_once 'config.php';
-require_once 'database.php';
-require_once 'includes/Config.php';
-require_once 'includes/RateLimiter.php';
-require_once 'includes/JsonResponse.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/includes/Config.php';
+require_once __DIR__ . '/includes/RateLimiter.php';
+require_once __DIR__ . '/includes/JsonResponse.php';
 require_once __DIR__ . '/includes/security_headers.php';
 
 ensure_valid_config('api');
@@ -63,6 +63,10 @@ function api_extract_token(): string {
 
     $postToken = trim((string) ($_POST['token'] ?? ''));
     if ($postToken !== '') {
+        api_log_event('deprecated_post_token_auth_used', [
+            'client_ip' => RateLimiter::getClientIp(),
+            'deprecation' => 'Use Authorization: Bearer <token> instead of POST token parameter.',
+        ]);
         return $postToken;
     }
 

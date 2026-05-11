@@ -69,7 +69,11 @@ class Logger {
      * 生成唯一请求ID
      */
     private function generateRequestId(): string {
-        return substr(md5(uniqid((string)mt_rand(), true)), 0, 8);
+        try {
+            return bin2hex(random_bytes(4));
+        } catch (Throwable $e) {
+            return substr(hash('sha256', uniqid('', true)), 0, 8);
+        }
     }
     
     /**
@@ -77,7 +81,11 @@ class Logger {
      */
     public static function getRequestId(): string {
         if (self::$requestId === null) {
-            self::$requestId = substr(md5(uniqid((string)mt_rand(), true)), 0, 8);
+            try {
+                self::$requestId = bin2hex(random_bytes(4));
+            } catch (Throwable $e) {
+                self::$requestId = substr(hash('sha256', uniqid('', true)), 0, 8);
+            }
         }
         return self::$requestId;
     }

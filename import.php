@@ -3,14 +3,14 @@
  * 代理导入工具
  */
 
-require_once 'config.php';
-require_once 'includes/Config.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/Config.php';
 ensure_valid_config('web');
 
-require_once 'auth.php';
-require_once 'monitor.php';
-require_once 'includes/Validator.php';
-require_once 'includes/functions.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/monitor.php';
+require_once __DIR__ . '/includes/Validator.php';
+require_once __DIR__ . '/includes/functions.php';
 if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
     require_once __DIR__ . '/includes/AuditLogger.php';
 }
@@ -29,12 +29,24 @@ function parseImportOptionalField(array $parts, int $index): ?string {
     return $value !== '' ? $value : null;
 }
 
+function validateImportCredentialLength(?string $value, string $fieldName, int $lineNumber): void {
+    if ($value === null) {
+        return;
+    }
+
+    $maxLength = 255;
+    if (mb_strlen($value, 'UTF-8') > $maxLength) {
+        throw new Exception('第 ' . $lineNumber . ' 行' . $fieldName . '长度超过限制（最多' . $maxLength . '字符）');
+    }
+}
+
 function validateImportUploadFile(string $tempFile): void {
     if ($tempFile === '' || !is_uploaded_file($tempFile)) {
         throw new Exception('上传文件无效，请重新选择文件后重试');
     }
 
     if (!function_exists('finfo_open')) {
+        error_log('[NetWatch][SECURITY] finfo extension not available, MIME validation skipped');
         return;
     }
 
@@ -113,12 +125,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('导入代理数量过大，请分批导入');
                 }
                 
+                $username = parseImportOptionalField($parts, 3);
+                $password = parseImportOptionalField($parts, 4);
+                validateImportCredentialLength($username, '用户名', $lineNum + 1);
+                validateImportCredentialLength($password, '密码', $lineNum + 1);
+
                 $proxyList[] = [
                     'ip' => $ip,
                     'port' => $port,
                     'type' => $type,
-                    'username' => parseImportOptionalField($parts, 3),
-                    'password' => parseImportOptionalField($parts, 4)
+                    'username' => $username,
+                    'password' => $password
                 ];
             }
 

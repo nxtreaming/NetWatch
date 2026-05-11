@@ -51,6 +51,11 @@ window.NetWatch = window.NetWatch || {};
         const ajaxToken = Date.now();
         return `${indexPath}?${params}&_ajax_token=${ajaxToken}`;
     };
+
+    NW.getCsrfToken = function() {
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        return tokenMeta ? tokenMeta.getAttribute('content') || '' : '';
+    };
     
     /**
      * AJAX请求封装
@@ -65,7 +70,7 @@ window.NetWatch = window.NetWatch || {};
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json, */*',
-                'X-CSRF-Token': window.csrfToken || '',
+                'X-CSRF-Token': NW.getCsrfToken(),
                 ...options.headers
             },
             credentials: 'same-origin',

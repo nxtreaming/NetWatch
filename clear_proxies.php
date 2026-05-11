@@ -9,10 +9,10 @@ ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 try {
-    require_once 'config.php';
-    require_once 'auth.php';
-    require_once 'monitor.php';
-    require_once 'includes/functions.php';
+    require_once __DIR__ . '/config.php';
+    require_once __DIR__ . '/auth.php';
+    require_once __DIR__ . '/monitor.php';
+    require_once __DIR__ . '/includes/functions.php';
     if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
         require_once __DIR__ . '/includes/AuditLogger.php';
     }
@@ -61,6 +61,9 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
             
             // 刷新代理列表
             $proxies = $monitor->getAllProxies();
+            $proxies = array_map(function ($proxy) use ($monitor) {
+                return $monitor->filterSensitiveData($proxy);
+            }, $proxies);
             $totalProxies = count($proxies);
         } catch (Exception $e) {
             $error = $e->getMessage();
@@ -363,7 +366,7 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
                     <li>历史检查日志</li>
                     <li>警报记录</li>
                 </ul>
-                <p><strong>当前代理数量：<?php echo $totalProxies; ?> 个</strong></p>
+                <p><strong>当前代理数量：<?php echo (int) $totalProxies; ?> 个</strong></p>
             </div>
             <?php endif; ?>
             
@@ -385,19 +388,19 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
                         $displayCount = min(10, $totalProxies);
                         for ($i = 0; $i < $displayCount; $i++): 
                             $proxy = $proxies[$i];
-                            $statusClass = 'status-' . $proxy['status'];
+                            $statusClass = 'status-' . htmlspecialchars((string) $proxy['status'], ENT_QUOTES, 'UTF-8');
                         ?>
                         <tr>
-                            <td><?php echo $proxy['id']; ?></td>
-                            <td><?php echo htmlspecialchars($proxy['ip'] . ':' . $proxy['port']); ?></td>
-                            <td><?php echo strtoupper($proxy['type']); ?></td>
-                            <td><?php echo htmlspecialchars($proxy['username'] ?: '未设置'); ?></td>
-                            <td class="<?php echo $statusClass; ?>"><?php echo $proxy['status']; ?></td>
+                            <td><?php echo (int) $proxy['id']; ?></td>
+                            <td><?php echo htmlspecialchars($proxy['ip'] . ':' . $proxy['port'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(strtoupper((string) $proxy['type']), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td>已隐藏</td>
+                            <td class="<?php echo $statusClass; ?>"><?php echo htmlspecialchars((string) $proxy['status'], ENT_QUOTES, 'UTF-8'); ?></td>
                         </tr>
                         <?php endfor; ?>
                         <?php if ($totalProxies > 10): ?>
                         <tr>
-                            <td colspan="5" class="more-row">... 还有 <?php echo ($totalProxies - 10); ?> 个代理</td>
+                            <td colspan="5" class="more-row">... 还有 <?php echo (int) ($totalProxies - 10); ?> 个代理</td>
                         </tr>
                         <?php endif; ?>
                     </tbody>
@@ -411,7 +414,7 @@ if ($_POST && isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes
                     <p><strong>请确认您要清空所有代理数据：</strong></p>
                     <label>
                         <input type="checkbox" name="confirm_clear" value="yes" required>
-                        我确认要删除所有 <strong><?php echo $totalProxies; ?></strong> 个代理及相关数据
+                        我确认要删除所有 <strong><?php echo (int) $totalProxies; ?></strong> 个代理及相关数据
                     </label>
                     <button type="submit" class="btn-danger">🗑️ 确认清空所有代理</button>
                 </div>

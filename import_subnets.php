@@ -4,10 +4,10 @@
  * 支持多个子网使用相同的端口/用户名/密码配置
  */
 
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'monitor.php';
-require_once 'includes/functions.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/monitor.php';
+require_once __DIR__ . '/includes/functions.php';
 if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
     require_once __DIR__ . '/includes/AuditLogger.php';
 }
@@ -132,6 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 ?>
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

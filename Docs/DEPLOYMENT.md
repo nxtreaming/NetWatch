@@ -102,6 +102,12 @@ server {
     location ~ /(data|logs|vendor)/ {
         deny all;
     }
+
+    # 生产环境建议：禁止访问调试目录
+    location ^~ /Debug/ {
+        deny all;
+        return 403;
+    }
 }
 ```
 
@@ -109,6 +115,36 @@ server {
 ```bash
 systemctl reload nginx
 ```
+
+### 5.1 （可选）Apache 访问控制
+
+如果使用 Apache，请在虚拟主机配置中添加：
+
+```apache
+<Directory "/var/www/html/netwatch/Debug">
+    Require all denied
+</Directory>
+```
+
+或在 `Debug/.htaccess` 中添加：
+
+```apache
+Require all denied
+```
+
+启用后重载：
+
+```bash
+systemctl reload apache2
+```
+
+### 5.2 验证 Debug 目录已被封禁
+
+```bash
+curl -I http://your-domain.com/netwatch/Debug/
+```
+
+预期状态码：`403` 或 `404`。
 
 ### 6. 测试系统
 

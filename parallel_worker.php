@@ -6,7 +6,7 @@
 
 // 设置错误报告
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 
 // 设置执行时间限制
 set_time_limit(600); // 10分钟
@@ -27,6 +27,20 @@ $offset = intval($argv[2]);
 $limit = intval($argv[3]);
 $statusFile = $argv[4];
 $offlineOnly = isset($argv[5]) && $argv[5] === '1';
+
+$statusDir = realpath(dirname($statusFile));
+$resolvedSysTemp = realpath(sys_get_temp_dir());
+if (
+    preg_match('/^batch_\d+$/', $batchId) !== 1
+    || $offset < 0
+    || $limit < 1
+    || $statusDir === false
+    || $resolvedSysTemp === false
+    || strpos($statusDir, $resolvedSysTemp) !== 0
+    || basename($statusFile) !== ($batchId . '.json')
+) {
+    exit(1);
+}
 
 // 初始化组件
 $db = new Database();
