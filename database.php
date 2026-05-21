@@ -8,12 +8,14 @@ require_once __DIR__ . '/includes/Exceptions.php';
 require_once __DIR__ . '/includes/Migration.php';
 require_once __DIR__ . '/includes/DatabaseConnection.php';
 require_once __DIR__ . '/includes/TokenRepository.php';
+require_once __DIR__ . '/includes/TrafficRepository.php';
 
 class Database {
     private $pdo;
     private static $tablesCreated = false;
     private int $busyTimeoutMs = 15000;
     private ?TokenRepository $tokenRepository = null;
+    private ?TrafficRepository $trafficRepository = null;
     
     public function __construct() {
         $this->connect();
@@ -53,6 +55,7 @@ class Database {
             
             $this->pdo = DatabaseConnection::createSqlite(DB_PATH);
             $this->tokenRepository = null;
+            $this->trafficRepository = null;
             $this->applyConnectionPragmas();
 
             if (is_file(DB_PATH)) {
@@ -676,6 +679,14 @@ class Database {
         return $this->tokenRepository;
     }
 
+    private function trafficRepository(): TrafficRepository {
+        if (!($this->trafficRepository instanceof TrafficRepository)) {
+            $this->trafficRepository = new TrafficRepository($this->pdo);
+        }
+
+        return $this->trafficRepository;
+    }
+
     // ==================== API Token 管理方法 ====================
     
     /**
@@ -747,31 +758,15 @@ class Database {
      */
     public function saveRealtimeTraffic($totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes = 0, $txBytes = 0, $port = 0) {
         $this->ensureConnection();
-        // 确保表中只有一条记录（兼容旧版本可能残留的多条数据）
-        $countStmt = $this->pdo->query("SELECT COUNT(*) FROM traffic_realtime");
-        $count = (int)$countStmt->fetchColumn();
-        
-        if ($count > 1) {
-            // 清理多余记录，只保留最新的一条
-            $this->pdo->exec("DELETE FROM traffic_realtime WHERE id NOT IN (SELECT id FROM traffic_realtime ORDER BY updated_at DESC LIMIT 1)");
-        }
-        
-        if ($count >= 1) {
-            // 更新已有记录
-            $sql = "UPDATE traffic_realtime SET 
-                        total_bandwidth = ?, used_bandwidth = ?, remaining_bandwidth = ?, 
-                        usage_percentage = ?, rx_bytes = ?, tx_bytes = ?, port = ?, 
-                        updated_at = datetime('now')
-                    WHERE id = (SELECT id FROM traffic_realtime ORDER BY updated_at DESC LIMIT 1)";
-            $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes, $txBytes, $port]);
-        }
-        
-        // 没有记录，插入新的
-        $sql = "INSERT INTO traffic_realtime (total_bandwidth, used_bandwidth, remaining_bandwidth, usage_percentage, rx_bytes, tx_bytes, port, updated_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $usagePercentage, $rxBytes, $txBytes, $port]);
+        return $this->trafficRepository()->saveRealtimeTraffic(
+            (float) $totalBandwidth,
+            (float) $usedBandwidth,
+            (float) $remainingBandwidth,
+            (float) $usagePercentage,
+            (float) $rxBytes,
+            (float) $txBytes,
+            (int) $port
+        );
     }
     
     /**
@@ -779,9 +774,7 @@ class Database {
      */
     public function getRealtimeTraffic() {
         $this->ensureConnection();
-        $sql = "SELECT * FROM traffic_realtime ORDER BY updated_at DESC LIMIT 1";
-        $stmt = $this->pdo->query($sql);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->trafficRepository()->getRealtimeTraffic();
     }
     
     /**
@@ -790,27 +783,13 @@ class Database {
      */
     public function saveDailyTrafficStats($date, $totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage) {
         $this->ensureConnection();
-        // 检查是否已存在该日期的记录
-        $existing = $this->getDailyTrafficStats($date);
-        
-        if ($existing) {
-            // 更新现有记录
-            $sql = "UPDATE traffic_stats 
-                    SET total_bandwidth = ?, 
-                        used_bandwidth = ?, 
-                        remaining_bandwidth = ?, 
-                        daily_usage = ?, 
-                        recorded_at = datetime('now') 
-                    WHERE usage_date = ?";
-            $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute([$totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage, $date]);
-        } else {
-            // 插入新记录
-            $sql = "INSERT INTO traffic_stats (usage_date, total_bandwidth, used_bandwidth, remaining_bandwidth, daily_usage, recorded_at) 
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))";
-            $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute([$date, $totalBandwidth, $usedBandwidth, $remainingBandwidth, $dailyUsage]);
-        }
+        return $this->trafficRepository()->saveDailyTrafficStats(
+            (string) $date,
+            (float) $totalBandwidth,
+            (float) $usedBandwidth,
+            (float) $remainingBandwidth,
+            (float) $dailyUsage
+        );
     }
     
     /**
@@ -818,32 +797,23 @@ class Database {
      */
     public function getDailyTrafficStats($date) {
         $this->ensureConnection();
-        $sql = "SELECT * FROM traffic_stats WHERE usage_date = ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$date]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->trafficRepository()->getDailyTrafficStats((string) $date);
     }
     
     /**
      * 更新指定日期的已用流量（用于流量重置时回溯更新）
      */
     public function updateUsedBandwidth($date, $usedBandwidth) {
-        $sql = "UPDATE traffic_stats 
-                SET used_bandwidth = ?, 
-                    recorded_at = datetime('now') 
-                WHERE usage_date = ?";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$usedBandwidth, $date]);
+        $this->ensureConnection();
+        return $this->trafficRepository()->updateUsedBandwidth((string) $date, (float) $usedBandwidth);
     }
     
     /**
      * 获取最近N天的流量统计
      */
     public function getRecentTrafficStats($days = 30) {
-        $sql = "SELECT * FROM traffic_stats ORDER BY usage_date DESC LIMIT ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$days]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->trafficRepository()->getRecentTrafficStats((int) $days);
     }
     
     /**
@@ -853,38 +823,16 @@ class Database {
      * @return array
      */
     public function getTrafficStatsByDateRange($startDate, $endDate) {
-        $sql = "SELECT * FROM traffic_stats 
-                WHERE usage_date >= ? AND usage_date <= ? 
-                ORDER BY usage_date DESC";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$startDate, $endDate]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->trafficRepository()->getTrafficStatsByDateRange((string) $startDate, (string) $endDate);
     }
     
     /**
      * 计算今日流量使用量
      */
     public function calculateDailyUsage($date) {
-        // 获取今天和昨天的数据
-        $todayData = $this->getDailyTrafficStats($date);
-        $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
-        $yesterdayData = $this->getDailyTrafficStats($yesterday);
-        
-        if ($todayData && $yesterdayData) {
-            // 检测流量是否被重置：如果今天的累计流量比昨天少，说明流量被重置了
-            if ($todayData['used_bandwidth'] < $yesterdayData['used_bandwidth']) {
-                // 流量被重置，直接返回今天的累计使用量
-                return $todayData['used_bandwidth'];
-            }
-            
-            // 正常情况：今日使用量 = 今天已用 - 昨天已用
-            return $todayData['used_bandwidth'] - $yesterdayData['used_bandwidth'];
-        } elseif ($todayData) {
-            // 如果没有昨天的数据，返回今天的已用量
-            return $todayData['used_bandwidth'];
-        }
-        
-        return 0;
+        $this->ensureConnection();
+        return $this->trafficRepository()->calculateDailyUsage((string) $date);
     }
     
     /**
@@ -893,23 +841,7 @@ class Database {
      */
     public function saveTrafficSnapshot($rxBytes, $txBytes) {
         $this->ensureConnection();
-        $date = date('Y-m-d');
-        $currentMinute = intval(date('i'));
-        
-        // 取整到最近的5分钟倍数（允许cron延迟最多2分钟）
-        $remainder = $currentMinute % 5;
-        if ($remainder > 2) {
-            return false; // 距离下一个5分钟点更近，跳过（避免重复）
-        }
-        $roundedMinute = $currentMinute - $remainder;
-        
-        $time = sprintf('%s:%02d:00', date('H'), $roundedMinute);
-        $totalBytes = $rxBytes + $txBytes;
-        
-        $sql = "INSERT OR REPLACE INTO traffic_snapshots (snapshot_date, snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at) 
-                VALUES (?, ?, ?, ?, ?, datetime('now'))";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$date, $time, $rxBytes, $txBytes, $totalBytes]);
+        return $this->trafficRepository()->saveTrafficSnapshot((float) $rxBytes, (float) $txBytes);
     }
     
     /**
@@ -917,24 +849,15 @@ class Database {
      */
     public function getTrafficSnapshotsByDate($date) {
         $this->ensureConnection();
-        $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
-                FROM traffic_snapshots 
-                WHERE snapshot_date = ? 
-                AND (
-                    substr(snapshot_time, 4, 2) IN ('00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55')
-                )
-                ORDER BY snapshot_time ASC";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$date]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->trafficRepository()->getTrafficSnapshotsByDate((string) $date);
     }
     
     /**
      * 获取今日的流量快照数据
      */
     public function getTodayTrafficSnapshots() {
-        $today = date('Y-m-d');
-        return $this->getTrafficSnapshotsByDate($today);
+        $this->ensureConnection();
+        return $this->trafficRepository()->getTodayTrafficSnapshots();
     }
     
     /**
@@ -943,14 +866,7 @@ class Database {
      */
     public function getLastSnapshotOfDay($date) {
         $this->ensureConnection();
-        $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
-                FROM traffic_snapshots 
-                WHERE snapshot_date = ? 
-                ORDER BY snapshot_time DESC 
-                LIMIT 1";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$date]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->trafficRepository()->getLastSnapshotOfDay((string) $date);
     }
     
     /**
@@ -959,14 +875,7 @@ class Database {
      */
     public function getFirstSnapshotOfDay($date) {
         $this->ensureConnection();
-        $sql = "SELECT snapshot_time, rx_bytes, tx_bytes, total_bytes, recorded_at 
-                FROM traffic_snapshots 
-                WHERE snapshot_date = ? 
-                ORDER BY snapshot_time ASC 
-                LIMIT 1";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$date]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->trafficRepository()->getFirstSnapshotOfDay((string) $date);
     }
 
     public function getDistinctStatuses(): array {
@@ -986,16 +895,6 @@ class Database {
      */
     public function cleanOldTrafficSnapshots($daysToKeep = 35) {
         $this->ensureConnection();
-        // 取"上月最后一天"和"N天前"中更早的那个作为截止日期
-        $firstDayOfMonth = date('Y-m-01');
-        $lastDayOfPrevMonth = date('Y-m-d', strtotime($firstDayOfMonth . ' -1 day'));
-        $nDaysAgo = date('Y-m-d', strtotime("-{$daysToKeep} days"));
-        
-        // 保留上月最后一天及之后的所有数据
-        $cutoffDate = min($lastDayOfPrevMonth, $nDaysAgo);
-        
-        $sql = "DELETE FROM traffic_snapshots WHERE snapshot_date < ?";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$cutoffDate]);
+        return $this->trafficRepository()->cleanOldTrafficSnapshots((int) $daysToKeep);
     }
 }
