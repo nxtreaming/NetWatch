@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * 统一配置管理类
  * 支持数组配置、环境变量、默认值
@@ -16,6 +17,65 @@ class Config {
 
     private const DEFAULT_RATE_LIMIT_MAX_REQUESTS = 60;
     private const DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60;
+
+    private function getEnvValue(string $key, $default = null) {
+        if (array_key_exists($key, $this->envCache)) {
+            return $this->envCache[$key];
+        }
+
+        $value = env($key, $default);
+        $this->envCache[$key] = $value;
+        return $value;
+    }
+
+    private function envString(string $key, string $default = ''): string {
+        $value = $this->getEnvValue($key, $default);
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        return $default;
+    }
+
+    private function envInt(string $key, int $default): int {
+        $value = $this->getEnvValue($key, $default);
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+
+        return $default;
+    }
+
+    private function envBool(string $key, bool $default): bool {
+        $value = $this->getEnvValue($key, $default);
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+                return true;
+            }
+            if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+                return false;
+            }
+        }
+
+        return $default;
+    }
     
     private function __construct() {
         $this->loadDefaults();
@@ -35,16 +95,19 @@ class Config {
      * 加载默认配置
      */
     private function loadDefaults(): void {
+        $defaultDbPath = __DIR__ . '/../data/netwatch.db';
+        $defaultLogPath = __DIR__ . '/../logs/';
+
         $this->config = [
             'app' => [
                 'name' => 'NetWatch',
                 'version' => defined('APP_VERSION') ? APP_VERSION : '1.0.0',
-                'debug' => defined('DEBUG') ? DEBUG : false,
-                'env' => defined('APP_ENV') ? APP_ENV : 'production',
+                'debug' => defined('DEBUG') ? DEBUG : $this->envBool('DEBUG', false),
+                'env' => defined('APP_ENV') ? APP_ENV : $this->envString('APP_ENV', 'production'),
                 'timezone' => 'Asia/Shanghai',
             ],
             'database' => [
-                'path' => defined('DB_PATH') ? DB_PATH : __DIR__ . '/../data/netwatch.db',
+                'path' => defined('DB_PATH') ? DB_PATH : $this->envString('DB_PATH', $defaultDbPath),
             ],
             'monitoring' => [
                 'timeout' => defined('TIMEOUT') ? TIMEOUT : 10,
@@ -60,13 +123,13 @@ class Config {
                 'max_workers' => 8,
             ],
             'logging' => [
-                'path' => defined('LOG_PATH') ? LOG_PATH : __DIR__ . '/../logs/',
-                'level' => defined('LOG_LEVEL') ? LOG_LEVEL : 'INFO',
+                'path' => defined('LOG_PATH') ? LOG_PATH : $this->envString('LOG_PATH', $defaultLogPath),
+                'level' => defined('LOG_LEVEL') ? LOG_LEVEL : $this->envString('LOG_LEVEL', 'INFO'),
                 'json_format' => false,
             ],
             'security' => [
-                'session_timeout' => defined('SESSION_TIMEOUT') ? (int) SESSION_TIMEOUT : 3600,
-                'verify_ssl' => defined('VERIFY_SSL') ? (bool) VERIFY_SSL : true,
+                'session_timeout' => defined('SESSION_TIMEOUT') ? (int) SESSION_TIMEOUT : $this->envInt('SESSION_TIMEOUT', 3600),
+                'verify_ssl' => defined('VERIFY_SSL') ? (bool) VERIFY_SSL : $this->envBool('VERIFY_SSL', true),
                 'csrf_enabled' => true,
                 'rate_limit' => [
                     'enabled' => true,
@@ -76,15 +139,27 @@ class Config {
             ],
             'mail' => [
                 'enabled' => defined('MAIL_ENABLED') ? MAIL_ENABLED : false,
-                'host' => defined('SMTP_HOST') ? SMTP_HOST : (defined('MAIL_HOST') ? MAIL_HOST : ''),
-                'port' => defined('SMTP_PORT') ? SMTP_PORT : (defined('MAIL_PORT') ? MAIL_PORT : 587),
-                'username' => defined('SMTP_USERNAME') ? SMTP_USERNAME : (defined('MAIL_USERNAME') ? MAIL_USERNAME : ''),
-                'password' => defined('SMTP_PASSWORD') ? SMTP_PASSWORD : (defined('MAIL_PASSWORD') ? MAIL_PASSWORD : ''),
-                'password_env' => defined('SMTP_PASSWORD_ENV') ? SMTP_PASSWORD_ENV : '',
-                'password_file' => defined('SMTP_PASSWORD_FILE') ? SMTP_PASSWORD_FILE : '',
-                'from' => defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : (defined('MAIL_FROM') ? MAIL_FROM : ''),
-                'from_name' => defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'NetWatch',
-                'to' => defined('SMTP_TO_EMAIL') ? SMTP_TO_EMAIL : (defined('MAIL_TO') ? MAIL_TO : ''),
+                'host' => defined('SMTP_HOST')
+                    ? SMTP_HOST
+                    : (defined('MAIL_HOST') ? MAIL_HOST : $this->envString('SMTP_HOST', $this->envString('MAIL_HOST', ''))),
+                'port' => defined('SMTP_PORT')
+                    ? SMTP_PORT
+                    : (defined('MAIL_PORT') ? MAIL_PORT : $this->envInt('SMTP_PORT', $this->envInt('MAIL_PORT', 587))),
+                'username' => defined('SMTP_USERNAME')
+                    ? SMTP_USERNAME
+                    : (defined('MAIL_USERNAME') ? MAIL_USERNAME : $this->envString('SMTP_USERNAME', $this->envString('MAIL_USERNAME', ''))),
+                'password' => defined('SMTP_PASSWORD')
+                    ? SMTP_PASSWORD
+                    : (defined('MAIL_PASSWORD') ? MAIL_PASSWORD : $this->envString('SMTP_PASSWORD', $this->envString('MAIL_PASSWORD', ''))),
+                'password_env' => defined('SMTP_PASSWORD_ENV') ? SMTP_PASSWORD_ENV : $this->envString('SMTP_PASSWORD_ENV', ''),
+                'password_file' => defined('SMTP_PASSWORD_FILE') ? SMTP_PASSWORD_FILE : $this->envString('SMTP_PASSWORD_FILE', ''),
+                'from' => defined('SMTP_FROM_EMAIL')
+                    ? SMTP_FROM_EMAIL
+                    : (defined('MAIL_FROM') ? MAIL_FROM : $this->envString('SMTP_FROM_EMAIL', $this->envString('MAIL_FROM', ''))),
+                'from_name' => defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : $this->envString('SMTP_FROM_NAME', 'NetWatch'),
+                'to' => defined('SMTP_TO_EMAIL')
+                    ? SMTP_TO_EMAIL
+                    : (defined('MAIL_TO') ? MAIL_TO : $this->envString('SMTP_TO_EMAIL', $this->envString('MAIL_TO', ''))),
             ],
             'traffic' => [
                 'api_url' => defined('TRAFFIC_API_URL') ? TRAFFIC_API_URL : '',
@@ -102,10 +177,10 @@ class Config {
                 'loop_sleep_sec' => defined('SCHEDULER_LOOP_SLEEP_SEC') ? (int) SCHEDULER_LOOP_SLEEP_SEC : 60,
             ],
             'api' => [
-                'allow_origin' => defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : '',
-                'require_https' => defined('API_REQUIRE_HTTPS') ? API_REQUIRE_HTTPS : false,
-                'ip_whitelist' => defined('API_IP_WHITELIST') ? API_IP_WHITELIST : '',
-                'allow_post_token' => defined('API_ALLOW_POST_TOKEN') ? API_ALLOW_POST_TOKEN : false,
+                'allow_origin' => defined('API_ALLOW_ORIGIN') ? API_ALLOW_ORIGIN : $this->envString('API_ALLOW_ORIGIN', ''),
+                'require_https' => defined('API_REQUIRE_HTTPS') ? API_REQUIRE_HTTPS : $this->envBool('API_REQUIRE_HTTPS', false),
+                'ip_whitelist' => defined('API_IP_WHITELIST') ? API_IP_WHITELIST : $this->envString('API_IP_WHITELIST', ''),
+                'allow_post_token' => defined('API_ALLOW_POST_TOKEN') ? API_ALLOW_POST_TOKEN : $this->envBool('API_ALLOW_POST_TOKEN', false),
             ],
             'auth' => [
                 'session_path_strict_check' => defined('SESSION_PATH_STRICT_CHECK') ? SESSION_PATH_STRICT_CHECK : true,

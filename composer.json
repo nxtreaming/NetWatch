@@ -13,10 +13,22 @@
         "php": ">=8.0",
         "phpmailer/phpmailer": "^6.8"
     },
+    "autoload": {
+        "classmap": [
+            "database.php",
+            "logger.php",
+            "monitor.php",
+            "includes/"
+        ],
+        "files": [
+            "includes/functions.php"
+        ]
+    },
     "scripts": {
         "start": "php scheduler.php",
         "import": "php -f import.php",
-        "test": "php -f tests/run_tests.php"
+        "test": "php -f tests/run_tests.php",
+        "audit": "composer audit"
     },
     "config": {
         "optimize-autoloader": true,

@@ -7,6 +7,28 @@
     'use strict';
     
     NW.UI = NW.UI || {};
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function normalizeHexColor(value, fallback) {
+        if (typeof value !== 'string') {
+            return fallback;
+        }
+
+        const normalized = value.trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+            return normalized;
+        }
+
+        return fallback;
+    }
     
     /**
      * 创建遮罩层
@@ -110,7 +132,12 @@
         `;
         
         const messageDiv = document.createElement('div');
-        messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+        String(message).split(/\n/).forEach((line, index) => {
+            if (index > 0) {
+                messageDiv.appendChild(document.createElement('br'));
+            }
+            messageDiv.appendChild(document.createTextNode(line));
+        });
         messageDiv.style.cssText = 'margin-bottom: 25px; color: #e2e8f0; white-space: pre-wrap;';
         
         const okButton = document.createElement('button');
@@ -147,6 +174,9 @@
             overlayId = 'progress-overlay',
             dialogId = 'progress-dialog'
         } = options;
+
+        const safeTitle = escapeHtml(title);
+        const safeColor = normalizeHexColor(color, '#10b981');
         
         const isMobile = NW.isMobile();
         
@@ -179,10 +209,10 @@
         const progressHeight = isMobile ? '20px' : '25px';
         
         dialog.innerHTML = `
-            <h3 style="margin: 0 0 20px 0; color: #e2e8f0; font-size: ${titleSize}; font-weight: 600;">${title}</h3>
+            <h3 style="margin: 0 0 20px 0; color: #e2e8f0; font-size: ${titleSize}; font-weight: 600;">${safeTitle}</h3>
             <div id="progress-info" style="margin-bottom: 15px; color: #94a3b8; font-size: ${textSize}; line-height: 1.5;">准备中...</div>
             <div style="background: #14213d; border-radius: 15px; height: ${progressHeight}; margin: 15px 0; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08);">
-                <div id="progress-bar" style="background: linear-gradient(90deg, ${color}, ${color}dd); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 15px; position: relative;">
+                <div id="progress-bar" style="background: linear-gradient(90deg, ${safeColor}, ${safeColor}dd); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 15px; position: relative;">
                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 600; font-size: 12px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);" id="progress-percent">0%</div>
                 </div>
             </div>

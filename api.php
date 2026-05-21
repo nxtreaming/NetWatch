@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * NetWatch API接口
  * 基于Token的代理授权API
@@ -9,6 +10,7 @@ require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/includes/Config.php';
 require_once __DIR__ . '/includes/RateLimiter.php';
 require_once __DIR__ . '/includes/JsonResponse.php';
+require_once __DIR__ . '/includes/Container.php';
 require_once __DIR__ . '/includes/security_headers.php';
 
 ensure_valid_config('api');
@@ -98,6 +100,113 @@ function api_send_response(array $response): void {
     echo (string) $body;
 }
 
+function api_is_valid_ip_or_cidr(string $value): bool {
+    if (strpos($value, '/') === false) {
+        return filter_var($value, FILTER_VALIDATE_IP) !== false;
+    }
+
+    [$network, $prefix] = explode('/', $value, 2);
+    $isIpv4 = filter_var($network, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+    $isIpv6 = filter_var($network, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+    if (!$isIpv4 && !$isIpv6) {
+        return false;
+    }
+
+    if (!preg_match('/^\d+$/', $prefix)) {
+        return false;
+    }
+
+    $prefix = (int) $prefix;
+    if ($isIpv4) {
+        return $prefix >= 0 && $prefix <= 32;
+    }
+
+    return $prefix >= 0 && $prefix <= 128;
+}
+
+function api_parse_ip_whitelist($rawWhitelist): array {
+    $entries = is_array($rawWhitelist)
+        ? $rawWhitelist
+        : explode(',', (string) $rawWhitelist);
+
+    $validEntries = [];
+    $invalidEntries = [];
+
+    foreach ($entries as $entry) {
+        $normalized = trim((string) $entry);
+        if ($normalized === '') {
+            continue;
+        }
+
+        if (!api_is_valid_ip_or_cidr($normalized)) {
+            $invalidEntries[] = $normalized;
+            continue;
+        }
+
+        if ($normalized === '0.0.0.0/0' || $normalized === '::/0') {
+            $invalidEntries[] = $normalized;
+            continue;
+        }
+
+        $validEntries[] = $normalized;
+    }
+
+    return [
+        'valid' => array_values(array_unique($validEntries)),
+        'invalid' => array_values(array_unique($invalidEntries)),
+    ];
+}
+
+function api_is_ip_in_cidr(string $ip, string $cidr): bool {
+    [$network, $prefix] = explode('/', $cidr, 2);
+    $ipBin = inet_pton($ip);
+    $networkBin = inet_pton($network);
+    if ($ipBin === false || $networkBin === false || strlen($ipBin) !== strlen($networkBin)) {
+        return false;
+    }
+
+    $prefix = (int) $prefix;
+    $maxBits = strlen($networkBin) * 8;
+    if ($prefix < 0 || $prefix > $maxBits) {
+        return false;
+    }
+
+    $fullBytes = intdiv($prefix, 8);
+    $remainingBits = $prefix % 8;
+
+    if ($fullBytes > 0 && substr($ipBin, 0, $fullBytes) !== substr($networkBin, 0, $fullBytes)) {
+        return false;
+    }
+
+    if ($remainingBits === 0) {
+        return true;
+    }
+
+    $mask = (0xFF << (8 - $remainingBits)) & 0xFF;
+    return (ord($ipBin[$fullBytes]) & $mask) === (ord($networkBin[$fullBytes]) & $mask);
+}
+
+function api_is_ip_whitelisted(string $clientIp, array $whitelist): bool {
+    if (filter_var($clientIp, FILTER_VALIDATE_IP) === false) {
+        return false;
+    }
+
+    foreach ($whitelist as $entry) {
+        if (strpos($entry, '/') === false) {
+            if ($entry === $clientIp) {
+                return true;
+            }
+            continue;
+        }
+
+        if (api_is_ip_in_cidr($clientIp, $entry)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // 处理OPTIONS请求（CORS预检）
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -118,9 +227,25 @@ $clientIp = RateLimiter::getClientIp();
 // S-8: IP白名单检查（可选）
 if (!empty(config('api.ip_whitelist', ''))) {
     $whitelistConfig = config('api.ip_whitelist', '');
-    $whitelist = is_array($whitelistConfig) ? $whitelistConfig : explode(',', (string) $whitelistConfig);
-    $whitelist = array_map('trim', $whitelist);
-    if (!in_array($clientIp, $whitelist, true)) {
+    $whitelistParsed = api_parse_ip_whitelist($whitelistConfig);
+    $whitelist = $whitelistParsed['valid'];
+    $invalidEntries = $whitelistParsed['invalid'];
+
+    if (!empty($invalidEntries)) {
+        api_log_event('api_ip_whitelist_invalid_entries', [
+            'invalid_entries' => $invalidEntries,
+        ]);
+    }
+
+    if (empty($whitelist)) {
+        api_log_event('api_ip_whitelist_empty_after_validation', [
+            'client_ip' => $clientIp,
+        ]);
+        JsonResponse::error('configuration_error', 'API IP whitelist configuration is invalid', 500);
+        exit;
+    }
+
+    if (!api_is_ip_whitelisted($clientIp, $whitelist)) {
         api_log_event('api_ip_not_in_whitelist', [
             'client_ip' => $clientIp,
         ]);
@@ -138,10 +263,10 @@ if (!$rateLimiter->attempt($rateLimitKey)) {
 }
 
 class ProxyApi {
-    private $db;
+    private Database $db;
     
-    public function __construct() {
-        $this->db = new Database();
+    public function __construct(?Database $db = null) {
+        $this->db = $db ?? app()->db();
         $this->db->initializeSchema();
     }
     

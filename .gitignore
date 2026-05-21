@@ -40,3 +40,4 @@ phpunit.xml.dist
 /localdev/*
 /migrations/*
 audit_opus_v2.md
+gemini_flash_review.md

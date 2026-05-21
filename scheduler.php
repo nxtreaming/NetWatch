@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * 定时任务调度器
  */
@@ -6,17 +7,10 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/Config.php';
 require_once __DIR__ . '/monitor.php';
+require_once __DIR__ . '/includes/Container.php';
+require_once __DIR__ . '/includes/MailerFactory.php';
 
 ensure_valid_config('cli');
-
-// 选择邮件发送方式
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    require_once __DIR__ . '/mailer.php';
-    define('USE_PHPMAILER', true);
-} else {
-    require_once __DIR__ . '/mailer_simple.php';
-    define('USE_PHPMAILER', false);
-}
 
 class Scheduler {
     private $monitor;
@@ -25,8 +19,8 @@ class Scheduler {
     private $logger;
     
     public function __construct() {
-        $this->monitor = new NetworkMonitor();
-        $this->mailer = USE_PHPMAILER ? new Mailer() : new SimpleMailer();
+        $this->monitor = app()->monitor();
+        $this->mailer = MailerFactory::create();
         $this->db = $this->monitor->getDatabase();
         $this->logger = $this->monitor->getLogger();
     }

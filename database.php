@@ -1,10 +1,12 @@
 <?php
+declare(strict_types=1);
 /**
  * 数据库操作类
  */
 
 require_once __DIR__ . '/includes/Exceptions.php';
 require_once __DIR__ . '/includes/Migration.php';
+require_once __DIR__ . '/includes/DatabaseConnection.php';
 
 class Database {
     private $pdo;
@@ -47,8 +49,7 @@ class Database {
             }
             $this->warnIfWorldWritablePath($dataDir, 'database_dir');
             
-            $this->pdo = new PDO('sqlite:' . DB_PATH);
-            $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->pdo = DatabaseConnection::createSqlite(DB_PATH);
             $this->applyConnectionPragmas();
 
             if (is_file(DB_PATH)) {
