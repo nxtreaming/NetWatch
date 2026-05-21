@@ -1,10 +1,12 @@
 <?php
+declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/Config.php';
 require_once __DIR__ . '/includes/JsonResponse.php';
+require_once __DIR__ . '/includes/Container.php';
 if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
     require_once __DIR__ . '/includes/AuditLogger.php';
 }
@@ -14,7 +16,7 @@ ensure_valid_config('web');
 // 强制登录检查
 Auth::requireLogin();
 
-$db = new Database();
+$db = app()->db();
 $db->initializeSchema();
 
 // 处理AJAX请求

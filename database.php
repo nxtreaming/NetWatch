@@ -7,11 +7,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/Exceptions.php';
 require_once __DIR__ . '/includes/Migration.php';
 require_once __DIR__ . '/includes/DatabaseConnection.php';
+require_once __DIR__ . '/includes/TokenRepository.php';
 
 class Database {
     private $pdo;
     private static $tablesCreated = false;
     private int $busyTimeoutMs = 15000;
+    private ?TokenRepository $tokenRepository = null;
     
     public function __construct() {
         $this->connect();
@@ -50,6 +52,7 @@ class Database {
             $this->warnIfWorldWritablePath($dataDir, 'database_dir');
             
             $this->pdo = DatabaseConnection::createSqlite(DB_PATH);
+            $this->tokenRepository = null;
             $this->applyConnectionPragmas();
 
             if (is_file(DB_PATH)) {
@@ -665,198 +668,78 @@ class Database {
         }
     }
 
+    private function tokenRepository(): TokenRepository {
+        if (!($this->tokenRepository instanceof TokenRepository)) {
+            $this->tokenRepository = new TokenRepository($this->pdo);
+        }
+
+        return $this->tokenRepository;
+    }
+
     // ==================== API Token 管理方法 ====================
     
     /**
      * 创建API Token
      */
     public function createApiToken($name, $proxyCount, $expiresAt) {
-        $token = $this->generateUniqueToken();
-        $sql = "INSERT INTO api_tokens (token, name, proxy_count, expires_at) VALUES (?, ?, ?, ?)";
-        $stmt = $this->pdo->prepare($sql);
-        $result = $stmt->execute([$token, $name, $proxyCount, $expiresAt]);
-        
-        if ($result) {
-            $tokenId = $this->pdo->lastInsertId();
-            $assignedCount = $this->assignProxiesToToken($tokenId, $proxyCount);
-            if ($assignedCount === 0) {
-                // 避免创建无可用代理的“空Token”
-                $sql = "DELETE FROM api_tokens WHERE id = ?";
-                $cleanupStmt = $this->pdo->prepare($sql);
-                $cleanupStmt->execute([$tokenId]);
-                error_log('create_api_token_no_available_proxies: token creation aborted due to no assignable proxies');
-                return false;
-            }
-            return $token;
-        }
-        return false;
-    }
-    
-    /**
-     * 生成唯一Token
-     */
-    private function generateUniqueToken() {
-        do {
-            $token = bin2hex(random_bytes(32));
-            $sql = "SELECT COUNT(*) FROM api_tokens WHERE token = ?";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$token]);
-            $exists = $stmt->fetchColumn() > 0;
-        } while ($exists);
-        
-        return $token;
-    }
-    
-    /**
-     * 为Token分配代理
-     */
-    private function assignProxiesToToken($tokenId, $proxyCount) {
-        // 获取在线代理，按响应时间排序
-        $sql = "SELECT id FROM proxies WHERE status = 'online' ORDER BY response_time ASC, failure_count ASC LIMIT ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$proxyCount]);
-        $proxies = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // 如果在线代理不够，补充未知状态的代理
-        if (count($proxies) < $proxyCount) {
-            $remainingCount = $proxyCount - count($proxies);
-            $existingIds = array_column($proxies, 'id');
-            $placeholders = str_repeat('?,', count($existingIds));
-            $placeholders = rtrim($placeholders, ',');
-            
-            $sql = "SELECT id FROM proxies WHERE status = 'unknown'";
-            if (!empty($existingIds)) {
-                $sql .= " AND id NOT IN ($placeholders)";
-            }
-            $sql .= " ORDER BY created_at ASC LIMIT ?";
-            
-            $stmt = $this->pdo->prepare($sql);
-            $params = array_merge($existingIds, [$remainingCount]);
-            $stmt->execute($params);
-            $additionalProxies = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            $proxies = array_merge($proxies, $additionalProxies);
-        }
-        
-        // 分配代理到Token
-        foreach ($proxies as $proxy) {
-            $sql = "INSERT INTO token_proxy_assignments (token_id, proxy_id) VALUES (?, ?)";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$tokenId, $proxy['id']]);
-        }
-
-        return count($proxies);
+        $this->ensureConnection();
+        return $this->tokenRepository()->createApiToken((string) $name, (int) $proxyCount, (string) $expiresAt);
     }
     
     /**
      * 获取所有Token列表
      */
     public function getAllTokens() {
-        $sql = "SELECT t.id,
-                       t.name,
-                       t.proxy_count,
-                       t.created_at,
-                       t.expires_at,
-                       CASE 
-                           WHEN LENGTH(t.token) > 10 THEN SUBSTR(t.token, 1, 6) || '...' || SUBSTR(t.token, -4)
-                           ELSE '******'
-                       END as token_preview,
-                       COUNT(a.proxy_id) as assigned_count,
-                       CASE WHEN t.expires_at > datetime('now') THEN 1 ELSE 0 END as is_valid
-                FROM api_tokens t 
-                LEFT JOIN token_proxy_assignments a ON t.id = a.token_id 
-                WHERE t.is_active = 1 
-                GROUP BY t.id 
-                ORDER BY t.created_at DESC";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->tokenRepository()->getAllTokens();
     }
     
     /**
      * 根据Token获取Token信息
      */
     public function getTokenByValue($token) {
-        $sql = "SELECT * FROM api_tokens WHERE token = ? AND is_active = 1";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$token]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->tokenRepository()->getTokenByValue((string) $token);
     }
     
     /**
      * 验证Token是否有效
      */
     public function validateToken($token) {
-        $sql = "SELECT * FROM api_tokens WHERE token = ? AND is_active = 1 AND expires_at > datetime('now')";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$token]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->tokenRepository()->validateToken((string) $token);
     }
     
     /**
      * 获取Token分配的代理列表
      */
     public function getTokenProxies($tokenId) {
-        $sql = "SELECT p.* FROM proxies p 
-                INNER JOIN token_proxy_assignments a ON p.id = a.proxy_id 
-                WHERE a.token_id = ? 
-                ORDER BY p.response_time ASC, p.failure_count ASC";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$tokenId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->tokenRepository()->getTokenProxies((int) $tokenId);
     }
     
     /**
      * 刷新Token有效期
      */
     public function refreshToken($tokenId, $newExpiresAt) {
-        $sql = "UPDATE api_tokens SET expires_at = ?, updated_at = datetime('now') WHERE id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$newExpiresAt, $tokenId]);
+        $this->ensureConnection();
+        return $this->tokenRepository()->refreshToken((int) $tokenId, (string) $newExpiresAt);
     }
     
     /**
      * 删除Token
      */
     public function deleteToken($tokenId) {
-        $sql = "UPDATE api_tokens SET is_active = 0, updated_at = datetime('now') WHERE id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$tokenId]);
+        $this->ensureConnection();
+        return $this->tokenRepository()->deleteToken((int) $tokenId);
     }
     
     /**
      * 重新分配Token的代理
      */
     public function reassignTokenProxies($tokenId, $proxyCount) {
-        try {
-            $this->pdo->beginTransaction();
-
-            // 删除现有分配
-            $sql = "DELETE FROM token_proxy_assignments WHERE token_id = ?";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$tokenId]);
-
-            // 重新分配
-            $assignedCount = $this->assignProxiesToToken($tokenId, $proxyCount);
-            if ($assignedCount === 0) {
-                $this->pdo->rollBack();
-                error_log('reassign_token_proxies_no_available_proxies: no assignable proxies for token_id=' . (int) $tokenId);
-                return false;
-            }
-
-            // 更新Token信息
-            $sql = "UPDATE api_tokens SET proxy_count = ?, updated_at = datetime('now') WHERE id = ?";
-            $stmt = $this->pdo->prepare($sql);
-            $result = $stmt->execute([$proxyCount, $tokenId]);
-
-            $this->pdo->commit();
-            return $result;
-        } catch (PDOException $e) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-            throw new Exception("代理重新分配失败: " . $e->getMessage());
-        }
+        $this->ensureConnection();
+        return $this->tokenRepository()->reassignTokenProxies((int) $tokenId, (int) $proxyCount);
     }
     
     /**
