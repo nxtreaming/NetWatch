@@ -9,6 +9,8 @@ require_once __DIR__ . '/includes/Migration.php';
 require_once __DIR__ . '/includes/DatabaseConnection.php';
 require_once __DIR__ . '/includes/TokenRepository.php';
 require_once __DIR__ . '/includes/TrafficRepository.php';
+require_once __DIR__ . '/includes/ProxyRepository.php';
+require_once __DIR__ . '/includes/AuditLogRepository.php';
 
 class Database {
     private $pdo;
@@ -16,6 +18,8 @@ class Database {
     private int $busyTimeoutMs = 15000;
     private ?TokenRepository $tokenRepository = null;
     private ?TrafficRepository $trafficRepository = null;
+    private ?ProxyRepository $proxyRepository = null;
+    private ?AuditLogRepository $auditLogRepository = null;
     
     public function __construct() {
         $this->connect();
@@ -56,6 +60,8 @@ class Database {
             $this->pdo = DatabaseConnection::createSqlite(DB_PATH);
             $this->tokenRepository = null;
             $this->trafficRepository = null;
+            $this->proxyRepository = null;
+            $this->auditLogRepository = null;
             $this->applyConnectionPragmas();
 
             if (is_file(DB_PATH)) {
@@ -269,45 +275,28 @@ class Database {
     }
 
     public function addAuditLog($username, $action, $targetType = null, $targetId = null, $details = null, $ipAddress = null, $userAgent = null) {
-        $sql = "INSERT INTO audit_logs (username, action, target_type, target_id, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$username, $action, $targetType, $targetId, $details, $ipAddress, $userAgent]);
+        $this->ensureConnection();
+        return $this->auditLogRepository()->addAuditLog($username, $action, $targetType, $targetId, $details, $ipAddress, $userAgent);
     }
     
     public function addProxy($ip, $port, $type, $username = null, $password = null) {
-        $sql = "INSERT INTO proxies (ip, port, type, username, password) VALUES (?, ?, ?, ?, ?)";
-        $stmt = $this->pdo->prepare($sql);
-        $result = $stmt->execute([$ip, $port, $type, $username, $password]);
-        
-        // 清理缓存
-        if ($result) {
-            $this->clearProxyCountCache();
-        }
-        
-        return $result;
+        $this->ensureConnection();
+        return $this->proxyRepository()->addProxy($ip, $port, $type, $username, $password);
     }
     
     public function proxyExists($ip, $port): bool {
-        $sql = "SELECT COUNT(*) FROM proxies WHERE ip = ? AND port = ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$ip, $port]);
-        return $stmt->fetchColumn() > 0;
+        $this->ensureConnection();
+        return $this->proxyRepository()->proxyExists($ip, $port);
     }
     
     public function getAllProxies(): array {
         $this->ensureConnection();
-        $sql = "SELECT * FROM proxies ORDER BY id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->proxyRepository()->getAllProxies();
     }
     
     public function getProxiesPaginated($page = 1, $perPage = 200) {
-        $offset = ($page - 1) * $perPage;
-        $sql = "SELECT * FROM proxies ORDER BY id LIMIT ? OFFSET ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$perPage, $offset]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->proxyRepository()->getProxiesPaginated((int) $page, (int) $perPage);
     }
     
     /**
@@ -316,154 +305,59 @@ class Database {
      * @return array|null 代理信息或null
      */
     public function getProxyById(int $id): ?array {
-        $sql = "SELECT * FROM proxies WHERE id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ?: null;
+        $this->ensureConnection();
+        return $this->proxyRepository()->getProxyById($id);
     }
     
     public function updateProxyStatus($id, $status, $responseTime = 0, $errorMessage = null) {
         $this->ensureConnection();
-        $failureCount = $status === 'online' ? 0 : null;
-        
-        if ($status === 'offline') {
-            // 获取当前失败次数并增加
-            $sql = "SELECT failure_count FROM proxies WHERE id = ?";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$id]);
-            $current = $stmt->fetch(PDO::FETCH_ASSOC);
-            $failureCount = ($current['failure_count'] ?? 0) + 1;
-        }
-        
-        $sql = "UPDATE proxies SET status = ?, last_check = CURRENT_TIMESTAMP, response_time = ?, updated_at = CURRENT_TIMESTAMP";
-        $params = [$status, $responseTime];
-        
-        if ($failureCount !== null) {
-            $sql .= ", failure_count = ?";
-            $params[] = $failureCount;
-        }
-        
-        $sql .= " WHERE id = ?";
-        $params[] = $id;
-        
-        $stmt = $this->pdo->prepare($sql);
-        $result = $stmt->execute($params);
-        
-        // 记录检查日志
-        $this->addCheckLog($id, $status, $responseTime, $errorMessage);
-        
-        return $result;
+        return $this->proxyRepository()->updateProxyStatus($id, $status, $responseTime, $errorMessage);
     }
     
     public function addCheckLog($proxyId, $status, $responseTime, $errorMessage = null) {
         $this->ensureConnection();
-        $sql = "INSERT INTO check_logs (proxy_id, status, response_time, error_message) VALUES (?, ?, ?, ?)";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$proxyId, $status, $responseTime, $errorMessage]);
+        return $this->proxyRepository()->addCheckLog($proxyId, $status, $responseTime, $errorMessage);
     }
     
     public function getProxyStats() {
-        $sql = "
-        SELECT 
-            COUNT(*) as total,
-            SUM(CASE WHEN status = 'online' THEN 1 ELSE 0 END) as online,
-            SUM(CASE WHEN status = 'offline' THEN 1 ELSE 0 END) as offline,
-            SUM(CASE WHEN status = 'unknown' THEN 1 ELSE 0 END) as unknown,
-            AVG(response_time) as avg_response_time
-        FROM proxies
-        ";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->proxyRepository()->getProxyStats();
     }
     
     public function getRecentLogs($limit = 100) {
-        $sql = "
-        SELECT cl.*, p.ip, p.port, p.type 
-        FROM check_logs cl 
-        JOIN proxies p ON cl.proxy_id = p.id 
-        ORDER BY cl.checked_at DESC 
-        LIMIT ?
-        ";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$limit]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->proxyRepository()->getRecentLogs((int) $limit);
     }
     
     public function addAlert($proxyId, $alertType, $message) {
-        $sql = "INSERT INTO alerts (proxy_id, alert_type, message) VALUES (?, ?, ?)";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$proxyId, $alertType, $message]);
+        $this->ensureConnection();
+        return $this->proxyRepository()->addAlert($proxyId, $alertType, $message);
     }
     
     public function getFailedProxies() {
-        $sql = "SELECT * FROM proxies WHERE failure_count >= ? ORDER BY failure_count DESC";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([ALERT_THRESHOLD]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->proxyRepository()->getFailedProxies();
     }
     
     public function cleanupOldLogs($days = 30) {
-        $cutoffDate = date('Y-m-d H:i:s', strtotime("-$days days"));
-        
-        // 清理检查日志
-        $sql = "DELETE FROM check_logs WHERE checked_at < ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$cutoffDate]);
-        $deletedLogs = $stmt->rowCount();
-        
-        // 清理警报记录
-        $sql = "DELETE FROM alerts WHERE sent_at < ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$cutoffDate]);
-        $deletedAlerts = $stmt->rowCount();
-        
-        return [
-            'deleted_logs' => $deletedLogs,
-            'deleted_alerts' => $deletedAlerts
-        ];
+        $this->ensureConnection();
+        return $this->proxyRepository()->cleanupOldLogs((int) $days);
     }
     
     /**
      * 更新代理认证信息
      */
     public function updateProxyAuth($id, $username, $password) {
-        $sql = "UPDATE proxies SET username = ?, password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        $result = $stmt->execute([$username, $password, $id]);
-        $this->clearProxyCountCache();
-        return $result;
+        $this->ensureConnection();
+        return $this->proxyRepository()->updateProxyAuth($id, $username, $password);
     }
     
     /**
      * 清空所有数据（代理、日志、警报）
      */
     public function clearAllData() {
-        try {
-            $this->pdo->beginTransaction();
-
-            // 删除所有相关数据
-            $this->pdo->exec("DELETE FROM alerts");
-            $this->pdo->exec("DELETE FROM check_logs");
-            $this->pdo->exec("DELETE FROM proxies");
-
-            // 重置自增ID
-            $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='proxies'");
-            $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='check_logs'");
-            $this->pdo->exec("DELETE FROM sqlite_sequence WHERE name='alerts'");
-
-            $this->pdo->commit();
-
-            $this->clearProxyCountCache();
-
-            return true;
-        } catch (PDOException $e) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-            throw new Exception("清空数据失败: " . $e->getMessage());
-        }
+        $this->ensureConnection();
+        return $this->proxyRepository()->clearAllData();
     }
     
     /**
@@ -471,12 +365,7 @@ class Database {
      */
     public function getProxyCount() {
         $this->ensureConnection();
-        $sql = "SELECT COUNT(*) as count FROM proxies";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        return (int)$result['count'];
+        return $this->proxyRepository()->getProxyCount();
     }
     
     /**
@@ -484,57 +373,7 @@ class Database {
      */
     public function getProxiesBatch($offset = 0, $limit = 20) {
         $this->ensureConnection();
-        $sql = "SELECT * FROM proxies ORDER BY id LIMIT ? OFFSET ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$limit, $offset]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * 转义 LIKE 模式中的特殊字符，避免用户输入通过通配符放大查询范围。
-     */
-    private function escapeLikePattern(string $value): string {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
-    }
-    
-    /**
-     * 构建搜索条件（公共方法，消除代码重复）
-     * @param string $searchTerm 搜索词
-     * @param string $statusFilter 状态筛选
-     * @return array ['conditions' => [], 'params' => []]
-     */
-    private function buildSearchConditions(string $searchTerm, string $statusFilter = ''): array {
-        $conditions = [];
-        $params = [];
-
-        $searchTerm = trim($searchTerm);
-        if (strlen($searchTerm) > 64) {
-            $searchTerm = substr($searchTerm, 0, 64);
-        }
-        
-        // 处理搜索条件
-        if (!empty($searchTerm)) {
-            // 检查是否是网段搜索（如 1.2.3.x 或 1.2.3.）
-            if (strpos($searchTerm, '.x') !== false || substr($searchTerm, -1) === '.') {
-                // 网段搜索
-                $networkPrefix = str_replace(['.x', 'x'], ['', ''], $searchTerm);
-                $networkPrefix = rtrim($networkPrefix, '.');
-                $conditions[] = "ip LIKE ? ESCAPE '\\'";
-                $params[] = $this->escapeLikePattern($networkPrefix) . '.%';
-            } else {
-                // 精确IP搜索或部分匹配
-                $conditions[] = "ip LIKE ? ESCAPE '\\'";
-                $params[] = '%' . $this->escapeLikePattern($searchTerm) . '%';
-            }
-        }
-        
-        // 处理状态筛选
-        if (!empty($statusFilter)) {
-            $conditions[] = "status = ?";
-            $params[] = $statusFilter;
-        }
-        
-        return ['conditions' => $conditions, 'params' => $params];
+        return $this->proxyRepository()->getProxiesBatch((int) $offset, (int) $limit);
     }
     
     /**
@@ -546,27 +385,8 @@ class Database {
      * @return array 搜索结果
      */
     public function searchProxies($searchTerm, $page = 1, $perPage = 200, $statusFilter = '') {
-        $offset = ($page - 1) * $perPage;
-        
-        // 使用公共方法构建条件
-        $result = $this->buildSearchConditions($searchTerm, $statusFilter);
-        $conditions = $result['conditions'];
-        $params = $result['params'];
-        
-        // 构建 SQL 查询
-        $sql = "SELECT * FROM proxies";
-        if (!empty($conditions)) {
-            $sql .= " WHERE " . implode(' AND ', $conditions);
-        }
-        $sql .= " ORDER BY ip, port LIMIT ? OFFSET ?";
-        
-        $params[] = $perPage;
-        $params[] = $offset;
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureConnection();
+        return $this->proxyRepository()->searchProxies($searchTerm, (int) $page, (int) $perPage, (string) $statusFilter);
     }
     
     /**
@@ -576,22 +396,8 @@ class Database {
      * @return int 搜索结果总数
      */
     public function getSearchCount($searchTerm, $statusFilter = '') {
-        // 使用公共方法构建条件
-        $result = $this->buildSearchConditions($searchTerm, $statusFilter);
-        $conditions = $result['conditions'];
-        $params = $result['params'];
-        
-        // 构建 SQL 查询
-        $sql = "SELECT COUNT(*) as count FROM proxies";
-        if (!empty($conditions)) {
-            $sql .= " WHERE " . implode(' AND ', $conditions);
-        }
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return (int)$result['count'];
+        $this->ensureConnection();
+        return $this->proxyRepository()->getSearchCount($searchTerm, (string) $statusFilter);
     }
     
     /**
@@ -600,10 +406,7 @@ class Database {
      */
     public function getOfflineProxies() {
         $this->ensureConnection();
-        $sql = "SELECT * FROM proxies WHERE status = 'offline' ORDER BY failure_count DESC, last_check ASC";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->proxyRepository()->getOfflineProxies();
     }
     
     /**
@@ -612,11 +415,7 @@ class Database {
      */
     public function getOfflineProxyCount() {
         $this->ensureConnection();
-        $sql = "SELECT COUNT(*) as count FROM proxies WHERE status = 'offline'";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return (int)$result['count'];
+        return $this->proxyRepository()->getOfflineProxyCount();
     }
     
     /**
@@ -627,33 +426,7 @@ class Database {
      */
     public function getOfflineProxiesBatch($offset = 0, $limit = 20) {
         $this->ensureConnection();
-        $sql = "SELECT * FROM proxies WHERE status = 'offline' ORDER BY failure_count DESC, last_check ASC LIMIT ? OFFSET ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$limit, $offset]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * 清理代理数量缓存
-     */
-    private function clearProxyCountCache() {
-        $cacheFileName = defined('PROXY_COUNT_CACHE_FILE') ? (string) PROXY_COUNT_CACHE_FILE : 'cache_proxy_count.txt';
-        $cacheDir = defined('CACHE_DIR') ? rtrim((string) CACHE_DIR, '/\\') : (__DIR__ . '/cache');
-        $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . ltrim($cacheFileName, '/\\');
-
-        if (file_exists($cacheFile)) {
-            if (!unlink($cacheFile)) {
-                error_log('[NetWatch][Database] Failed to remove cache file: ' . $cacheFile);
-            }
-            return;
-        }
-
-        // 兼容旧版本相对路径缓存文件
-        if (file_exists($cacheFileName)) {
-            if (!unlink($cacheFileName)) {
-                error_log('[NetWatch][Database] Failed to remove legacy cache file: ' . $cacheFileName);
-            }
-        }
+        return $this->proxyRepository()->getOfflineProxiesBatch((int) $offset, (int) $limit);
     }
 
     private function warnIfWorldWritablePath(string $path, string $type): void {
@@ -685,6 +458,22 @@ class Database {
         }
 
         return $this->trafficRepository;
+    }
+
+    private function proxyRepository(): ProxyRepository {
+        if (!($this->proxyRepository instanceof ProxyRepository)) {
+            $this->proxyRepository = new ProxyRepository($this->pdo);
+        }
+
+        return $this->proxyRepository;
+    }
+
+    private function auditLogRepository(): AuditLogRepository {
+        if (!($this->auditLogRepository instanceof AuditLogRepository)) {
+            $this->auditLogRepository = new AuditLogRepository($this->pdo);
+        }
+
+        return $this->auditLogRepository;
     }
 
     // ==================== API Token 管理方法 ====================
@@ -879,13 +668,8 @@ class Database {
     }
 
     public function getDistinctStatuses(): array {
-        $sql = "SELECT DISTINCT status FROM proxies WHERE status IS NOT NULL AND status != '' ORDER BY status ASC";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return array_values(array_map(static function ($row) {
-            return $row['status'];
-        }, $rows));
+        $this->ensureConnection();
+        return $this->proxyRepository()->getDistinctStatuses();
     }
     
     /**

@@ -4,11 +4,28 @@ declare(strict_types=1);
  * 定时任务调度器
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/includes/Config.php';
-require_once __DIR__ . '/monitor.php';
-require_once __DIR__ . '/includes/Container.php';
-require_once __DIR__ . '/includes/MailerFactory.php';
+
+if (!class_exists('Config')) {
+    require_once __DIR__ . '/includes/Config.php';
+}
+
+if (!class_exists('NetworkMonitor')) {
+    require_once __DIR__ . '/monitor.php';
+}
+
+if (!function_exists('app')) {
+    require_once __DIR__ . '/includes/Container.php';
+}
+
+if (!class_exists('MailerFactory')) {
+    require_once __DIR__ . '/includes/MailerFactory.php';
+}
 
 ensure_valid_config('cli');
 

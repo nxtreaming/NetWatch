@@ -3,9 +3,17 @@
  * 登录页面
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once 'config.php';
 require_once 'auth.php';
-require_once 'includes/RateLimiter.php';
+
+if (!class_exists('RateLimiter')) {
+    require_once 'includes/RateLimiter.php';
+}
 
 // 如果未启用登录功能或已登录，重定向到主页
 if (!Auth::isLoginEnabled() || Auth::isLoggedIn()) {

@@ -4,9 +4,21 @@
  * 支持局部刷新功能
  */
 
+$composerAutoload = __DIR__ . '/../vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../includes/JsonResponse.php';
-require_once __DIR__ . '/../includes/RateLimiter.php';
+
+if (!class_exists('JsonResponse')) {
+    require_once __DIR__ . '/../includes/JsonResponse.php';
+}
+
+if (!class_exists('RateLimiter')) {
+    require_once __DIR__ . '/../includes/RateLimiter.php';
+}
+
 require_once __DIR__ . '/includes/helpers.php';
 
 function proxyStatusIsSameOrigin(string $origin): bool {
@@ -42,7 +54,10 @@ if (!empty($_SERVER['HTTP_ORIGIN'])) {
     header('Vary: Origin');
 }
 require_once __DIR__ . '/../auth.php';
-require_once __DIR__ . '/../traffic_monitor.php';
+
+if (!class_exists('TrafficMonitor')) {
+    require_once __DIR__ . '/../traffic_monitor.php';
+}
 
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');

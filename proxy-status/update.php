@@ -4,7 +4,14 @@
  * 已禁用 - 只允许定时任务更新数据
  */
 
-require_once __DIR__ . '/../includes/JsonResponse.php';
+$composerAutoload = __DIR__ . '/../vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
+if (!class_exists('JsonResponse')) {
+    require_once __DIR__ . '/../includes/JsonResponse.php';
+}
 
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');

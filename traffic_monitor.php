@@ -4,10 +4,24 @@
  * 负责从API获取流量数据并保存到数据库
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once 'config.php';
-require_once 'database.php';
-require_once 'logger.php';
-require_once 'includes/Config.php';
+
+if (!class_exists('Database')) {
+    require_once 'database.php';
+}
+
+if (!class_exists('Logger')) {
+    require_once 'logger.php';
+}
+
+if (!class_exists('Config')) {
+    require_once 'includes/Config.php';
+}
 
 class TrafficMonitor {
     private Database $db;

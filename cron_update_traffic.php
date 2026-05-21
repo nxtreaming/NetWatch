@@ -5,8 +5,16 @@
  * 
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/traffic_monitor.php';
+
+if (!class_exists('TrafficMonitor')) {
+    require_once __DIR__ . '/traffic_monitor.php';
+}
 
 echo "=== 流量数据更新任务开始 ===\n";
 echo "执行时间: " . date('Y-m-d H:i:s') . "\n\n";

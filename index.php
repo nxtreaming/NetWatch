@@ -3,16 +3,39 @@
  * NetWatch Web 界面
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once 'config.php';
-require_once 'includes/Config.php';
 require_once 'auth.php';
-require_once 'database.php';
-require_once 'monitor.php';
-require_once 'includes/JsonResponse.php';
-require_once 'includes/IndexPageController.php';
-require_once 'includes/Container.php';
 require_once 'includes/functions.php';
 require_once 'includes/ajax_handler.php';
+
+if (!class_exists('Config')) {
+    require_once 'includes/Config.php';
+}
+
+if (!class_exists('Database')) {
+    require_once 'database.php';
+}
+
+if (!class_exists('NetworkMonitor')) {
+    require_once 'monitor.php';
+}
+
+if (!class_exists('JsonResponse')) {
+    require_once 'includes/JsonResponse.php';
+}
+
+if (!class_exists('IndexPageController')) {
+    require_once 'includes/IndexPageController.php';
+}
+
+if (!function_exists('app')) {
+    require_once 'includes/Container.php';
+}
 
 netwatch_enforce_entrypoint_paths('/index.php');
 
