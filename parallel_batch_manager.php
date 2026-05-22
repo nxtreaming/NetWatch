@@ -12,11 +12,28 @@ ini_set('log_errors', 1);
 // 设置执行时间限制
 set_time_limit(0); // 无限制
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/database.php';
-require_once __DIR__ . '/includes/Config.php';
-require_once __DIR__ . '/includes/ParallelStatusUtils.php';
-require_once __DIR__ . '/logger.php';
+
+if (!class_exists('Database')) {
+    require_once __DIR__ . '/database.php';
+}
+
+if (!class_exists('Config')) {
+    require_once __DIR__ . '/includes/Config.php';
+}
+
+if (!function_exists('netwatch_read_json_file')) {
+    require_once __DIR__ . '/includes/ParallelStatusUtils.php';
+}
+
+if (!class_exists('Logger')) {
+    require_once __DIR__ . '/logger.php';
+}
 
 // 检查命令行参数
 if ($argc < 4) {

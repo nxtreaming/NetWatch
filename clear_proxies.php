@@ -9,10 +9,23 @@ ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 try {
+    $composerAutoload = __DIR__ . '/vendor/autoload.php';
+    if (is_file($composerAutoload)) {
+        require_once $composerAutoload;
+    }
+
     require_once __DIR__ . '/config.php';
     require_once __DIR__ . '/auth.php';
-    require_once __DIR__ . '/monitor.php';
     require_once __DIR__ . '/includes/functions.php';
+
+    if (!class_exists('NetworkMonitor')) {
+        require_once __DIR__ . '/monitor.php';
+    }
+
+    if (!class_exists('Database')) {
+        require_once __DIR__ . '/database.php';
+    }
+
     if (file_exists(__DIR__ . '/includes/AuditLogger.php')) {
         require_once __DIR__ . '/includes/AuditLogger.php';
     }

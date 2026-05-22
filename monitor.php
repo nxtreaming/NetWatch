@@ -3,11 +3,28 @@
  * 网络监控核心类
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/database.php';
-require_once __DIR__ . '/includes/Config.php';
-require_once __DIR__ . '/logger.php';
-require_once __DIR__ . '/proxy_checker.php';
+
+if (!class_exists('Database')) {
+    require_once __DIR__ . '/database.php';
+}
+
+if (!class_exists('Config')) {
+    require_once __DIR__ . '/includes/Config.php';
+}
+
+if (!class_exists('Logger')) {
+    require_once __DIR__ . '/logger.php';
+}
+
+if (!class_exists('ProxyChecker')) {
+    require_once __DIR__ . '/proxy_checker.php';
+}
 
 class NetworkMonitor {
     protected Database $db;

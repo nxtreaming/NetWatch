@@ -5,13 +5,36 @@
  * 修复版本：支持会话隔离，避免多设备/多用户之间的干扰
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once 'config.php';
-require_once 'database.php';
-require_once 'includes/Config.php';
-require_once 'includes/MailerFactory.php';
-require_once 'includes/ParallelStatusUtils.php';
-require_once 'monitor.php';
-require_once 'logger.php';
+
+if (!class_exists('Database')) {
+    require_once 'database.php';
+}
+
+if (!class_exists('Config')) {
+    require_once 'includes/Config.php';
+}
+
+if (!class_exists('MailerFactory')) {
+    require_once 'includes/MailerFactory.php';
+}
+
+if (!function_exists('netwatch_create_status_dir')) {
+    require_once 'includes/ParallelStatusUtils.php';
+}
+
+if (!class_exists('NetworkMonitor')) {
+    require_once 'monitor.php';
+}
+
+if (!class_exists('Logger')) {
+    require_once 'logger.php';
+}
 
 class ParallelMonitor {
     private Database $db;

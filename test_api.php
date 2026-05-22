@@ -3,9 +3,17 @@
  * API功能测试脚本
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once 'config.php';
 require_once 'auth.php';
-require_once 'database.php';
+
+if (!class_exists('Database')) {
+    require_once 'database.php';
+}
 
 // 检查登录状态
 Auth::requireLogin();

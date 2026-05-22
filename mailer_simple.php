@@ -4,10 +4,24 @@
  * 使用PHP内置的mail()函数
  */
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once 'config.php';
-require_once 'includes/Config.php';
-require_once 'logger.php';
-require_once __DIR__ . '/includes/MailerInterface.php';
+
+if (!class_exists('Config')) {
+    require_once 'includes/Config.php';
+}
+
+if (!class_exists('Logger')) {
+    require_once 'logger.php';
+}
+
+if (!interface_exists('MailerInterface')) {
+    require_once __DIR__ . '/includes/MailerInterface.php';
+}
 
 class SimpleMailer implements MailerInterface {
     private $logger;

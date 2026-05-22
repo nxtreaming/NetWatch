@@ -1,8 +1,17 @@
 <?php
+
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/includes/functions.php';
+
+if (!class_exists('Database')) {
+    require_once __DIR__ . '/database.php';
+}
 
 // 强制登录检查
 Auth::requireLogin();

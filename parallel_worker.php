@@ -11,10 +11,24 @@ ini_set('display_errors', 0);
 // 设置执行时间限制
 set_time_limit(600); // 10分钟
 
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/database.php';
-require_once __DIR__ . '/monitor.php';
-require_once __DIR__ . '/logger.php';
+
+if (!class_exists('Database')) {
+    require_once __DIR__ . '/database.php';
+}
+
+if (!class_exists('NetworkMonitor')) {
+    require_once __DIR__ . '/monitor.php';
+}
+
+if (!class_exists('Logger')) {
+    require_once __DIR__ . '/logger.php';
+}
 
 // 检查命令行参数
 if ($argc < 5) {
