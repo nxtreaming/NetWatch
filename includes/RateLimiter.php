@@ -36,25 +36,38 @@ class RateLimiter {
      */
     public function attempt(string $key): bool {
         $this->maybeCleanupStaleFiles();
-        $data = $this->getData($key);
-        $now = time();
-        
-        // 清理过期记录
-        $data['requests'] = array_filter($data['requests'], function($timestamp) use ($now) {
-            return ($now - $timestamp) < $this->windowSeconds;
-        });
-        
-        // 检查是否超限
-        if (count($data['requests']) >= $this->maxRequests) {
-            $this->saveData($key, $data);
+        $file = $this->getFilePath($key);
+        $handle = @fopen($file, 'c+');
+        if ($handle === false) {
+            error_log('[NetWatch][RateLimiter] Failed to open rate limit file: ' . $file);
             return false;
         }
-        
-        // 记录本次请求
-        $data['requests'][] = $now;
-        $this->saveData($key, $data);
-        
-        return true;
+
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                error_log('[NetWatch][RateLimiter] Failed to lock rate limit file: ' . $file);
+                return false;
+            }
+
+            $data = $this->readDataFromHandle($handle);
+            $now = time();
+
+            $data['requests'] = array_values(array_filter($data['requests'], function ($timestamp) use ($now) {
+                return ($now - (int) $timestamp) < $this->windowSeconds;
+            }));
+
+            if (count($data['requests']) >= $this->maxRequests) {
+                $this->writeDataToHandle($handle, $data, $file);
+                return false;
+            }
+
+            $data['requests'][] = $now;
+            $this->writeDataToHandle($handle, $data, $file);
+            return true;
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
     }
     
     /**
@@ -344,19 +357,27 @@ class RateLimiter {
     
     private function getData(string $key): array {
         $file = $this->getFilePath($key);
-        
         if (!file_exists($file)) {
             return ['requests' => []];
         }
-        
-        $content = file_get_contents($file);
-        if ($content === false) {
-            error_log('[NetWatch][RateLimiter] Failed to read rate limit file: ' . $file);
+
+        $handle = @fopen($file, 'r');
+        if ($handle === false) {
+            error_log('[NetWatch][RateLimiter] Failed to open rate limit file for reading: ' . $file);
             return ['requests' => []];
         }
-        
-        $data = json_decode($content, true);
-        return is_array($data) ? $data : ['requests' => []];
+
+        try {
+            if (!flock($handle, LOCK_SH)) {
+                error_log('[NetWatch][RateLimiter] Failed to acquire shared lock for rate limit file: ' . $file);
+                return ['requests' => []];
+            }
+
+            return $this->readDataFromHandle($handle);
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
     }
     
     private function saveData(string $key, array $data): void {
@@ -364,6 +385,42 @@ class RateLimiter {
         if (file_put_contents($file, json_encode($data), LOCK_EX) === false) {
             error_log('[NetWatch][RateLimiter] Failed to write rate limit file: ' . $file);
         }
+    }
+
+    private function readDataFromHandle($handle): array {
+        rewind($handle);
+        $content = stream_get_contents($handle);
+        if ($content === false || trim($content) === '') {
+            return ['requests' => []];
+        }
+
+        $data = json_decode($content, true);
+        if (!is_array($data) || !isset($data['requests']) || !is_array($data['requests'])) {
+            return ['requests' => []];
+        }
+
+        return $data;
+    }
+
+    private function writeDataToHandle($handle, array $data, string $file): void {
+        $encoded = json_encode($data);
+        if ($encoded === false) {
+            error_log('[NetWatch][RateLimiter] Failed to encode rate limit data for file: ' . $file);
+            return;
+        }
+
+        rewind($handle);
+        if (!ftruncate($handle, 0)) {
+            error_log('[NetWatch][RateLimiter] Failed to truncate rate limit file: ' . $file);
+            return;
+        }
+
+        if (fwrite($handle, $encoded) === false) {
+            error_log('[NetWatch][RateLimiter] Failed to write rate limit file: ' . $file);
+            return;
+        }
+
+        fflush($handle);
     }
     
     private function isJsonRequest(): bool {

@@ -243,30 +243,32 @@ class NetworkMonitor {
         $imported = 0;
         $skipped = 0;
         $errors = [];
-        
-        foreach ($proxyList as $proxyData) {
-            try {
-                // 如果是跳过模式，先检查是否已存在
-                if ($importMode === 'skip' && $this->db->proxyExists($proxyData['ip'], $proxyData['port'])) {
-                    $skipped++;
-                    continue;
+
+        $this->db->runInTransaction(function () use ($proxyList, $importMode, &$imported, &$skipped, &$errors): void {
+            foreach ($proxyList as $proxyData) {
+                try {
+                    // 如果是跳过模式，先检查是否已存在
+                    if ($importMode === 'skip' && $this->db->proxyExists($proxyData['ip'], $proxyData['port'])) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    if ($this->db->addProxy(
+                        $proxyData['ip'],
+                        $proxyData['port'],
+                        $proxyData['type'],
+                        $proxyData['username'] ?? null,
+                        $proxyData['password'] ?? null
+                    )) {
+                        $imported++;
+                    } else {
+                        $errors[] = "导入失败: {$proxyData['ip']}:{$proxyData['port']}";
+                    }
+                } catch (Exception $e) {
+                    $errors[] = "导入异常: {$proxyData['ip']}:{$proxyData['port']} - " . $e->getMessage();
                 }
-                
-                if ($this->db->addProxy(
-                    $proxyData['ip'],
-                    $proxyData['port'],
-                    $proxyData['type'],
-                    $proxyData['username'] ?? null,
-                    $proxyData['password'] ?? null
-                )) {
-                    $imported++;
-                } else {
-                    $errors[] = "导入失败: {$proxyData['ip']}:{$proxyData['port']}";
-                }
-            } catch (Exception $e) {
-                $errors[] = "导入异常: {$proxyData['ip']}:{$proxyData['port']} - " . $e->getMessage();
             }
-        }
+        });
         
         $this->logger->info('proxy_import_completed', [
             'imported' => $imported,

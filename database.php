@@ -671,6 +671,27 @@ class Database {
         $this->ensureConnection();
         return $this->proxyRepository()->getDistinctStatuses();
     }
+
+    public function runInTransaction(callable $callback) {
+        $this->ensureConnection();
+
+        if ($this->pdo->inTransaction()) {
+            return $callback();
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+            $result = $callback();
+            $this->pdo->commit();
+            return $result;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
+        }
+    }
     
     /**
      * 清理过期的流量快照
